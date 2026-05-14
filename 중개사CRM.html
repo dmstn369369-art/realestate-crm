@@ -1,0 +1,3885 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부동산 중개 보조 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- Supabase Client Library (v2) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2230;--bg4:#21262d;
+  --border:#2d3748;--border2:#3d4a5c;
+  --gold:#d4a843;--gold2:#f0c060;--gold3:#8a6820;--gold-dim:rgba(212,168,67,0.12);
+  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --green:#3fb950;--green-dim:rgba(63,185,80,0.15);
+  --blue:#58a6ff;--blue-dim:rgba(88,166,255,0.15);
+  --red:#f85149;--red-dim:rgba(248,81,73,0.12);
+  --orange:#e3814a;--orange-dim:rgba(227,129,74,0.15);
+  --radius:8px;--radius2:12px;
+  --c-inip:#9ca3af;--c-inip-dim:rgba(156,163,175,0.18);
+  --c-meeting:#58a6ff;--c-meeting-dim:rgba(88,166,255,0.18);
+  --c-deposit:#d4a843;--c-deposit-dim:rgba(212,168,67,0.18);
+  --c-sign:#e3814a;--c-sign-dim:rgba(227,129,74,0.18);
+  --c-balance:#3fb950;--c-balance-dim:rgba(63,185,80,0.18);
+  --c-general:#bc8cff;--c-general-dim:rgba(188,140,255,0.18);
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;height:100vh;overflow:hidden;line-height:1.5;color-scheme:dark}
+.app{display:flex;height:100vh}
+.sidebar{width:200px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:'Noto Serif KR',serif;font-size:14px;color:var(--gold);font-weight:700}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:2px;margin-top:3px;text-transform:uppercase}
+.nav{flex:1;padding:10px 0}
+.ns{padding:10px 16px 4px;font-size:9px;color:var(--text3);letter-spacing:1.5px;font-weight:600}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:var(--text2);font-size:12px;border-left:2px solid transparent;transition:all .15s}
+.ni svg{width:14px;height:14px;flex-shrink:0}
+.ni:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.ni.on{background:var(--gold-dim);color:var(--gold);border-left-color:var(--gold);font-weight:500}
+.sf{padding:12px 16px;border-top:1px solid var(--border)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--gold3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--bg);border:1.5px solid var(--gold)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:var(--gold)}
+.content{flex:1;overflow-y:auto;padding:18px}
+.page{display:none}.page.on{display:block}
+.btn{padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--bg4)}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:var(--bg);font-weight:700}
+.btn-gold:hover{background:var(--gold2)}
+.btn-red{background:transparent;border-color:rgba(248,81,73,.3);color:var(--red)}
+.btn-red:hover{background:var(--red-dim)}
+.btn-sm{padding:3px 8px;font-size:11px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+.panel-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;margin-bottom:14px}
+.tbl-head{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+table{width:100%;border-collapse:collapse}
+thead th{padding:8px 14px;font-size:10px;font-weight:600;color:var(--text3);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.3px}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+tbody tr:last-child{border-bottom:none}
+tbody td{padding:9px 14px;font-size:12px;color:var(--text2)}
+tbody td.td-name{color:var(--text);font-weight:500}
+.badge{display:inline-flex;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.b-gold{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,67,.2)}
+.b-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.b-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.2)}
+.b-orange{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,129,74,.2)}
+.b-gray{background:rgba(139,148,158,.12);color:var(--text2);border:1px solid rgba(139,148,158,.2)}
+/* 진행단계 칩 */
+.stage-row{display:flex;gap:3px;flex-wrap:wrap}
+.stage-chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:9.5px;font-weight:600;background:rgba(139,148,158,.06);color:var(--text3);border:1px solid rgba(139,148,158,.15);transition:all .12s}
+.stage-chip.on{font-weight:700}
+.stage-chip.on::before{content:'✓ ';font-size:9px}
+/* 계약 정산 카드 */
+.contract-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;margin-bottom:12px;transition:border-color .15s}
+.contract-card:hover{border-color:var(--border2)}
+.cc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.cc-head-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cc-name{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:var(--gold)}
+.cc-date{font-size:11px;color:var(--text3)}
+.cc-total{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:var(--green)}
+.cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cc-section{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.cc-section-title{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase}
+.cc-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cc-row:last-child{margin-bottom:0}
+.cc-row label{font-size:11px;color:var(--text3);min-width:54px}
+.cc-row input,.cc-row select{flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg2);outline:none;transition:border-color .15s}
+.cc-row input:focus,.cc-row select:focus{border-color:var(--gold)}
+.cc-row select option{background:var(--bg2)}
+.cc-row .unit{font-size:10px;color:var(--text3);min-width:28px;text-align:right}
+.cc-fee-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.cc-fee-box{background:var(--bg3);border-radius:6px;padding:8px 10px}
+.cc-fee-label{font-size:10px;color:var(--text3);font-weight:600;margin-bottom:4px}
+.cc-fee-val{font-size:13px;font-weight:700;color:var(--gold)}
+.cc-co{display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none;font-size:11px;color:var(--text2)}
+.cc-co input{margin:0}
+.cc-co.on{color:var(--blue)}
+.cc-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.cc-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.cc-status.saved{background:var(--green-dim);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+.cc-status.unsaved{background:rgba(212,168,67,.1);color:var(--gold);border:1px solid rgba(212,168,67,.25)}
+.cc-empty{background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius2);padding:30px;text-align:center;color:var(--text3);font-size:12px}
+/* 계약 정산 행 형식 (클릭 시 모달) */
+.contract-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 18px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.contract-row:hover{border-color:var(--gold);background:var(--bg3);transform:translateX(2px)}
+.cr-left{flex:1;min-width:0}
+.cr-name-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.cr-name{font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:var(--gold)}
+.cr-info-line{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text2);flex-wrap:wrap}
+.cr-date{color:var(--text2)}
+.cr-addr{color:var(--text);max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-addr-empty{color:var(--text3);font-style:italic}
+.cr-right{text-align:right;flex-shrink:0}
+.cr-total-label{font-size:9px;color:var(--text3);font-weight:600;letter-spacing:.5px;margin-bottom:2px}
+.cr-total-val{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:var(--green)}
+.cr-arrow{color:var(--text3);font-size:18px;flex-shrink:0;transition:color .15s}
+.contract-row:hover .cr-arrow{color:var(--gold)}
+.cr-fee-line{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.cr-fee-item{display:inline-flex;align-items:center;padding:3px 9px;border-radius:10px;font-size:10.5px;font-weight:600}
+.cr-fee-tenant{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+.cr-fee-landlord{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,129,74,.25)}
+.cr-fee-progress{font-size:10px;color:var(--text3);font-weight:500}
+/* 내 정산 표시 */
+.cr-my-share{margin-top:6px;padding:6px 10px;background:linear-gradient(90deg,var(--gold-dim) 0%,transparent 100%);border-left:2px solid var(--gold);border-radius:4px;display:flex;justify-content:space-between;align-items:center}
+.cr-my-share-label{font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.3px}
+.cr-my-share-val{font-family:'Noto Serif KR',serif;font-size:13px;color:var(--gold);font-weight:700}
+.cr-my-share-ratio{font-size:9px;color:var(--text3);margin-left:4px;font-weight:500}
+/* 비율 프리셋 버튼 */
+.ratio-preset{padding:10px 8px;font-weight:700;font-size:14px;font-family:'Noto Serif KR',serif;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);transition:all .15s}
+.ratio-preset:hover{border-color:var(--gold);color:var(--gold)}
+.ratio-preset.active{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+/* 수수료 수령 내역 행 */
+.pay-row{display:grid;grid-template-columns:auto 70px 1fr auto;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;transition:border-color .15s}
+.pay-row:hover{border-color:var(--border2)}
+.pay-row input[type="date"]{padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text);background:var(--bg2);outline:none;width:130px}
+.pay-row input[type="text"]{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg2);outline:none;text-align:right;font-weight:600}
+.pay-row input:focus{border-color:var(--gold)}
+.pay-side-tag{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;flex-shrink:0;text-align:center;width:60px}
+.pay-side-tag.tenant{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+.pay-side-tag.landlord{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,129,74,.25)}
+.pay-del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px 6px;border-radius:4px;flex-shrink:0;transition:all .15s}
+.pay-del-btn:hover{background:var(--red-dim);color:var(--red)}
+.pay-empty{text-align:center;padding:18px;color:var(--text3);font-size:11px;background:var(--bg);border:1px dashed var(--border2);border-radius:6px}
+/* 콤팩트 계약 카드 */
+.cc-grid-compact{display:flex;flex-direction:column;gap:8px}
+.cc-row-compact{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cc-row-compact > input[type="text"],.cc-row-compact > select{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;min-width:0}
+.cc-row-compact > input[type="text"]:focus,.cc-row-compact > select:focus{border-color:var(--gold)}
+.cc-row-compact select option{background:var(--bg2)}
+.cc-input-grp{flex:1;display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 8px;min-width:0;transition:border-color .15s}
+.cc-input-grp:focus-within{border-color:var(--gold)}
+.cc-input-grp input{flex:1;padding:7px 0;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);outline:none;min-width:0}
+.cc-input-lbl{font-size:10px;color:var(--text3);font-weight:600;flex-shrink:0;letter-spacing:.3px}
+.cc-input-grp .unit,.cc-fee-input .unit{font-size:10px;color:var(--text3);flex-shrink:0}
+/* 수수료 입력 */
+.cc-fees{align-items:stretch}
+.cc-fee-input{flex:1;display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 8px;min-width:0;transition:border-color .15s;position:relative}
+.cc-fee-input:focus-within{border-color:var(--gold)}
+.cc-fee-input input{flex:1;padding:7px 0;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);outline:none;min-width:0}
+.cc-co-btn{flex-shrink:0;padding:3px 8px;border-radius:10px;font-size:9.5px;font-weight:700;background:rgba(139,148,158,.1);color:var(--text3);border:1px solid rgba(139,148,158,.25);cursor:pointer;transition:all .12s;letter-spacing:.3px;font-family:'Noto Sans KR',sans-serif}
+.cc-co-btn:hover{background:rgba(139,148,158,.2);color:var(--text2)}
+.cc-co-btn.on{background:var(--purple-dim,rgba(188,140,255,.18));color:var(--purple,#bc8cff);border-color:rgba(188,140,255,.4)}
+.cc-fee-summary{display:flex;align-items:center;gap:8px;background:var(--bg3);border-radius:6px;padding:0 12px;flex-shrink:0}
+.cc-fee-summary .cc-fee-label{font-size:10px;color:var(--text3);font-weight:600}
+.cc-fee-summary .cc-fee-val{font-size:13px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif}
+.sbar{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px}
+.sbar input{border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);outline:none;width:170px}
+.sbar input::placeholder{color:var(--text3)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.empty{text-align:center;padding:28px;color:var(--text3);font-size:12px}
+
+/* CALENDAR */
+.cal-layout{display:grid;grid-template-columns:1fr 280px;gap:14px}
+.cal-main{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:visible;position:relative}
+.cal-nav{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.cal-nav-left{display:flex;align-items:center;gap:6px}
+.cal-nav-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:none;cursor:pointer;color:var(--text2);font-size:15px;display:flex;align-items:center;justify-content:center}
+.cal-nav-btn:hover{background:var(--bg3);color:var(--text)}
+.cal-month-btn{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:var(--gold);cursor:pointer;background:none;border:none;padding:2px 8px;border-radius:6px}
+.cal-month-btn:hover{background:var(--gold-dim)}
+.today-btn{font-size:11px;padding:4px 10px;background:transparent;border:1px solid var(--border2);color:var(--text2);border-radius:6px;cursor:pointer}
+.today-btn:hover{color:var(--gold);border-color:var(--gold)}
+.cal-legend{display:flex;gap:8px;font-size:10px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.leg-count{font-weight:700;font-size:10px}
+.leg-inip .leg-dot{background:var(--c-inip)}.leg-inip .leg-count{color:var(--c-inip)}
+.leg-meeting .leg-dot{background:var(--c-meeting)}.leg-meeting .leg-count{color:var(--c-meeting)}
+.leg-deposit .leg-dot{background:var(--c-deposit)}.leg-deposit .leg-count{color:var(--c-deposit)}
+.leg-sign .leg-dot{background:var(--c-sign)}.leg-sign .leg-count{color:var(--c-sign)}
+.leg-balance .leg-dot{background:var(--c-balance)}.leg-balance .leg-count{color:var(--c-balance)}
+.leg-general .leg-dot{background:var(--c-general)}.leg-general .leg-count{color:var(--c-general)}
+.cal-body{padding:10px 12px}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.cal-dow span{text-align:center;font-size:10px;font-weight:600;color:var(--text3);padding:4px}
+.cal-dow .sun{color:rgba(248,81,73,.7)}.cal-dow .sat{color:rgba(88,166,255,.7)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cd{min-height:68px;padding:4px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid transparent;display:flex;flex-direction:column}
+.cd:hover{background:rgba(255,255,255,.05)}
+.cd.today{background:var(--gold-dim);border-color:rgba(212,168,67,.3)}
+.cd.today .cd-num{color:var(--gold)!important;font-weight:700}
+.cd.sel{background:rgba(255,255,255,.08);border-color:var(--gold)}
+.cd.other .cd-num{color:var(--text3)!important}
+.cd-num{font-size:11px;font-weight:500;margin-bottom:3px;display:block}
+.cd:nth-child(7n+1) .cd-num{color:rgba(248,81,73,.8)}
+.cd:nth-child(7n) .cd-num{color:rgba(88,166,255,.8)}
+.cd-events{display:flex;flex-direction:column;gap:1px}
+.cd-ev{font-size:9px;padding:1px 3px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.ev-inip{background:var(--c-inip-dim);color:var(--c-inip)}
+.ev-meeting{background:var(--c-meeting-dim);color:var(--c-meeting)}
+.ev-deposit{background:var(--c-deposit-dim);color:var(--c-deposit)}
+.ev-sign{background:var(--c-sign-dim);color:var(--c-sign)}
+.ev-balance{background:var(--c-balance-dim);color:var(--c-balance)}
+.ev-general{background:var(--c-general-dim);color:var(--c-general)}
+/* 클릭 가능한 고객 링크 */
+.client-link{color:var(--gold);cursor:pointer;font-weight:500;text-decoration:underline;text-decoration-color:rgba(212,168,67,.4);text-underline-offset:2px;transition:color .15s}
+.client-link:hover{color:var(--gold2);text-decoration-color:var(--gold)}
+/* 날짜/시간 input 흰색 아이콘 + 깔끔한 스타일 */
+input[type="date"],input[type="time"]{
+  font-family:'Noto Sans KR',sans-serif;
+  letter-spacing:0.3px;
+  color:var(--text);
+  background:var(--bg);
+  cursor:pointer;
+  position:relative;
+}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{
+  filter:invert(1) brightness(3) contrast(1.2);
+  cursor:pointer;
+  opacity:1;
+  padding:3px;
+  margin-left:6px;
+  border-radius:4px;
+  transition:all .15s;
+  width:18px;
+  height:18px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover{
+  opacity:1;
+  background:var(--gold-dim);
+  filter:invert(70%) sepia(80%) saturate(500%) hue-rotate(10deg) brightness(1.2);
+}
+/* date/time input 다크 테마 - 일부 브라우저 */
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit{color:var(--text)}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="time"]::-webkit-datetime-edit-fields-wrapper{color:var(--text)}
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
+.day-panel{display:flex;flex-direction:column;gap:10px}
+.day-events{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden}
+.day-ev-item{padding:10px 14px;border-bottom:1px solid var(--border);transition:background .1s;display:flex;align-items:flex-start;gap:8px}
+.day-ev-item.clickable{cursor:pointer}
+.day-ev-item:hover{background:rgba(255,255,255,.03)}
+.day-ev-item:last-child{border-bottom:none}
+.day-ev-type{font-size:9px;font-weight:700;letter-spacing:.5px;margin-bottom:2px}
+.day-ev-title{font-size:12px;font-weight:500;color:var(--text)}
+.day-ev-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.day-ev-actions{display:flex;gap:2px;flex-shrink:0}
+.day-ev-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:3px 6px;border-radius:4px;transition:all .15s;font-weight:500}
+.day-ev-btn:hover{background:var(--bg3);color:var(--text)}
+.day-ev-btn.del:hover{background:var(--red-dim);color:var(--red)}
+
+/* Month Picker */
+.month-picker{position:absolute;top:52px;left:16px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:12px;z-index:300;box-shadow:0 8px 30px rgba(0,0,0,.6);display:none;min-width:200px}
+.month-picker.open{display:block}
+.mp-year{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-weight:600;font-size:13px}
+.mp-year button{background:none;border:1px solid var(--border2);color:var(--text2);cursor:pointer;border-radius:6px;width:24px;height:24px;font-size:13px;display:flex;align-items:center;justify-content:center}
+.mp-year button:hover{background:var(--bg3);color:var(--text)}
+.mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.mp-m{padding:6px 4px;border-radius:6px;font-size:11px;cursor:pointer;text-align:center;color:var(--text2);transition:background .1s}
+.mp-m:hover{background:var(--bg3);color:var(--text)}
+.mp-m.on{background:var(--gold);color:var(--bg);font-weight:700}
+
+/* Quick action popup on date click */
+.quick-pop{position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:6px;z-index:400;box-shadow:0 12px 40px rgba(0,0,0,.7);display:none;min-width:170px;animation:qpIn .15s ease-out}
+.quick-pop.open{display:block}
+.qp-arrow{position:absolute;width:14px;height:14px;background:var(--bg2);border-top:1px solid var(--border2);border-left:1px solid var(--border2);transform:rotate(45deg);display:none;z-index:-1}
+.quick-pop-head{padding:6px 10px 8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;background:var(--bg2);position:relative;border-radius:6px 6px 0 0}
+.quick-pop-item{padding:8px 10px;font-size:12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s,padding-left .12s;color:var(--text);position:relative}
+.quick-pop-item:hover{background:var(--bg3);padding-left:13px}
+.qp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+@keyframes qpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* MODAL */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+/* 확인 모달은 다른 모달 위에 떠야 함 */
+#mConfirm{z-index:1000}
+#mClientDelChoice{z-index:900}
+.modal.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:460px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;position:relative}
+.modal-head{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:16px 16px 0 0}
+.modal-title{font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:var(--gold)}
+.modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:var(--bg3);cursor:pointer;color:var(--text2);font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;z-index:10}
+.modal-close:hover{background:var(--red-dim);color:var(--red);border-color:var(--red)}
+.modal-body{padding:16px 20px}
+.modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;background:var(--bg2);border-radius:0 0 16px 16px}
+.modal-foot-right{display:flex;gap:8px;margin-left:auto}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.fg label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.3px}
+.fg input,.fg select,.fg textarea{padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gold)}
+.fg select option{background:var(--bg2)}
+.fg textarea{resize:vertical;min-height:96px;line-height:1.6}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-box{background:var(--blue-dim);border:1px solid rgba(88,166,255,.2);border-radius:var(--radius);padding:9px 12px;font-size:11px;color:var(--blue);margin-bottom:12px}
+
+/* Settlement */
+.set-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat.s-gold::before{background:var(--gold)}.stat.s-green::before{background:var(--green)}.stat.s-blue::before{background:var(--blue)}.stat.s-orange::before{background:var(--orange)}
+.stat-label{font-size:10px;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:.3px}
+.stat-val{font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:3px}
+.tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px;margin-bottom:14px;width:fit-content}
+.tab{padding:5px 14px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500}
+.tab.on{background:var(--gold);color:var(--bg);font-weight:700}
+.month-row{display:grid;grid-template-columns:70px repeat(5,1fr) 130px 130px;border-bottom:1px solid var(--border);transition:background .12s}
+.month-row:not(.head):hover{background:var(--bg3)}
+.month-row:last-child{border-bottom:none}
+.month-row div{padding:10px 12px;font-size:12px;color:var(--text2);text-align:center;border-right:1px solid var(--border)}
+.month-row div:last-child{border-right:none}
+.month-row.head div{font-size:11px;font-weight:700;color:var(--text);padding:11px 12px;background:var(--bg);letter-spacing:.3px}
+.month-row .fee{color:var(--gold);font-weight:700}
+.month-row .month-label{color:var(--text);font-weight:600;background:var(--bg)}
+.month-row .count-cell{font-weight:600}
+.month-row .count-cell.zero{color:var(--text3);font-weight:400}
+.total-row div{font-weight:700;color:var(--text);background:var(--bg3)!important}
+.total-row .fee{color:var(--gold2)!important;font-size:13px}
+/* 헤더 색상 표시 */
+.month-row.head .mr-c-inip{color:var(--c-inip)!important;border-top:2px solid var(--c-inip)}
+.month-row.head .mr-c-meeting{color:var(--c-meeting)!important;border-top:2px solid var(--c-meeting)}
+.month-row.head .mr-c-deposit{color:var(--c-deposit)!important;border-top:2px solid var(--c-deposit)}
+.month-row.head .mr-c-sign{color:var(--c-sign)!important;border-top:2px solid var(--c-sign)}
+.month-row.head .mr-c-balance{color:var(--c-balance)!important;border-top:2px solid var(--c-balance)}
+
+/* 고객 검색 드롭다운 */
+.client-search-wrap{position:relative}
+.client-search-input-row{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);transition:border-color .15s}
+.client-search-input-row:focus-within{border-color:var(--gold)}
+.client-search-input-row input{border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);outline:none;flex:1;min-width:0}
+.client-search-input-row input::placeholder{color:var(--text3)}
+.client-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);z-index:600;max-height:200px;overflow-y:auto;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.cd-item{padding:9px 12px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s;border-bottom:1px solid var(--border)}
+.cd-item:last-child{border-bottom:none}
+.cd-item:hover,.cd-item.focused{background:var(--gold-dim)}
+.cd-item-name{color:var(--text);font-weight:500}
+.cd-item-info{color:var(--text3);font-size:11px;margin-top:1px}
+.cd-item-badge{flex-shrink:0}
+.cd-empty{padding:14px 12px;font-size:12px;color:var(--text3);text-align:center}
+.cs-selected{background:var(--gold-dim)!important;border-color:rgba(212,168,67,.4)!important}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);border-left:3px solid var(--green);padding:10px 18px;border-radius:var(--radius);font-size:12px;z-index:9999;opacity:0;transition:opacity .25s, transform .25s;pointer-events:none;color:var(--text)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ═══════════════════════════════════════════════════════ */
+/* LANDING PAGE */
+/* ═══════════════════════════════════════════════════════ */
+.landing-wrap{display:flex;height:100vh;overflow:hidden}
+.landing-left{flex:6;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:48px 52px}
+.landing-right{flex:4;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;overflow-y:auto}
+.landing-logo{font-family:'Noto Serif KR',serif;font-size:26px;color:var(--gold);font-weight:700;margin-bottom:8px;line-height:1.3}
+.landing-tagline{font-size:15px;color:var(--text);font-weight:500;margin-bottom:6px}
+.landing-desc{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.7}
+.landing-divider{border:none;border-top:1px solid var(--border);margin:0 0 28px}
+.landing-features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.landing-feat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;transition:all .2s;cursor:default}
+.landing-feat:not(.coming-soon):hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.35)}
+.landing-feat.coming-soon{opacity:.55}
+.landing-feat-icon{font-size:20px;margin-bottom:7px}
+.landing-feat-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
+.landing-feat-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.landing-coming{display:inline-block;font-size:9px;font-weight:700;background:var(--gold-dim);color:var(--gold);padding:1px 5px;border-radius:4px;margin-left:5px;vertical-align:middle}
+.landing-auth-box{width:100%;max-width:360px}
+.landing-auth-title{font-family:'Noto Serif KR',serif;font-size:22px;color:var(--gold);font-weight:700;margin-bottom:5px;text-align:center}
+.landing-auth-sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:22px}
+@media(max-width:800px){
+  .landing-wrap{flex-direction:column;height:auto;min-height:100vh}
+  .landing-left{flex:none;padding:32px 24px}
+  .landing-right{flex:none;padding:24px;justify-content:flex-start}
+  .landing-auth-box{max-width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- LANDING PAGE (비로그인 상태) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="landing-wrap" id="landing">
+  <!-- 좌측: 서비스 소개 -->
+  <div class="landing-left">
+    <div class="landing-logo">🏢 부동산 중개 보조 시스템</div>
+    <div class="landing-tagline">부동산 중개사를 위한 스마트한 업무 도구</div>
+    <div class="landing-desc">현직 5년차 중개사가 직접 만든 실무 최적화 CRM 솔루션</div>
+    <hr class="landing-divider">
+    <div class="landing-features">
+      <div class="landing-feat">
+        <div class="landing-feat-icon">📅</div>
+        <div class="landing-feat-title">일정 관리</div>
+        <div class="landing-feat-desc">달력 기반의 직관적인 일정 관리 시스템</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">👥</div>
+        <div class="landing-feat-title">고객 관리</div>
+        <div class="landing-feat-desc">우선순위와 유형별 체계적인 고객 관리</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">💰</div>
+        <div class="landing-feat-title">수수료 정산</div>
+        <div class="landing-feat-desc">계약별 자동 정산 시스템</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">☁️</div>
+        <div class="landing-feat-title">자동 동기화</div>
+        <div class="landing-feat-desc">여러 기기에서 실시간 사용</div>
+      </div>
+      <div class="landing-feat">
+        <div class="landing-feat-icon">💾</div>
+        <div class="landing-feat-title">백업</div>
+        <div class="landing-feat-desc">데이터를 안전하게 보관</div>
+      </div>
+      <div class="landing-feat coming-soon">
+        <div class="landing-feat-icon">🤝</div>
+        <div class="landing-feat-title">팀 협업 <span class="landing-coming">Coming Soon</span></div>
+        <div class="landing-feat-desc">팀원과 데이터 공유</div>
+      </div>
+    </div>
+  </div>
+  <!-- 우측: 로그인 / 회원가입 -->
+  <div class="landing-right">
+    <div class="landing-auth-box">
+      <div class="landing-auth-title">✨ 시작하기</div>
+      <div class="landing-auth-sub">중개 보조 시스템에 오신 것을 환영합니다</div>
+      <!-- 탭 -->
+      <div class="tabs" style="margin-bottom:18px;width:100%;display:flex">
+        <div class="tab on" id="landTabLogin" onclick="switchLandingTab('login')" style="flex:1;text-align:center">로그인</div>
+        <div class="tab" id="landTabSignup" onclick="switchLandingTab('signup')" style="flex:1;text-align:center">회원가입</div>
+      </div>
+      <!-- 안내 메시지 -->
+      <div class="info-box" id="landInfo" style="display:none"></div>
+      <!-- 이름 (회원가입 전용) -->
+      <div class="fg" id="landNameGroup" style="display:none">
+        <label>이름 *</label>
+        <input type="text" id="land-name" placeholder="홍길동" autocomplete="name">
+      </div>
+      <!-- 이메일 -->
+      <div class="fg">
+        <label>이메일 *</label>
+        <input type="email" id="land-email" placeholder="example@email.com" autocomplete="email">
+      </div>
+      <!-- 비밀번호 -->
+      <div class="fg">
+        <label>비밀번호 * <span style="color:var(--text3);font-weight:400" id="landPwHint"></span></label>
+        <input type="password" id="land-password" placeholder="6자 이상" autocomplete="current-password">
+      </div>
+      <!-- 전화번호 (회원가입 전용) -->
+      <div class="fg" id="landPhoneGroup" style="display:none">
+        <label>전화번호 (선택)</label>
+        <input type="tel" id="land-phone" placeholder="010-0000-0000">
+      </div>
+      <!-- 로그인 유지 -->
+      <div id="landKeepLogin" style="margin:8px 0 12px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="land-remember" checked style="width:auto;margin:0">
+        <label for="land-remember" style="cursor:pointer;margin:0;color:var(--text2)">로그인 유지 (7일)</label>
+      </div>
+      <!-- 제출 버튼 -->
+      <button class="btn btn-gold" id="landSubmitBtn" onclick="handleLandingAuthSubmit()" style="width:100%;justify-content:center;padding:10px 12px">로그인</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">중개 보조 시스템</div>
+    <div class="logo-sub">Real Estate Pro</div>
+  </div>
+  <nav class="nav">
+    <div class="ns">업무</div>
+    <div class="ni on" onclick="go('schedule',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="13" rx="2"/><path d="M5 1v2M11 1v2M1 6h14"/></svg>일정관리
+    </div>
+    <div class="ni" onclick="go('clients',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5M11 3c2 0 4 1.5 4 4.5M11 8.5c1.5.5 4 2 4 5.5"/></svg>고객관리
+    </div>
+    <div class="ni" onclick="go('settlement',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4M6 12V7M10 12V5M14 12V2"/><path d="M1 14h14"/></svg>정산관리
+    </div>
+    <div class="ns" style="margin-top:10px">설정</div>
+    <div class="ni" onclick="openRatioModal()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M5 11l6-6"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg><span>내 정산 비율 <span id="navRatioBadge" style="font-size:9px;padding:1px 5px;background:var(--gold-dim);color:var(--gold);border-radius:8px;margin-left:4px;font-weight:700">5:5</span></span>
+    </div>
+    <div class="ns" style="margin-top:10px">데이터</div>
+    <div class="ni" onclick="exportData()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v9M5 7l3 3 3-3M2 13h12"/></svg>백업 내보내기
+    </div>
+    <div class="ni" onclick="document.getElementById('importInput').click()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 11V2M5 5l3-3 3 3M2 13h12"/></svg>백업 불러오기
+    </div>
+    <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+  </nav>
+  <div class="sf">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="av">김</div>
+      <div>
+        <div style="font-size:11px;color:var(--text);font-weight:500">김정훈 중개사</div>
+        <div style="font-size:9px;color:var(--text3)">공인중개사</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="ptitle">일정관리</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <!-- 로그인 상태 표시 영역 -->
+      <div id="authArea" style="display:flex;gap:8px;align-items:center">
+        <button class="btn" id="loginBtn" onclick="openAuthModal()" style="font-size:11px">
+          🔐 로그인
+        </button>
+      </div>
+      <!-- 진단 버튼 (임시) -->
+      <button class="btn" onclick="runDiagnosis()" style="font-size:11px;background:var(--blue-dim);color:var(--blue);border-color:rgba(88,166,255,0.3)">
+        🔬 진단
+      </button>
+      <button class="btn btn-gold" onclick="openEventModal(null,null)">+ 일정 추가</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- SCHEDULE -->
+    <div class="page on" id="p-schedule">
+      <div class="cal-layout">
+        <div class="cal-main">
+          <div class="cal-nav">
+            <div class="cal-nav-left">
+              <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+              <button class="cal-month-btn" id="calTitle" onclick="event.stopPropagation();toggleMP()"></button>
+              <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+              <button class="today-btn" onclick="goToday()">오늘</button>
+            </div>
+            <div class="cal-legend" id="calLegend"></div>
+          </div>
+          <div class="month-picker" id="monthPicker" onclick="event.stopPropagation()">
+            <div class="mp-year"><button onclick="mpY(-1)">‹</button><span id="mpYL"></span><button onclick="mpY(1)">›</button></div>
+            <div class="mp-grid" id="mpGrid"></div>
+          </div>
+          <div class="cal-body">
+            <div class="cal-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+        </div>
+        <div class="day-panel">
+          <div class="day-events panel">
+            <div class="panel-head">
+              <span id="dayTitle">오늘 일정</span>
+              <button class="btn btn-sm btn-gold" onclick="openEventModal(null, getActiveDate())">+ 추가</button>
+            </div>
+            <div id="dayEvList"><div class="empty">날짜를 클릭하세요</div></div>
+          </div>
+          <div class="day-events panel">
+            <div class="panel-head">이달 계약·잔금 일정</div>
+            <div id="monthEvList" style="max-height:280px;overflow-y:auto"><div class="empty">이달 일정 없음</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="page" id="p-clients">
+      <div class="filters">
+        <div class="sbar">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+          <input type="text" id="csearch" placeholder="이름, 전화번호, 메모 검색..." oninput="renderClients()">
+        </div>
+        <select class="btn" id="ftypes" onchange="renderClients()"><option value="">유형 전체</option><option>사무실</option><option>상가</option><option>주거</option><option>매매</option></select>
+        <select class="btn" id="fmonth" onchange="renderClients()"><option value="">인입월 전체</option></select>
+        <select class="btn" id="fpriority" onchange="renderClients()"><option value="">중요도 전체</option><option value="3">★★★ 최고</option><option value="2">★★ 중간</option><option value="1">★ 낮음</option></select>
+        <select class="btn" id="fstage" onchange="renderClients()"><option value="">진행단계 전체</option><option value="meeting">미팅 진행</option><option value="deposit">계약금 입금</option><option value="sign">계약서 작성</option><option value="balance">잔금 완료</option></select>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span style="font-size:12px;font-weight:600">고객 목록</span><span id="clientCount" style="font-size:11px;color:var(--text3)"></span></div>
+        <table>
+          <thead><tr><th>중요도</th><th>인입일</th><th>고객명</th><th>전화번호</th><th>유형</th><th>진행단계</th><th>찾는 조건 / 메모</th><th>관리</th></tr></thead>
+          <tbody id="clientTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTLEMENT -->
+    <div class="page" id="p-settlement">
+      <div class="tabs">
+        <div class="tab on" onclick="setTab('contracts',this)">계약 정산</div>
+        <div class="tab" onclick="setTab('monthly',this)">월별 현황</div>
+        <div class="tab" onclick="setTab('yearly',this)">연도별 현황</div>
+      </div>
+
+      <!-- 계약 정산 (잔금 완료 고객) -->
+      <div id="st-contracts">
+        <div class="set-grid" style="grid-template-columns:repeat(5,1fr)">
+          <div class="stat s-gold"><div class="stat-label">계약 건수</div><div class="stat-val" id="ct-count">0</div><div class="stat-sub">건</div></div>
+          <div class="stat s-blue"><div class="stat-label">임차인측</div><div class="stat-val" id="ct-tenant">₩0</div><div class="stat-sub">원</div></div>
+          <div class="stat s-orange"><div class="stat-label">임대인측</div><div class="stat-val" id="ct-landlord">₩0</div><div class="stat-sub">원</div></div>
+          <div class="stat s-green"><div class="stat-label">수령 완료</div><div class="stat-val" id="ct-total">₩0</div><div class="stat-sub">원</div></div>
+          <div class="stat" style="border-top-color:var(--gold);background:linear-gradient(180deg,var(--gold-dim) 0%,var(--bg2) 50%)"><div class="stat-label" style="color:var(--gold)">💼 내 정산 (<span id="ct-myshare-ratio">50</span>%)</div><div class="stat-val" id="ct-myshare" style="color:var(--gold)">₩0</div><div class="stat-sub">원</div></div>
+        </div>
+        <div class="filters" style="margin-bottom:14px;align-items:center">
+          <div class="sbar">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+            <input type="text" id="ct-search" placeholder="고객명, 주소 검색..." oninput="renderContracts()">
+          </div>
+          <select class="btn" id="ct-year" onchange="onCtYearChange()"><option value="">연도 전체</option></select>
+          <select class="btn" id="ct-month" onchange="renderContracts()"><option value="">월 전체</option></select>
+          <select class="btn" id="ct-mode" onchange="renderContracts()" title="통계 집계 기준">
+            <option value="receipt">기준: 수령일</option>
+            <option value="balance">기준: 잔금일</option>
+          </select>
+        </div>
+        <div id="contractsList"></div>
+      </div>
+
+      <div id="st-monthly" style="display:none">
+        <div class="set-grid" style="grid-template-columns:repeat(5,1fr)">
+          <div class="stat s-gold"><div class="stat-label">이달 매출</div><div class="stat-val" id="st-m-fee">₩0</div><div class="stat-sub">원</div></div>
+          <div class="stat" id="st-m-vs-card" style="border-top-color:var(--green)"><div class="stat-label" style="color:var(--green)">전월 대비</div><div class="stat-val" id="st-m-vs">-</div><div class="stat-sub" id="st-m-vs-sub">전월 ₩0</div></div>
+          <div class="stat s-blue"><div class="stat-label">올해 누적</div><div class="stat-val" id="st-m-cum">₩0</div><div class="stat-sub">원</div></div>
+          <div class="stat s-orange"><div class="stat-label">월평균 매출</div><div class="stat-val" id="st-m-avg">₩0</div><div class="stat-sub" id="st-m-avg-sub">0개월 평균</div></div>
+          <div class="stat" style="border-top-color:var(--gold);background:linear-gradient(180deg,var(--gold-dim) 0%,var(--bg2) 50%)"><div class="stat-label" style="color:var(--gold)">💼 이달 내 정산 (<span id="st-m-myshare-ratio">50</span>%)</div><div class="stat-val" id="st-m-myshare" style="color:var(--gold)">₩0</div><div class="stat-sub">원</div></div>
+        </div>
+        <div class="tbl-wrap">
+          <div class="tbl-head"><span style="font-size:12px;font-weight:600">월별 업무 현황 (<span id="st-year-m">2025</span>년)</span></div>
+          <div class="month-row head" style="grid-template-columns:70px repeat(5,1fr) 130px 130px 130px">
+            <div>월</div>
+            <div class="mr-c-inip">고객인입</div>
+            <div class="mr-c-meeting">미팅</div>
+            <div class="mr-c-deposit">계약금</div>
+            <div class="mr-c-sign">계약서</div>
+            <div class="mr-c-balance">잔금</div>
+            <div>수수료 합계</div>
+            <div>누적 수수료</div>
+            <div style="color:var(--gold)!important;border-top:2px solid var(--gold)">💼 내 정산</div>
+          </div>
+          <div id="monthlyTable"></div>
+        </div>
+      </div>
+      <div id="st-yearly" style="display:none">
+        <div class="tbl-wrap">
+          <div class="tbl-head"><span style="font-size:12px;font-weight:600">연도별 업무 현황</span></div>
+          <div class="month-row head" style="grid-template-columns:70px repeat(5,1fr) 130px 130px 130px">
+            <div>연도</div>
+            <div class="mr-c-inip">고객인입</div>
+            <div class="mr-c-meeting">미팅</div>
+            <div class="mr-c-deposit">계약금</div>
+            <div class="mr-c-sign">계약서</div>
+            <div class="mr-c-balance">잔금</div>
+            <div>수수료 합계</div>
+            <div>누적 수수료</div>
+            <div style="color:var(--gold)!important;border-top:2px solid var(--gold)">💼 내 정산</div>
+          </div>
+          <div id="yearlyTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- QUICK POPUP (날짜 클릭 시) -->
+<div class="quick-pop" id="quickPop">
+  <div class="qp-arrow" id="qpArrow"></div>
+  <div class="quick-pop-head" id="qpDate"></div>
+  <div class="quick-pop-item" onclick="qpAdd('inip')"><span class="qp-dot" style="background:var(--c-inip)"></span>고객인입</div>
+  <div class="quick-pop-item" onclick="qpAdd('meeting')"><span class="qp-dot" style="background:var(--c-meeting)"></span>미팅</div>
+  <div class="quick-pop-item" onclick="qpAdd('deposit')"><span class="qp-dot" style="background:var(--c-deposit)"></span>계약금 입금</div>
+  <div class="quick-pop-item" onclick="qpAdd('sign')"><span class="qp-dot" style="background:var(--c-sign)"></span>계약서 작성</div>
+  <div class="quick-pop-item" onclick="qpAdd('balance')"><span class="qp-dot" style="background:var(--c-balance)"></span>잔금</div>
+  <div class="quick-pop-item" onclick="qpAdd('general')"><span class="qp-dot" style="background:var(--c-general)"></span>일반일정</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- AUTH MODAL (로그인/회원가입) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal" id="mAuth">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title" id="authModalTitle">로그인</div>
+      <button type="button" class="modal-close" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 탭 -->
+      <div class="tabs" style="margin-bottom:18px;width:100%;display:flex">
+        <div class="tab on" id="authTabLogin" onclick="switchAuthTab('login')" style="flex:1;text-align:center">로그인</div>
+        <div class="tab" id="authTabSignup" onclick="switchAuthTab('signup')" style="flex:1;text-align:center">회원가입</div>
+      </div>
+
+      <!-- 안내 메시지 -->
+      <div class="info-box" id="authInfo" style="display:none"></div>
+      
+      <!-- 회원가입 전용: 이름 -->
+      <div class="fg" id="authNameGroup" style="display:none">
+        <label>이름 *</label>
+        <input type="text" id="auth-name" placeholder="홍길동" autocomplete="name">
+      </div>
+
+      <!-- 이메일 -->
+      <div class="fg">
+        <label>이메일 *</label>
+        <input type="email" id="auth-email" placeholder="example@email.com" autocomplete="email">
+      </div>
+
+      <!-- 비밀번호 -->
+      <div class="fg">
+        <label>비밀번호 * <span style="color:var(--text3);font-weight:400" id="authPwHint"></span></label>
+        <input type="password" id="auth-password" placeholder="6자 이상" autocomplete="current-password">
+      </div>
+
+      <!-- 회원가입 전용: 전화번호 (선택) -->
+      <div class="fg" id="authPhoneGroup" style="display:none">
+        <label>전화번호 (선택)</label>
+        <input type="tel" id="auth-phone" placeholder="010-0000-0000">
+      </div>
+
+      <!-- 로그인 유지 -->
+      <div id="authKeepLogin" style="margin:8px 0 4px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px">
+        <input type="checkbox" id="auth-remember" checked style="width:auto;margin:0">
+        <label for="auth-remember" style="cursor:pointer;margin:0;color:var(--text2)">로그인 유지 (7일)</label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeAuthModal()">취소</button>
+      <div class="modal-foot-right">
+        <button class="btn btn-gold" id="authSubmitBtn" onclick="handleAuthSubmit()">로그인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal" id="mEvent">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="evModalTitle">일정 추가</div>
+      <button type="button" class="modal-close" onclick="closeEventModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fr">
+        <div class="fg"><label>일정 유형 *</label>
+          <select id="ev-type" onchange="onEvTypeChange()">
+            <option value="inip">고객인입</option>
+            <option value="meeting">미팅</option>
+            <option value="deposit">계약금 입금</option>
+            <option value="sign">계약서 작성</option>
+            <option value="balance">잔금</option>
+            <option value="general">일반일정</option>
+          </select>
+        </div>
+        <div class="fg"><label>날짜 *</label><input type="date" id="ev-date"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>시간</label><input type="time" id="ev-time" value="12:00"></div>
+        <div class="fg"><label>제목 (선택)</label><input type="text" id="ev-title" placeholder="비워두면 일정유형으로 자동입력"></div>
+      </div>
+      <!-- 고객인입 전용 -->
+      <div id="inip-section">
+        <div class="info-box" id="inipInfoBox">고객 정보 입력 시 고객 DB에 자동 추가됩니다 · 비워두면 일정만 등록</div>
+        <div class="fr">
+          <div class="fg"><label>고객명</label><input type="text" id="inip-name" placeholder="홍길동"></div>
+          <div class="fg"><label>전화번호</label><input type="text" id="inip-phone" placeholder="010-0000-0000"></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>고객 유형</label><select id="inip-ctype"><option>사무실</option><option>상가</option><option>주거</option><option>매매</option></select></div>
+          <div class="fg"><label>중요도</label><select id="inip-priority"><option value="1">★ 낮음</option><option value="2" selected>★★ 중간</option><option value="3">★★★ 최고</option></select></div>
+        </div>
+        <div class="fg"><label>찾는 조건 / 메모</label><textarea id="inip-memo" placeholder="강남구 역세권, 30평 이상, 특이사항..."></textarea></div>
+      </div>
+      <!-- 기존 고객 연결 -->
+      <div id="link-section" style="display:none">
+        <div class="fg">
+          <label>연결 고객 <span style="color:var(--text3);font-weight:400">(선택사항)</span></label>
+          <div class="client-search-wrap" id="clientSearchWrap">
+            <div class="client-search-input-row">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" style="flex-shrink:0;color:var(--text3)"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+              <input type="text" id="ev-client-search" placeholder="이름 또는 전화번호 검색..." oninput="onSearchInput()" onfocus="openClientDropdown()" autocomplete="off">
+              <button type="button" id="ev-client-clear" onclick="clearClientSelection()" style="display:none;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px">✕</button>
+            </div>
+            <div class="client-dropdown" id="clientDropdown" style="display:none"></div>
+          </div>
+          <input type="hidden" id="ev-client">
+        </div>
+        <div id="linked-client-box" style="display:none;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;margin-bottom:12px;font-size:12px"></div>
+        <div class="fg"><label>메모</label><textarea id="ev-memo" placeholder="장소, 상세 내용..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div>
+        <button type="button" class="btn btn-red" id="evDelBtn" data-action="del-event-modal" style="display:none">삭제</button>
+      </div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeEventModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveEvent()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="modal" id="mClient">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="cModalTitle">고객 추가</div>
+      <button type="button" class="modal-close" onclick="closeClientModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fr">
+        <div class="fg"><label>고객명 *</label><input type="text" id="c-name" placeholder="홍길동"></div>
+        <div class="fg"><label>전화번호 *</label><input type="text" id="c-phone" placeholder="010-0000-0000"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>고객 유형</label><select id="c-type"><option>사무실</option><option>상가</option><option>주거</option><option>매매</option></select></div>
+        <div class="fg"><label>중요도</label><select id="c-priority"><option value="1">★ 낮음</option><option value="2" selected>★★ 중간</option><option value="3">★★★ 최고</option></select></div>
+      </div>
+      <div class="fg"><label>찾는 조건 / 메모</label><textarea id="c-memo" placeholder="강남구 역세권, 30평 이상, 특이사항..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <div>
+        <button type="button" class="btn btn-red" id="cDelBtn" data-action="del-client-modal" style="display:none">삭제</button>
+      </div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeClientModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveClient()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 정산 비율 설정 모달 -->
+<div class="modal" id="mRatio">
+  <div class="modal-box" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title">💼 내 정산 비율 설정</div>
+      <button type="button" class="modal-close" onclick="closeRatioModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" style="margin-bottom:14px">
+        매출 대비 본인이 받는 비율을 설정하세요.<br>
+        예: 5:5 → 본인 50%, 사무실 50%
+      </div>
+
+      <div class="fg">
+        <label>빠른 선택</label>
+        <div id="ratioPresets" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px">
+          <button type="button" class="btn ratio-preset" data-ratio="50">5 : 5</button>
+          <button type="button" class="btn ratio-preset" data-ratio="60">6 : 4</button>
+          <button type="button" class="btn ratio-preset" data-ratio="70">7 : 3</button>
+          <button type="button" class="btn ratio-preset" data-ratio="80">8 : 2</button>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>직접 입력 (내가 받는 % - 1~100)</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="ratioInput" min="1" max="100" step="1" placeholder="50" style="flex:1;padding:9px 12px;font-size:14px;font-weight:700;text-align:center;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--gold)">
+          <span style="font-size:14px;color:var(--text2);font-weight:600">%</span>
+          <span style="font-size:11px;color:var(--text3)">(나머지 <span id="ratioRemain">50</span>%는 사무실)</span>
+        </div>
+      </div>
+
+      <!-- 미리보기 -->
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:14px 16px;margin-top:8px">
+        <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:8px;letter-spacing:.3px">예시 (수수료 1,000,000원 기준)</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--gold);font-weight:600">내 정산</span>
+          <span id="previewMine" style="font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:var(--gold)">₩500,000</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text3)">사무실</span>
+          <span id="previewOffice" style="font-size:13px;color:var(--text2);font-weight:600">₩500,000</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeRatioModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveRatio()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 커스텀 확인 모달 -->
+<div class="modal" id="mConfirm">
+  <div class="modal-box" style="width:380px">
+    <div class="modal-head" style="border-bottom:none;padding-bottom:8px">
+      <div class="modal-title" id="confirmTitle">확인</div>
+    </div>
+    <div class="modal-body" style="padding-top:4px">
+      <div id="confirmMsg" style="font-size:13px;color:var(--text);line-height:1.6;white-space:pre-line"></div>
+    </div>
+    <div class="modal-foot" style="border-top:none">
+      <div></div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" data-action="confirm-cancel">취소</button>
+        <button type="button" class="btn btn-red" data-action="confirm-ok" style="background:var(--red);border-color:var(--red);color:#fff;font-weight:700">삭제</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 계약 정산 입력 모달 -->
+<div class="modal" id="mContract">
+  <div class="modal-box" style="width:560px">
+    <div class="modal-head">
+      <div class="modal-title" id="contractModalTitle">계약 정산 입력</div>
+      <button type="button" class="modal-close" onclick="closeContractModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 고객 정보 헤더 -->
+      <div id="contract-client-info" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <div id="ctm-name" style="font-family:'Noto Serif KR',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:2px"></div>
+          <div id="ctm-sub" style="font-size:11px;color:var(--text2)"></div>
+        </div>
+        <button type="button" class="btn btn-sm" id="ctm-client-btn" style="display:none">고객정보</button>
+      </div>
+
+      <!-- 매물 정보 -->
+      <div class="fg"><label>📍 매물 주소</label>
+        <input type="text" id="ctm-address" placeholder="강남구 역삼동..." oninput="updateContractField('address',this.value)">
+      </div>
+      <div class="fr">
+        <div class="fg"><label>계약 유형</label>
+          <select id="ctm-contractType" onchange="updateContractField('contractType',this.value)">
+            <option value="">선택</option>
+            <option value="매매">매매</option>
+            <option value="전세">전세</option>
+            <option value="월세">월세</option>
+            <option value="단기">단기임대</option>
+          </select>
+        </div>
+        <div class="fg"><label>계약서 작성일</label>
+          <input type="date" id="ctm-signDate" oninput="updateContractField('signDate',this.value)">
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>보증금 (원)</label>
+          <input type="text" id="ctm-deposit" inputmode="numeric" placeholder="0" oninput="onMoneyInput(this,'deposit')">
+        </div>
+        <div class="fg"><label>월세 (원)</label>
+          <input type="text" id="ctm-monthly" inputmode="numeric" placeholder="0" oninput="onMoneyInput(this,'monthly')">
+        </div>
+      </div>
+      <div class="fg"><label>관리비 (원)</label>
+        <input type="text" id="ctm-maintenance" inputmode="numeric" placeholder="0" oninput="onMoneyInput(this,'maintenance')">
+      </div>
+
+      <hr class="section-divider" style="border:none;border-top:1px solid var(--border);margin:16px 0 12px">
+
+      <!-- 수수료 수령 내역 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px">💰 수수료 수령 내역</div>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-sm" onclick="addPayment('tenant')" style="color:var(--blue);border-color:rgba(88,166,255,.3)">+ 임차인측</button>
+          <button type="button" class="btn btn-sm" onclick="addPayment('landlord')" style="color:var(--orange);border-color:rgba(227,129,74,.3)">+ 임대인측</button>
+        </div>
+      </div>
+
+      <div id="ctm-payments-list" style="margin-bottom:12px"></div>
+
+      <!-- 합계 박스 -->
+      <div style="background:var(--bg3);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--text3);font-weight:600">수수료 합계</span>
+        <span id="ctm-paid-total" style="font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;color:var(--gold)">₩0</span>
+      </div>
+
+      <!-- 내 정산 박스 -->
+      <div style="background:linear-gradient(90deg,var(--gold-dim) 0%,var(--bg3) 100%);border:1px solid rgba(212,168,67,.3);border-left:3px solid var(--gold);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:2px">💼 내 정산</div>
+          <div style="font-size:9px;color:var(--text3);font-weight:500">비율 <span id="ctm-myshare-ratio">50</span>% · 사이드바에서 변경</div>
+        </div>
+        <span id="ctm-myshare-val" style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">₩0</span>
+      </div>
+
+      <div class="fg"><label>📝 메모</label>
+        <textarea id="ctm-memo" placeholder="특이사항..." oninput="updateContractField('memo',this.value)"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div>
+        <button type="button" class="btn btn-red" data-action="del-contract-modal">계약 삭제</button>
+      </div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeContractModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveContractFromModal()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 고객 삭제 (정산 계약 있을 때) 선택 모달 -->
+<div class="modal" id="mClientDelChoice">
+  <div class="modal-box" style="width:440px">
+    <div class="modal-head">
+      <div class="modal-title">고객 삭제</div>
+      <button type="button" class="modal-close" onclick="closeClientDelChoice()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="clientDelMsg" style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:14px;white-space:pre-line"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button type="button" class="btn" id="btnDelClientKeep" style="justify-content:flex-start;padding:12px 14px;text-align:left;border-color:var(--green);color:var(--green)">
+          <div>
+            <div style="font-weight:700;margin-bottom:2px">✓ 정산 계약 유지 (권장)</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:400">고객만 삭제, 정산관리의 계약/수수료 기록은 보존</div>
+          </div>
+        </button>
+        <button type="button" class="btn" id="btnDelClientAll" style="justify-content:flex-start;padding:12px 14px;text-align:left;border-color:var(--red);color:var(--red)">
+          <div>
+            <div style="font-weight:700;margin-bottom:2px">⚠ 모두 삭제</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:400">고객 + 관련 정산 계약/수수료까지 모두 삭제</div>
+          </div>
+        </button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeClientDelChoice()">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════════════════
+const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings'};
+function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
+// UUID(문자열)와 로컬 숫자 ID 모두 안전하게 비교
+function idEq(a,b){return a!=null&&b!=null&&String(a)===String(b);}
+
+let clients = ld(KEY.clients) || mkClients();
+let events  = ld(KEY.events)  || mkEvents();
+let fees    = ld(KEY.fees)    || [];
+let uid     = ld(KEY.uid)     || {c:200,e:300,f:400};
+let contractsRaw = ld(KEY.contracts);
+// 마이그레이션: 옛 구조({eventId: data}) → 새 구조([계약, 계약, ...])
+let contracts = migrateContracts(contractsRaw);
+function migrateContracts(raw){
+  if(!raw)return [];
+  if(Array.isArray(raw))return raw;  // 이미 새 구조
+  // 옛 구조 변환
+  const arr=[];
+  Object.keys(raw).forEach(eid=>{
+    const old=raw[eid];
+    const ev=events.find(e=>String(e.id)===String(eid));
+    if(!ev)return;
+    const payments=[];
+    // 기존 임차인측/임대인측 수수료 → 수령내역으로 변환
+    if(old.tenantFee && !old.coTenant){
+      payments.push({id:Date.now()+Math.random(),date:ev.date,side:'tenant',amount:String(old.tenantFee),status:'paid',memo:''});
+    }
+    if(old.landlordFee && !old.coLandlord){
+      payments.push({id:Date.now()+Math.random()+1,date:ev.date,side:'landlord',amount:String(old.landlordFee),status:'paid',memo:''});
+    }
+    arr.push({
+      id:Date.now()+Math.random()+arr.length,
+      cid:ev.cid,
+      balanceEventId:ev.id,
+      address:old.address||'',
+      contractType:old.contractType||'',
+      signDate:'',balanceDate:ev.date,
+      deposit:old.deposit||'',monthly:old.monthly||'',maintenance:old.maintenance||'',
+      payments,
+      coTenant:!!old.coTenant,coLandlord:!!old.coLandlord,
+      memo:old.memo||'',
+      _saved:!!old._saved
+    });
+  });
+  return arr;
+}
+function persist(){sv(KEY.clients,clients);sv(KEY.events,events);sv(KEY.fees,fees);sv(KEY.uid,uid);sv(KEY.contracts,contracts);sv(KEY.settings,settings);}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS (정산 비율 등)
+// ═══════════════════════════════════════════════════════
+let settings = ld(KEY.settings) || {myShareRatio:50};  // 기본 5:5
+function getMyShareRatio(){return settings.myShareRatio||50;}
+function calcMyShare(amount){return Math.round(amount * getMyShareRatio() / 100);}
+function ratioLabel(){
+  const r=getMyShareRatio();
+  const o=100-r;
+  // 50→5:5, 60→6:4, 70→7:3 처럼 표기 (5단위면 단순 표기, 아니면 X:Y%)
+  if(r%10===0 && o%10===0)return `${r/10}:${o/10}`;
+  return `${r}:${o}`;
+}
+function updateRatioBadges(){
+  const lbl=ratioLabel();
+  const r=getMyShareRatio();
+  const navBadge=$('navRatioBadge');
+  if(navBadge)navBadge.textContent=lbl;
+  if($('ct-myshare-ratio'))$('ct-myshare-ratio').textContent=r;
+  if($('st-m-myshare-ratio'))$('st-m-myshare-ratio').textContent=r;
+  if($('ctm-myshare-ratio'))$('ctm-myshare-ratio').textContent=r;
+}
+
+function mkClients(){return []}
+function mkEvents(){return []}
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+function $(id){return document.getElementById(id)}
+function toast(msg){
+  const t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2000);
+}
+function todayStr(){return new Date().toISOString().slice(0,10)}
+function fmtKorean(ds){const p=ds.split('-');return `${parseInt(p[1])}월 ${parseInt(p[2])}일`}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+let curPage='schedule';
+function go(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  $('p-'+id).classList.add('on');
+  if(el)el.classList.add('on');
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리'}[id];
+  curPage=id;
+  if(id==='schedule')drawCal();
+  else if(id==='clients'){buildMF();renderClients();}
+  else if(id==='settlement')renderSettlement();
+}
+
+// ═══════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════
+const TODAY=new Date();
+let calY=TODAY.getFullYear(),calM=TODAY.getMonth(),selDate=null;
+let mpYr=calY,mpOpen=false;
+let qpDate=null;
+
+const EV={
+  inip:   {label:'고객인입',cls:'ev-inip',   color:'var(--c-inip)'},
+  meeting:{label:'미팅',    cls:'ev-meeting', color:'var(--c-meeting)'},
+  deposit:{label:'계약금',  cls:'ev-deposit', color:'var(--c-deposit)'},
+  sign:   {label:'계약서',  cls:'ev-sign',    color:'var(--c-sign)'},
+  balance:{label:'잔금',    cls:'ev-balance', color:'var(--c-balance)'},
+  general:{label:'일반일정',cls:'ev-general', color:'var(--c-general)'},
+};
+
+function getActiveDate(){return selDate||todayStr()}
+
+function drawCal(){
+  $('calTitle').textContent=`${calY}년 ${calM+1}월`;
+  // Legend
+  const ms=`${calY}-${String(calM+1).padStart(2,'0')}`;
+  const mev=events.filter(e=>e.date.startsWith(ms));
+  $('calLegend').innerHTML=['inip','meeting','sign','balance'].map(t=>{
+    const n=mev.filter(e=>e.type===t).length;
+    return `<span class="leg-item leg-${t}"><span class="leg-dot"></span>${EV[t].label}<span class="leg-count">${n}</span></span>`;
+  }).join('');
+  // Grid
+  const first=new Date(calY,calM,1).getDay();
+  const days=new Date(calY,calM+1,0).getDate();
+  const prev=new Date(calY,calM,0).getDate();
+  let html='';
+  for(let i=0;i<42;i++){
+    let d,other=false;
+    if(i<first){d=prev-first+i+1;other=true;}
+    else if(i>=first+days){d=i-first-days+1;other=true;}
+    else d=i-first+1;
+    const cM=other?(i<first?calM:calM+2):calM+1;
+    const cY=other?(i<first?(calM===0?calY-1:calY):(calM===11?calY+1:calY)):calY;
+    const ds=`${cY}-${String(cM).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let cls='cd';
+    if(other)cls+=' other';
+    if(!other&&d===TODAY.getDate()&&calM===TODAY.getMonth()&&calY===TODAY.getFullYear())cls+=' today';
+    if(selDate===ds)cls+=' sel';
+    const de=other?[]:events.filter(e=>e.date===ds);
+    const evH=de.slice(0,3).map(e=>{
+      const lbl=EV[e.type]?.label||e.type;
+      const c=e.cid?clients.find(x=>idEq(x.id, e.cid)):null;
+      const name=c?c.name:'';
+      const text=name?`${lbl} · ${name}`:lbl;
+      return `<div class="cd-ev ${EV[e.type]?.cls||''}" title="${text}">${text}</div>`;
+    }).join('');
+    const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
+    html+=`<div class="${cls}" data-date="${ds}" onclick="onCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div></div>`;
+  }
+  $('calGrid').innerHTML=html;
+  renderDayEv(selDate||todayStr());
+  renderMonthEv();
+}
+
+function onCellClick(ev,ds){
+  ev.stopPropagation();
+  // ⚠️ drawCal()이 DOM을 다시 그리면 ev.currentTarget이 사라짐
+  //    → 위치를 먼저 캡처해두기
+  const rect=ev.currentTarget.getBoundingClientRect();
+  const cellInfo={
+    left:rect.left, right:rect.right, top:rect.top, bottom:rect.bottom,
+    width:rect.width, height:rect.height
+  };
+  // 1) 날짜 선택 + 캘린더 다시 그리기
+  selDate=ds;
+  $('dayTitle').textContent=fmtKorean(ds)+' 일정';
+  drawCal();
+  // 2) 캡처해둔 위치 정보로 팝업 띄우기
+  showQuickPopAt(cellInfo,ds);
+}
+
+function showQuickPopAt(cellRect,ds){
+  qpDate=ds;
+  $('qpDate').textContent=fmtKorean(ds)+' 일정 추가';
+  const pop=$('quickPop');
+
+  // 화면 밖에 일단 배치
+  pop.style.left='-9999px';
+  pop.style.top='-9999px';
+  pop.style.visibility='visible';
+  pop.classList.add('open');
+
+  // 강제 reflow → 사이즈 측정
+  void pop.offsetWidth;
+  const popW=pop.offsetWidth || 180;
+  const popH=pop.offsetHeight || 240;
+
+  const margin=8;
+  const arrowSize=8;
+
+  // 셀 중앙 X 좌표
+  const cellCenterX=cellRect.left+cellRect.width/2;
+  let left=Math.round(cellCenterX-popW/2);
+
+  // 화면 가장자리 보정
+  if(left<margin)left=margin;
+  if(left+popW>window.innerWidth-margin)left=window.innerWidth-popW-margin;
+
+  // 기본은 셀 아래
+  let top=Math.round(cellRect.bottom+arrowSize);
+  let arrowOnTop=true;
+
+  // 아래 공간 부족 → 위로
+  if(top+popH>window.innerHeight-margin){
+    top=Math.round(cellRect.top-popH-arrowSize);
+    arrowOnTop=false;
+  }
+  // 위로도 안 되면 옆쪽
+  if(top<margin){
+    top=Math.max(margin,Math.min(window.innerHeight-popH-margin,Math.round(cellRect.top)));
+    left=Math.round(cellRect.right+arrowSize);
+    if(left+popW>window.innerWidth-margin){
+      left=Math.round(cellRect.left-popW-arrowSize);
+    }
+    if(left<margin)left=margin;
+    arrowOnTop=null;
+  }
+
+  pop.style.left=left+'px';
+  pop.style.top=top+'px';
+
+  // 화살표
+  const arrow=$('qpArrow');
+  const arrowLeft=Math.max(12,Math.min(popW-22,cellCenterX-left-7));
+  if(arrowOnTop===true){
+    arrow.style.display='block';
+    arrow.style.top='-7px';
+    arrow.style.bottom='auto';
+    arrow.style.transform='rotate(45deg)';
+    arrow.style.left=arrowLeft+'px';
+  } else if(arrowOnTop===false){
+    arrow.style.display='block';
+    arrow.style.top='auto';
+    arrow.style.bottom='-7px';
+    arrow.style.transform='rotate(225deg)';
+    arrow.style.left=arrowLeft+'px';
+  } else {
+    arrow.style.display='none';
+  }
+}
+
+// 호환성을 위한 옛 함수 (사용 안 됨)
+function showQuickPop(cellEl,ds){
+  if(cellEl && cellEl.getBoundingClientRect){
+    showQuickPopAt(cellEl.getBoundingClientRect(),ds);
+  }
+}
+
+function closeQuickPop(){$('quickPop').classList.remove('open');qpDate=null;}
+
+function qpAdd(type){
+  const d=qpDate;
+  closeQuickPop();
+  openEventModal(null,d,type);
+}
+
+function changeMonth(d){
+  calM+=d;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}
+  selDate=null;$('dayTitle').textContent='오늘 일정';
+  closeMP();drawCal();
+}
+function goToday(){
+  calY=TODAY.getFullYear();calM=TODAY.getMonth();
+  selDate=todayStr();
+  $('dayTitle').textContent=fmtKorean(selDate)+' 일정';
+  closeMP();drawCal();
+}
+
+// Month Picker
+function toggleMP(){mpOpen=!mpOpen;mpYr=calY;renderMP();$('monthPicker').classList.toggle('open',mpOpen);}
+function closeMP(){mpOpen=false;$('monthPicker').classList.remove('open');}
+function mpY(d){mpYr+=d;renderMP();}
+function renderMP(){
+  $('mpYL').textContent=`${mpYr}년`;
+  const M=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  $('mpGrid').innerHTML=M.map((m,i)=>`<div class="mp-m${mpYr===calY&&i===calM?' on':''}" onclick="pickM(${i})">${m}</div>`).join('');
+}
+function pickM(m){calY=mpYr;calM=m;selDate=null;$('dayTitle').textContent='오늘 일정';closeMP();drawCal();}
+
+// Outside click - close popups (handled in unified handler at bottom)
+
+function renderDayEv(ds){
+  const el=$('dayEvList');
+  const de=events.filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  if(!de.length){el.innerHTML='<div class="empty">일정이 없습니다</div>';return;}
+  el.innerHTML=de.map(e=>{
+    const et=EV[e.type]||{label:e.type,color:'var(--text3)'};
+    const c=e.cid?clients.find(x=>idEq(x.id, e.cid)):null;
+    return`<div class="day-ev-item">
+      <div style="flex:1;min-width:0">
+        <div class="day-ev-type" style="color:${et.color}">${et.label}${e.time?' · '+e.time:''}</div>
+        <div class="day-ev-title">${e.title}</div>
+        ${c?`<div class="day-ev-sub">👤 <span class="client-link" data-action="open-client" data-id="${c.id}">${c.name}</span> · ${c.phone||''}</div>`:''}
+        ${e.memo?`<div class="day-ev-sub">${e.memo}</div>`:''}
+      </div>
+      <div class="day-ev-actions">
+        <button type="button" class="day-ev-btn" data-action="edit-event" data-id="${e.id}">수정</button>
+        <button type="button" class="day-ev-btn del" data-action="del-event" data-id="${e.id}">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonthEv(){
+  const el=$('monthEvList');
+  const ms=`${calY}-${String(calM+1).padStart(2,'0')}`;
+  // 계약서(sign), 잔금(balance) 만 표시
+  const me=events.filter(e=>e.date.startsWith(ms)&&(e.type==='sign'||e.type==='balance'))
+    .sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+  if(!me.length){el.innerHTML='<div class="empty">계약·잔금 일정 없음</div>';return;}
+  el.innerHTML=me.map(e=>{
+    const et=EV[e.type]||{label:e.type,color:'var(--text3)'};
+    const c=e.cid?clients.find(x=>idEq(x.id, e.cid)):null;
+    return`<div class="day-ev-item clickable" onclick="jumpToDate('${e.date}')">
+      <div style="flex:1;min-width:0">
+        <div class="day-ev-type" style="color:${et.color}">${e.date.slice(5)} ${et.label}${e.time?' '+e.time:''}</div>
+        <div class="day-ev-title" style="font-size:11px">${e.title}</div>
+        ${c?`<div class="day-ev-sub" style="font-size:10px"><span class="client-link" onclick="event.stopPropagation();openClientModal('${c.id}')">👤 ${c.name}</span></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function jumpToDate(ds){
+  const p=ds.split('-');
+  calY=parseInt(p[0]);calM=parseInt(p[1])-1;
+  selDate=ds;
+  $('dayTitle').textContent=fmtKorean(ds)+' 일정';
+  drawCal();
+}
+
+function delEv(id){
+  if(!confirm('이 일정을 삭제하시겠습니까?'))return;
+  const ev=events.find(e=>idEq(e.id,id));
+  const canCloud=!!(supabaseClient&&currentUser&&currentOrganization);
+  if(ev&&ev._supabase&&canCloud){
+    supabaseClient.from('events').delete().eq('id',id)
+      .then(({error})=>{if(error)console.error('일정 Supabase 삭제 실패:',error.message);});
+  }
+  events=events.filter(e=>!idEq(e.id,id));persist();drawCal();
+  if(curPage==='settlement')renderSettlement();
+  toast('일정이 삭제되었습니다');
+}
+
+// ═══════════════════════════════════════════════════════
+// CLIENTS
+// ═══════════════════════════════════════════════════════
+function buildMF(){
+  const sel=$('fmonth');
+  const months=[...new Set(clients.map(c=>c.date.slice(0,7)))].sort().reverse();
+  const cur=sel.value;
+  sel.innerHTML='<option value="">인입월 전체</option>'+months.map(m=>`<option value="${m}">${m.replace('-','년 ')}월</option>`).join('');
+  if(cur)sel.value=cur;
+}
+
+function renderClients(){
+  const q=($('csearch').value||'').toLowerCase();
+  const ft=$('ftypes').value;
+  const fm=$('fmonth').value;
+  const fp=$('fpriority').value;
+  const fs=$('fstage').value;
+
+  // 각 고객별로 어떤 진행단계 일정이 있는지 미리 계산
+  const stageMap={};  // {cid: Set('meeting','deposit','sign','balance')}
+  events.forEach(e=>{
+    if(!e.cid)return;
+    if(['meeting','deposit','sign','balance'].includes(e.type)){
+      if(!stageMap[e.cid])stageMap[e.cid]=new Set();
+      stageMap[e.cid].add(e.type);
+    }
+  });
+
+  const data=clients.filter(c=>{
+    if(q&&!c.name.toLowerCase().includes(q)&&!(c.phone||'').includes(q)&&!(c.memo||'').toLowerCase().includes(q))return false;
+    if(ft&&c.ctype!==ft)return false;
+    if(fm&&!c.date.startsWith(fm))return false;
+    if(fp&&String(c.priority)!==fp)return false;
+    if(fs){
+      const s=stageMap[c.id];
+      if(!s||!s.has(fs))return false;
+    }
+    return true;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.priority-a.priority);
+
+  $('clientCount').textContent=`총 ${data.length}명`;
+  const TM={사무실:'b-blue',상가:'b-orange',주거:'b-green',매매:'b-gold'};
+  const STAGES=[
+    {key:'meeting', label:'미팅',   color:'var(--c-meeting)', dim:'var(--c-meeting-dim)'},
+    {key:'deposit', label:'계약금', color:'var(--c-deposit)', dim:'var(--c-deposit-dim)'},
+    {key:'sign',    label:'계약서', color:'var(--c-sign)',    dim:'var(--c-sign-dim)'},
+    {key:'balance', label:'잔금',   color:'var(--c-balance)', dim:'var(--c-balance-dim)'},
+  ];
+
+  $('clientTable').innerHTML=data.length?data.map(c=>{
+    const s=stageMap[c.id]||new Set();
+    const stageBadges=STAGES.map(st=>{
+      const has=s.has(st.key);
+      return `<span class="stage-chip${has?' on':''}" style="${has?`background:${st.dim};color:${st.color};border-color:${st.color}`:''}" title="${st.label}${has?' ✓':''}">${st.label}</span>`;
+    }).join('');
+
+    return `
+    <tr onclick="openClientModal('${c.id}')">
+      <td style="color:var(--gold)">${'★'.repeat(c.priority)}<span style="color:var(--text3)">${'★'.repeat(3-c.priority)}</span></td>
+      <td>${c.date}</td><td class="td-name">${c.name}</td><td>${c.phone||''}</td>
+      <td><span class="badge ${TM[c.ctype]||'b-gray'}">${c.ctype}</span></td>
+      <td><div class="stage-row">${stageBadges}</div></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.memo||'-'}</td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openClientModal('${c.id}')">수정</button></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty">고객이 없습니다</td></tr>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTLEMENT
+// ═══════════════════════════════════════════════════════
+let stTab='contracts';
+function setTab(t,el){
+  stTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');
+  ['st-contracts','st-monthly','st-yearly'].forEach(id=>{const e=$(id);if(e)e.style.display='none'});
+  $('st-'+t).style.display='block';
+  renderSettlement();
+}
+
+function renderSettlement(){
+  const now=new Date();
+  if(stTab==='contracts'){
+    renderContracts();
+    return;
+  }
+
+  // 헬퍼: 특정 연/월에 수령된 수수료 합계 (contracts 기반)
+  function feeInPeriod(yyyy, mm){
+    let sum=0;
+    contracts.forEach(ct=>{
+      (ct.payments||[]).forEach(p=>{
+        if(!p.date)return;
+        if(yyyy && !p.date.startsWith(yyyy))return;
+        if(mm && p.date.slice(5,7)!==mm)return;
+        sum+=parseMoney(p.amount);
+      });
+    });
+    return sum;
+  }
+  function cellNum(n){return n?`<span class="count-cell">${n}</span>`:`<span class="count-cell zero">-</span>`;}
+
+  if(stTab==='monthly'){
+    const yyyy=String(now.getFullYear());
+    const curMo=now.getMonth()+1;
+    const mm=String(curMo).padStart(2,'0');
+
+    // 이달 매출
+    const thisMonth=feeInPeriod(yyyy,mm);
+    $('st-m-fee').textContent=`₩${thisMonth.toLocaleString()}`;
+
+    // 전월 대비
+    let prevYyyy=yyyy, prevMo=curMo-1;
+    if(prevMo===0){prevMo=12;prevYyyy=String(parseInt(yyyy)-1);}
+    const prevMm=String(prevMo).padStart(2,'0');
+    const prevMonth=feeInPeriod(prevYyyy,prevMm);
+    const vsEl=$('st-m-vs');
+    const vsCard=$('st-m-vs-card');
+    const vsSub=$('st-m-vs-sub');
+    if(prevMonth===0 && thisMonth===0){
+      vsEl.textContent='-';
+      vsEl.style.color='var(--text3)';
+      vsCard.style.borderTopColor='var(--border2)';
+      vsSub.textContent='전월 데이터 없음';
+    } else if(prevMonth===0){
+      vsEl.textContent='신규';
+      vsEl.style.color='var(--green)';
+      vsCard.style.borderTopColor='var(--green)';
+      vsSub.textContent='전월 ₩0';
+    } else {
+      const diff=thisMonth-prevMonth;
+      const pct=Math.round((diff/prevMonth)*100);
+      const isUp=diff>=0;
+      vsEl.textContent=`${isUp?'▲':'▼'} ${Math.abs(pct)}%`;
+      vsEl.style.color=isUp?'var(--green)':'var(--red)';
+      vsCard.style.borderTopColor=isUp?'var(--green)':'var(--red)';
+      vsSub.textContent=`전월 ₩${prevMonth.toLocaleString()}`;
+    }
+
+    // 올해 누적
+    const yearTotal=feeInPeriod(yyyy,null);
+    $('st-m-cum').textContent=`₩${yearTotal.toLocaleString()}`;
+
+    // 월평균 매출 (매출 발생한 월 수로 평균)
+    let monthsWithRevenue=0;
+    for(let mo=1;mo<=12;mo++){
+      const moStr=String(mo).padStart(2,'0');
+      if(feeInPeriod(yyyy,moStr)>0)monthsWithRevenue++;
+    }
+    const avg=monthsWithRevenue>0?Math.round(yearTotal/monthsWithRevenue):0;
+    $('st-m-avg').textContent=`₩${avg.toLocaleString()}`;
+    $('st-m-avg-sub').textContent=monthsWithRevenue>0?`${monthsWithRevenue}개월 평균`:'데이터 없음';
+
+    // 이달 내 정산 카드
+    if($('st-m-myshare')){
+      $('st-m-myshare').textContent='₩'+calcMyShare(thisMonth).toLocaleString();
+      $('st-m-myshare-ratio').textContent=getMyShareRatio();
+    }
+
+    $('st-year-m').textContent=yyyy;
+    let cum=0;
+    const rows=[];
+    for(let mo=1;mo<=12;mo++){
+      const moStr=String(mo).padStart(2,'0');
+      const ms=`${yyyy}-${moStr}`;
+      const mEv=events.filter(e=>e.date.startsWith(ms));
+      const tot=feeInPeriod(yyyy,moStr);cum+=tot;
+      rows.push({label:`${mo}월`,inip:mEv.filter(e=>e.type==='inip').length,meeting:mEv.filter(e=>e.type==='meeting').length,deposit:mEv.filter(e=>e.type==='deposit').length,sign:mEv.filter(e=>e.type==='sign').length,balance:mEv.filter(e=>e.type==='balance').length,fee:tot,cum,cur:mo===curMo});
+    }
+    $('monthlyTable').innerHTML=rows.map(r=>{
+      // 미래월 판단 (현재 월보다 큰 달)
+      const isFuture = parseInt(yyyy)===now.getFullYear() && parseInt(r.label)>curMo;
+      // 누적 표시 조건: 매출 발생한 월만 (또는 누적이 0이 아니면서 미래월 아님)
+      const showCum = !isFuture && r.cum>0;
+      const myShare=calcMyShare(r.fee);
+      return `
+      <div class="month-row" style="grid-template-columns:70px repeat(5,1fr) 130px 130px 130px;${r.cur?'background:rgba(212,168,67,0.06)':''}${isFuture?'opacity:.5;':''}">
+        <div class="month-label" style="${r.cur?'color:var(--gold)':''}">${r.label}</div>
+        <div>${cellNum(r.inip)}</div>
+        <div>${cellNum(r.meeting)}</div>
+        <div>${cellNum(r.deposit)}</div>
+        <div>${cellNum(r.sign)}</div>
+        <div>${cellNum(r.balance)}</div>
+        <div class="fee">${r.fee?'₩'+r.fee.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+        <div class="fee">${showCum?'₩'+r.cum.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+        <div class="fee" style="color:var(--gold2)!important">${myShare?'₩'+myShare.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+      </div>`;
+    }).join('')+
+      `<div class="month-row total-row" style="grid-template-columns:70px repeat(5,1fr) 130px 130px 130px">
+        <div>합계</div>
+        <div>${rows.reduce((s,r)=>s+r.inip,0)}</div>
+        <div>${rows.reduce((s,r)=>s+r.meeting,0)}</div>
+        <div>${rows.reduce((s,r)=>s+r.deposit,0)}</div>
+        <div>${rows.reduce((s,r)=>s+r.sign,0)}</div>
+        <div>${rows.reduce((s,r)=>s+r.balance,0)}</div>
+        <div class="fee">₩${rows.reduce((s,r)=>s+r.fee,0).toLocaleString()}</div>
+        <div class="fee">₩${rows.reduce((s,r)=>s+r.fee,0).toLocaleString()}</div>
+        <div class="fee">₩${calcMyShare(rows.reduce((s,r)=>s+r.fee,0)).toLocaleString()}</div>
+      </div>`;
+  }
+  if(stTab==='yearly'){
+    // 연도 모음: 일정/수령내역/계약 모두에서 추출
+    const yrSet=new Set();
+    events.forEach(e=>{if(e.date)yrSet.add(e.date.slice(0,4))});
+    contracts.forEach(ct=>{
+      if(ct.balanceDate)yrSet.add(ct.balanceDate.slice(0,4));
+      (ct.payments||[]).forEach(p=>{if(p.date)yrSet.add(p.date.slice(0,4))});
+    });
+    const yrs=[...yrSet].sort();
+    if(!yrs.length)yrs.push(String(now.getFullYear()));
+    let cum=0;
+    $('yearlyTable').innerHTML=yrs.map(y=>{
+      const yE=events.filter(e=>e.date.startsWith(y));
+      const tot=feeInPeriod(y,null);cum+=tot;
+      const isCur=y===String(now.getFullYear());
+      const myShare=calcMyShare(tot);
+      return`<div class="month-row" style="grid-template-columns:70px repeat(5,1fr) 130px 130px 130px;${isCur?'background:rgba(212,168,67,0.06)':''}">
+        <div class="month-label" style="${isCur?'color:var(--gold)':''}">${y}년</div>
+        <div>${cellNum(yE.filter(e=>e.type==='inip').length)}</div>
+        <div>${cellNum(yE.filter(e=>e.type==='meeting').length)}</div>
+        <div>${cellNum(yE.filter(e=>e.type==='deposit').length)}</div>
+        <div>${cellNum(yE.filter(e=>e.type==='sign').length)}</div>
+        <div>${cellNum(yE.filter(e=>e.type==='balance').length)}</div>
+        <div class="fee">${tot?'₩'+tot.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+        <div class="fee">${cum?'₩'+cum.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+        <div class="fee" style="color:var(--gold2)!important">${myShare?'₩'+myShare.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CONTRACT SETTLEMENT (잔금 완료 고객)
+// ═══════════════════════════════════════════════════════
+function renderContracts(){
+  // 잔금 일정마다 contract 자동 생성/sync
+  syncContractsFromEvents();
+
+  // 통계 모드 토글
+  const useReceiptDate=$('ct-mode')?$('ct-mode').value==='receipt':true;
+
+  // 연도/월 필터 옵션
+  buildContractYearOptions();
+  buildContractMonthOptions();
+
+  const q=($('ct-search').value||'').toLowerCase();
+  const fy=$('ct-year').value;
+  const fmo=$('ct-month').value;
+
+  // 필터링: 어떤 날짜로 필터하는지가 핵심
+  // useReceiptDate=true → 그 월에 수령내역이 하나라도 있으면 매칭
+  // useReceiptDate=false → 잔금일이 그 월에 속하면 매칭
+  const filtered=contracts.filter(ct=>{
+    if(q){
+      const c=ct.cid?clients.find(x=>idEq(x.id, ct.cid)):null;
+      const hay=[(c?.name||''),(ct.address||''),(ct.memo||'')].join(' ').toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    if(!fy&&!fmo)return true;  // 필터 없음 → 모두 표시
+
+    if(useReceiptDate){
+      // 수령일 기준: payments 중 해당 연/월에 속하는 게 있는지
+      // 단, payments가 비어있으면 잔금일로 fallback (계약은 보여줘야 함)
+      const payments=ct.payments||[];
+      if(payments.length===0){
+        // 수령내역 없음 → 잔금일로 필터링
+        const bd=ct.balanceDate||'';
+        if(fy&&!bd.startsWith(fy))return false;
+        if(fmo&&bd.slice(5,7)!==fmo)return false;
+        return true;
+      }
+      const ok=payments.some(p=>{
+        if(fy&&!(p.date||'').startsWith(fy))return false;
+        if(fmo&&(p.date||'').slice(5,7)!==fmo)return false;
+        return true;
+      });
+      if(!ok)return false;
+    } else {
+      const bd=ct.balanceDate||'';
+      if(fy&&!bd.startsWith(fy))return false;
+      if(fmo&&bd.slice(5,7)!==fmo)return false;
+    }
+    return true;
+  }).sort((a,b)=>(b.balanceDate||'').localeCompare(a.balanceDate||''));
+
+  // 통계 계산 (입력된 모든 금액을 합계로)
+  let totalAll=0, totalT=0, totalL=0;
+  filtered.forEach(ct=>{
+    (ct.payments||[]).forEach(p=>{
+      // 통계 필터링 (수령일 기준만 적용)
+      if(useReceiptDate){
+        if(fy&&!(p.date||'').startsWith(fy))return;
+        if(fmo&&(p.date||'').slice(5,7)!==fmo)return;
+      }
+      const amt=parseMoney(p.amount);
+      totalAll+=amt;
+      if(p.side==='tenant')totalT+=amt;
+      else if(p.side==='landlord')totalL+=amt;
+    });
+  });
+
+  $('ct-count').textContent=filtered.length;
+  $('ct-total').textContent='₩'+totalAll.toLocaleString();
+  $('ct-tenant').textContent='₩'+totalT.toLocaleString();
+  $('ct-landlord').textContent='₩'+totalL.toLocaleString();
+  // 내 정산 (필터된 합계의 비율)
+  if($('ct-myshare')){
+    $('ct-myshare').textContent='₩'+calcMyShare(totalAll).toLocaleString();
+    $('ct-myshare-ratio').textContent=getMyShareRatio();
+  }
+
+  const list=$('contractsList');
+  if(!filtered.length){
+    list.innerHTML='<div class="cc-empty">잔금 완료 계약이 없습니다.<br>일정관리에서 "잔금" 일정을 추가하면 여기에 자동 표시됩니다.</div>';
+    return;
+  }
+
+  list.innerHTML=filtered.map(ct=>{
+    const c=ct.cid?clients.find(x=>idEq(x.id, ct.cid)):null;
+    const isSaved=ct._saved;
+    const payments=ct.payments||[];
+    const total=payments.reduce((s,p)=>s+parseMoney(p.amount),0);
+    // 임차인측 / 임대인측 수수료
+    const tenantFee=payments.filter(p=>p.side==='tenant').reduce((s,p)=>s+parseMoney(p.amount),0);
+    const landlordFee=payments.filter(p=>p.side==='landlord').reduce((s,p)=>s+parseMoney(p.amount),0);
+
+    return `<div class="contract-row" onclick="openContractModal('${ct.id}')">
+      <div class="cr-left">
+        <div class="cr-name-line">
+          <span class="cr-name">${c?c.name:'(고객 없음)'}</span>
+          ${c?`<span class="badge ${({사무실:'b-blue',상가:'b-orange',주거:'b-green',매매:'b-gold'}[c.ctype]||'b-gray')}">${c.ctype}</span>`:''}
+          ${ct.contractType?`<span class="badge b-gray">${ct.contractType}</span>`:''}
+          <span class="cc-status ${isSaved?'saved':'unsaved'}">${isSaved?'✓ 저장':'미저장'}</span>
+        </div>
+        <div class="cr-info-line">
+          <span class="cr-date">📅 잔금 ${ct.balanceDate||'-'}</span>
+          ${ct.address?`<span class="cr-addr">📍 ${ct.address}</span>`:'<span class="cr-addr-empty">📍 매물 주소 미입력</span>'}
+        </div>
+        <div class="cr-fee-line">
+          <span class="cr-fee-item cr-fee-tenant">임차인측 ₩${tenantFee.toLocaleString()}</span>
+          <span class="cr-fee-item cr-fee-landlord">임대인측 ₩${landlordFee.toLocaleString()}</span>
+        </div>
+        ${total>0?`<div class="cr-my-share">
+          <span class="cr-my-share-label">💼 내 정산 <span class="cr-my-share-ratio">(${getMyShareRatio()}%)</span></span>
+          <span class="cr-my-share-val">₩${calcMyShare(total).toLocaleString()}</span>
+        </div>`:''}
+      </div>
+      <div class="cr-right">
+        <div class="cr-total-label">수수료 합계</div>
+        <div class="cr-total-val">${total?'₩'+total.toLocaleString():'<span style="color:var(--text3);font-size:11px;font-weight:400">미입력</span>'}</div>
+      </div>
+      <div class="cr-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+// 잔금 일정 → 계약 자동 생성/연결
+function syncContractsFromEvents(){
+  const balanceEvents=events.filter(e=>e.type==='balance');
+  let changed=false;
+  balanceEvents.forEach(e=>{
+    const exists=contracts.find(ct=>idEq(ct.balanceEventId,e.id));
+    if(!exists){
+      contracts.push({
+        id:Date.now()+Math.random(),
+        cid:e.cid||null,
+        balanceEventId:e.id,
+        address:'',contractType:'',
+        signDate:'',balanceDate:e.date,
+        deposit:'',monthly:'',maintenance:'',
+        payments:[],
+        coTenant:false,coLandlord:false,
+        memo:'',_saved:false
+      });
+      changed=true;
+    } else {
+      // 잔금일/고객 변경되면 sync
+      if(exists.balanceDate!==e.date){exists.balanceDate=e.date;changed=true;}
+      if(exists.cid!==e.cid){exists.cid=e.cid;changed=true;}
+    }
+  });
+  // 잔금 일정 삭제됐을 때: 계약은 모두 유지하되 balanceEventId만 끊음
+  // (사용자가 정산관리에서 직접 "계약 삭제" 버튼으로 삭제하도록)
+  contracts.forEach(ct=>{
+    if(!ct.balanceEventId)return;
+    const ev=balanceEvents.find(e=>idEq(e.id,ct.balanceEventId));
+    if(!ev){
+      ct.balanceEventId=null;
+      changed=true;
+    }
+  });
+  if(changed)persistContractsOnly();
+}
+
+function buildContractYearOptions(){
+  const yrSel=$('ct-year');
+  if(!yrSel)return;
+  const cur=yrSel.value;
+  // 잔금일 + 수령일 모두에서 연도 추출
+  const yrSet=new Set();
+  contracts.forEach(ct=>{
+    if(ct.balanceDate)yrSet.add(ct.balanceDate.slice(0,4));
+    (ct.payments||[]).forEach(p=>{if(p.date)yrSet.add(p.date.slice(0,4))});
+  });
+  const years=[...yrSet].sort().reverse();
+  yrSel.innerHTML='<option value="">연도 전체</option>'+years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  if(cur)yrSel.value=cur;
+}
+
+let _ctMonthInitialized=false;
+function buildContractMonthOptions(){
+  const sel=$('ct-month');
+  if(!sel)return;
+  const cur=sel.value;
+  const months=[
+    {v:'01',n:'1월'},{v:'02',n:'2월'},{v:'03',n:'3월'},{v:'04',n:'4월'},
+    {v:'05',n:'5월'},{v:'06',n:'6월'},{v:'07',n:'7월'},{v:'08',n:'8월'},
+    {v:'09',n:'9월'},{v:'10',n:'10월'},{v:'11',n:'11월'},{v:'12',n:'12월'},
+  ];
+  sel.innerHTML='<option value="">월 전체</option>'+months.map(m=>`<option value="${m.v}">${m.n}</option>`).join('');
+  if(cur){
+    sel.value=cur;
+  } else if(!_ctMonthInitialized){
+    // 최초 진입 시 당월 자동 세팅
+    const cm=String(new Date().getMonth()+1).padStart(2,'0');
+    sel.value=cm;
+    _ctMonthInitialized=true;
+  }
+}
+
+function onCtYearChange(){
+  // 연도 변경 시 월 필터는 유지하면서 재렌더
+  renderContracts();
+}
+
+function persistContractsOnly(){sv(KEY.contracts,contracts);}
+
+// ═══════════════════════════════════════════════════════
+// 계약 정산 모달 (팝업)
+// ═══════════════════════════════════════════════════════
+let editContractId=null;
+
+function getEditingContract(){
+  if(!editContractId)return null;
+  return contracts.find(c=>c.id==editContractId);
+}
+
+function openContractModal(contractId){
+  editContractId=contractId;
+  const ct=getEditingContract();
+  if(!ct){toast('계약 정보를 찾을 수 없습니다');return;}
+  const c=ct.cid?clients.find(x=>idEq(x.id, ct.cid)):null;
+
+  // 헤더 정보
+  $('ctm-name').textContent=c?c.name:'(고객 없음)';
+  const sub=[];
+  sub.push('잔금일 '+(ct.balanceDate||'-'));
+  if(c){sub.push(c.phone||'');sub.push(c.ctype);}
+  $('ctm-sub').textContent=sub.filter(Boolean).join(' · ');
+  const cBtn=$('ctm-client-btn');
+  if(c){
+    cBtn.style.display='inline-flex';
+    cBtn.onclick=()=>{closeContractModal();openClientModal(c.id);};
+  } else {
+    cBtn.style.display='none';
+  }
+
+  // 입력 필드
+  $('ctm-address').value=ct.address||'';
+
+  // 계약 유형: 저장된 값 없으면 기본값 '월세'
+  if(!ct.contractType){
+    ct.contractType='월세';
+  }
+  $('ctm-contractType').value=ct.contractType;
+
+  // 계약서 작성일 자동 채우기:
+  // 저장된 값 우선, 없으면 해당 고객의 'sign' 일정에서 자동으로 가져옴
+  if(!ct.signDate && ct.cid){
+    const signEvent=events
+      .filter(e=>e.type==='sign' && idEq(e.cid, ct.cid))
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0];  // 최신 우선
+    if(signEvent){
+      ct.signDate=signEvent.date;
+    }
+  }
+  $('ctm-signDate').value=ct.signDate||'';
+
+  $('ctm-deposit').value=formatMoney(ct.deposit);
+  $('ctm-monthly').value=formatMoney(ct.monthly);
+  $('ctm-maintenance').value=formatMoney(ct.maintenance);
+  $('ctm-memo').value=ct.memo||'';
+
+  // 수령 내역: 비어있으면 임차인측/임대인측 1건씩 자동 추가
+  if(!ct.payments)ct.payments=[];
+  if(ct.payments.length===0){
+    const defaultDate=ct.balanceDate||todayStr();
+    ct.payments.push(
+      {id:String(Date.now())+'-t'+Math.floor(Math.random()*1000),date:defaultDate,side:'tenant',amount:'',memo:''},
+      {id:String(Date.now())+'-l'+Math.floor(Math.random()*1000),date:defaultDate,side:'landlord',amount:'',memo:''}
+    );
+  }
+
+  // 수령 내역 렌더링
+  renderPaymentsList();
+  updateModalTotal();
+  $('mContract').classList.add('open');
+}
+
+function closeContractModal(){
+  $('mContract').classList.remove('open');
+  editContractId=null;
+}
+
+// 숫자만 추출
+function parseMoney(str){
+  if(!str)return 0;
+  return parseInt(String(str).replace(/[^0-9]/g,''))||0;
+}
+
+// 콤마 포맷
+function formatMoney(v){
+  const n=parseMoney(v);
+  return n?n.toLocaleString():'';
+}
+
+// 입력 시 콤마 자동 + 데이터 저장 (계약 정보용)
+function onMoneyInput(input, field){
+  const start=input.selectionStart;
+  const oldLen=input.value.length;
+  const num=parseMoney(input.value);
+  const formatted=num?num.toLocaleString():'';
+  input.value=formatted;
+  const newLen=formatted.length;
+  const newPos=Math.max(0, start + (newLen - oldLen));
+  try{ input.setSelectionRange(newPos, newPos); }catch{}
+
+  const ct=getEditingContract();
+  if(!ct)return;
+  ct[field]=String(num);
+  ct._saved=false;
+}
+
+function updateContractField(field, value){
+  const ct=getEditingContract();
+  if(!ct)return;
+  ct[field]=value;
+  ct._saved=false;
+}
+
+// === 수령 내역 (Payments) ===
+function renderPaymentsList(){
+  const ct=getEditingContract();
+  if(!ct)return;
+  const list=$('ctm-payments-list');
+  if(!ct.payments)ct.payments=[];
+
+  if(!ct.payments.length){
+    list.innerHTML='<div class="pay-empty">수령 내역이 없습니다.<br>위 "+ 임차인측" / "+ 임대인측" 버튼으로 추가하세요.</div>';
+    return;
+  }
+
+  // 날짜 정렬 (오래된 순)
+  const sorted=[...ct.payments].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  list.innerHTML=sorted.map(p=>{
+    const sideTag=p.side==='tenant'?'<span class="pay-side-tag tenant">임차인측</span>':'<span class="pay-side-tag landlord">임대인측</span>';
+    return `<div class="pay-row" data-pid="${p.id}">
+      <input type="date" value="${p.date||''}" oninput="updatePayment('${p.id}','date',this.value)">
+      ${sideTag}
+      <input type="text" inputmode="numeric" placeholder="0" value="${formatMoney(p.amount)}" oninput="updatePaymentMoney(this,'${p.id}')">
+      <button type="button" class="pay-del-btn" onclick="deletePayment('${p.id}')" title="삭제">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addPayment(side){
+  const ct=getEditingContract();
+  if(!ct)return;
+  if(!ct.payments)ct.payments=[];
+  // 기본 일자: 잔금일 또는 오늘
+  const defaultDate=ct.balanceDate||todayStr();
+  ct.payments.push({
+    id:String(Date.now())+Math.floor(Math.random()*1000),
+    date:defaultDate,
+    side:side,
+    amount:'',
+    memo:''
+  });
+  ct._saved=false;
+  renderPaymentsList();
+  updateModalTotal();
+}
+
+function updatePayment(pid, field, value){
+  const ct=getEditingContract();
+  if(!ct||!ct.payments)return;
+  const p=ct.payments.find(x=>String(x.id)===String(pid));
+  if(!p)return;
+  p[field]=value;
+  ct._saved=false;
+  if(field==='date'||field==='amount')updateModalTotal();
+}
+
+function updatePaymentMoney(input, pid){
+  const start=input.selectionStart;
+  const oldLen=input.value.length;
+  const num=parseMoney(input.value);
+  const formatted=num?num.toLocaleString():'';
+  input.value=formatted;
+  const newLen=formatted.length;
+  const newPos=Math.max(0, start + (newLen - oldLen));
+  try{ input.setSelectionRange(newPos, newPos); }catch{}
+  updatePayment(pid,'amount',String(num));
+}
+
+function deletePayment(pid){
+  const ct=getEditingContract();
+  if(!ct||!ct.payments)return;
+  ct.payments=ct.payments.filter(x=>String(x.id)!==String(pid));
+  ct._saved=false;
+  renderPaymentsList();
+  updateModalTotal();
+}
+
+function updateModalTotal(){
+  const ct=getEditingContract();
+  if(!ct)return;
+  const total=(ct.payments||[]).reduce((s,p)=>s+parseMoney(p.amount),0);
+  $('ctm-paid-total').textContent='₩'+total.toLocaleString();
+  if($('ctm-myshare-val')){
+    $('ctm-myshare-val').textContent='₩'+calcMyShare(total).toLocaleString();
+    $('ctm-myshare-ratio').textContent=getMyShareRatio();
+  }
+}
+
+function saveContractFromModal(){
+  const ct=getEditingContract();
+  if(!ct)return;
+  ct._saved=true;
+  persistContractsOnly();
+  closeContractModal();
+  renderContracts();
+  toast('계약 정보가 저장되었습니다');
+}
+
+// ═══════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════
+let editEvId=null;
+let editClientId=null;
+
+// ── EVENT MODAL ──
+function openEventModal(eventId, date, presetType){
+  closeQuickPop();closeMP();
+  editEvId=eventId||null;
+  if(eventId){
+    // Edit mode
+    const e=events.find(x=>idEq(x.id,eventId));
+    if(!e){toast('일정을 찾을 수 없습니다');return;}
+    $('evModalTitle').textContent='일정 수정';
+    $('evDelBtn').style.display='inline-flex';
+    $('ev-type').value=e.type;
+    $('ev-date').value=e.date;
+    $('ev-time').value=e.time||'12:00';
+    $('ev-title').value=e.title||'';
+    // For inip in edit mode, show link section (client already created)
+    if(e.type==='inip'){
+      $('inip-section').style.display='none';
+      $('link-section').style.display='block';
+    } else {
+      onEvTypeChange();
+    }
+    // Set linked client - always go through ID-based helper (no name mismatch possible)
+    clearClientSelection();
+    if(e.cid)renderLinkedClientBox(e.cid);
+    $('ev-memo').value=e.memo||'';
+  } else {
+    // New mode
+    $('evModalTitle').textContent='일정 추가';
+    $('evDelBtn').style.display='none';
+    $('ev-date').value=date||selDate||todayStr();
+    $('ev-time').value='12:00';
+    $('ev-title').value='';
+    $('ev-type').value=presetType||'inip';
+    $('inip-name').value='';
+    $('inip-phone').value='';
+    $('inip-memo').value='';
+    $('inip-priority').value='2';
+    $('inip-ctype').value='사무실';
+    $('ev-memo').value='';
+    clearClientSelection();
+    onEvTypeChange();
+  }
+  $('mEvent').classList.add('open');
+}
+
+function closeEventModal(){
+  $('mEvent').classList.remove('open');
+  editEvId=null;
+  // 다음에 모달 열 때 잔존 데이터 방지
+  clearClientSelection();
+}
+
+function onEvTypeChange(){
+  const t=$('ev-type').value;
+  // 수정 모드(editEvId 있음)에선 inip이어도 link-section 사용
+  const isInipNew=t==='inip'&&!editEvId;
+  $('inip-section').style.display=isInipNew?'block':'none';
+  $('link-section').style.display=isInipNew?'none':'block';
+  // 신규 inip 모드에선 황금색 박스 강제 숨김 + hidden cid 비우기 (다른 고객 매칭 방지)
+  if(isInipNew){
+    $('ev-client').value='';
+    $('linked-client-box').style.display='none';
+    $('ev-client-search').value='';
+    $('ev-client-clear').style.display='none';
+    const row=document.querySelector('.client-search-input-row');
+    if(row)row.classList.remove('cs-selected');
+  }
+}
+
+// ── 고객 검색 드롭다운 ──
+const TM_badge={사무실:'b-blue',상가:'b-orange',주거:'b-green',매매:'b-gold'};
+
+function openClientDropdown(){
+  filterClientDropdown();
+}
+
+function filterClientDropdown(){
+  const q=($('ev-client-search').value||'').toLowerCase();
+  const dd=$('clientDropdown');
+  const filtered=clients.filter(c=>
+    !q||c.name.includes(q)||(c.phone||'').includes(q)||(c.memo||'').toLowerCase().includes(q)
+  ).sort((a,b)=>b.priority-a.priority||b.date.localeCompare(a.date));
+
+  if(!filtered.length){
+    dd.innerHTML=`<div class="cd-empty">검색 결과가 없습니다</div>`;
+  } else {
+    dd.innerHTML=filtered.map(c=>`
+      <div class="cd-item" onmousedown="selectClientFromDropdown('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span class="cd-item-name">${c.name}</span>
+            <span class="badge ${TM_badge[c.ctype]||'b-gray'}" style="font-size:9px;padding:1px 5px">${c.ctype}</span>
+            <span style="color:var(--gold);font-size:10px">${'★'.repeat(c.priority)}</span>
+          </div>
+          <div class="cd-item-info">${c.phone||'전화번호 없음'}${c.memo?' · '+c.memo.slice(0,24):''}</div>
+        </div>
+      </div>`).join('');
+  }
+  dd.style.display='block';
+}
+
+function selectClientFromDropdown(cid, name){
+  // 즉시 검색 입력창 잠시 비우고 → ID로 다시 조회 → 표시 (이름 충돌 방지)
+  $('ev-client').value=String(cid);
+  $('clientDropdown').style.display='none';
+  renderLinkedClientBox(cid);
+}
+
+function clearClientSelection(){
+  $('ev-client').value='';
+  $('ev-client-search').value='';
+  $('ev-client-clear').style.display='none';
+  $('linked-client-box').style.display='none';
+  $('clientDropdown').style.display='none';
+  const row=document.querySelector('.client-search-input-row');
+  if(row)row.classList.remove('cs-selected');
+}
+
+// 드롭다운 외부 클릭 시 닫기 (handled in unified handler at bottom)
+
+// ID로 직접 조회해서 박스 + 검색창 동기화 (단일 진입점)
+function renderLinkedClientBox(cid){
+  const box=$('linked-client-box');
+  const search=$('ev-client-search');
+  const clearBtn=$('ev-client-clear');
+  const row=document.querySelector('.client-search-input-row');
+  if(!cid){
+    // 선택 해제 상태
+    box.style.display='none';
+    search.value='';
+    clearBtn.style.display='none';
+    if(row)row.classList.remove('cs-selected');
+    $('ev-client').value='';
+    return;
+  }
+  const c=clients.find(x=>idEq(x.id, cid));
+  if(!c){
+    // 잘못된 cid면 깨끗이 클리어
+    clearClientSelection();
+    return;
+  }
+  // ID로 찾은 정확한 고객만 사용
+  $('ev-client').value=String(c.id);
+  search.value=c.name;
+  clearBtn.style.display='inline';
+  if(row)row.classList.add('cs-selected');
+  box.style.display='block';
+  box.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <strong style="color:var(--text)">${c.name}</strong>
+    <span class="badge ${TM_badge[c.ctype]||'b-gray'}">${c.ctype}</span>
+    <span style="color:var(--gold)">${'★'.repeat(c.priority)}</span>
+  </div>
+  <div style="color:var(--text2);font-size:11px;margin-top:4px">${c.phone||''}</div>
+  ${c.memo?`<div style="color:var(--text3);font-size:11px;margin-top:2px">${c.memo}</div>`:''}`;
+}
+
+// 검색창에 직접 타이핑할 때 — hidden cid는 무효화 (박스도 숨김)
+function onSearchInput(){
+  // 이미 선택된 상태에서 타이핑 시작하면 선택 해제 후 재검색
+  if($('ev-client').value){
+    $('ev-client').value='';
+    $('linked-client-box').style.display='none';
+    $('ev-client-clear').style.display='none';
+    const row=document.querySelector('.client-search-input-row');
+    if(row)row.classList.remove('cs-selected');
+  }
+  filterClientDropdown();
+}
+
+function showLinkedClient(){
+  // 외부 호출용 - hidden input의 cid 기준으로 박스 갱신
+  renderLinkedClientBox($('ev-client').value);
+}
+
+async function saveEvent(){
+  const type=$('ev-type').value;
+  const date=$('ev-date').value;
+  const time=$('ev-time').value;
+  let title=$('ev-title').value.trim();
+  if(!date){alert('날짜를 입력해주세요.');return;}
+
+  if(!title){ title = EV[type]?.label || '일정'; }
+
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+
+  if(editEvId){
+    // ── 수정 모드 ──
+    const i=events.findIndex(e=>idEq(e.id,editEvId));
+    if(i>=0){
+      const cidV=$('ev-client').value;
+      const memo=$('ev-memo').value.trim();
+      if(canUseCloud && events[i]._supabase){
+        const{error}=await supabaseClient
+          .from('events')
+          .update({
+            event_type:type, event_date:date, event_time:time||null,
+            title, client_id:cidV||null, memo:memo||null
+          })
+          .eq('id', editEvId);
+        if(error){alert('일정 수정 실패: '+error.message);return;}
+      }
+      events[i]={...events[i],type,date,time,title,cid:cidV||null,memo};
+    }
+    toast('일정이 수정되었습니다');
+
+  } else {
+    // ── 신규 추가 모드 ──
+    if(type==='inip'){
+      const name=$('inip-name').value.trim();
+      const phone=$('inip-phone').value.trim();
+
+      if(name||phone){
+        // 고객 정보 있으면 둘 다 필수
+        if(!name){alert('고객명을 입력해주세요.');return;}
+        if(!phone){alert('전화번호를 입력해주세요.');return;}
+
+        const ctype=$('inip-ctype').value;
+        const priority=parseInt($('inip-priority').value);
+        const cliMemo=$('inip-memo').value.trim();
+        let newClientId;
+
+        if(canUseCloud){
+          try{
+            const{data:created,error}=await supabaseClient
+              .from('clients')
+              .insert({
+                user_id:currentUser.id, organization_id:currentOrganization.id,
+                name, phone, ctype, priority, memo:cliMemo||null, inquiry_date:date
+              })
+              .select().single();
+            if(error){alert('고객 등록 실패: '+error.message);return;}
+            clients.push({
+              id:created.id, name:created.name, phone:created.phone,
+              ctype:created.ctype, priority:created.priority,
+              memo:created.memo||'', date:created.inquiry_date||date, _supabase:true
+            });
+            newClientId=created.id;
+            toast(`고객 "${name}" 등록 완료 (클라우드)`);
+          }catch(err){alert('고객 등록 중 오류: '+err.message);return;}
+        }else{
+          uid.c++;
+          newClientId=uid.c;
+          clients.push({id:newClientId,name,phone,ctype,priority,memo:cliMemo,date});
+          toast(`고객 "${name}" 등록 완료`);
+        }
+
+        if(title==='고객인입') title=name+' 고객인입';
+        const evMemo=name+' · '+ctype;
+        if(canUseCloud){
+          try{
+            const{data:createdEv,error:evErr}=await supabaseClient
+              .from('events')
+              .insert({
+                user_id:currentUser.id, organization_id:currentOrganization.id,
+                event_type:'inip', event_date:date, event_time:time||null,
+                title, client_id:newClientId, memo:evMemo
+              })
+              .select().single();
+            if(evErr) throw evErr;
+            events.push({id:createdEv.id,type:'inip',date,time,title,cid:newClientId,memo:evMemo,_supabase:true});
+          }catch(evErr){
+            console.warn('일정 Supabase 저장 실패 (로컬 폴백):', evErr.message);
+            uid.e++;
+            events.push({id:uid.e,type:'inip',date,time,title,cid:newClientId,memo:evMemo});
+          }
+        }else{
+          uid.e++;
+          events.push({id:uid.e,type:'inip',date,time,title,cid:newClientId,memo:evMemo});
+        }
+
+      }else{
+        // 고객 정보 없이 인입 일정만
+        const memo=$('inip-memo').value.trim();
+        if(canUseCloud){
+          try{
+            const{data:createdEv,error:evErr}=await supabaseClient
+              .from('events')
+              .insert({
+                user_id:currentUser.id, organization_id:currentOrganization.id,
+                event_type:'inip', event_date:date, event_time:time||null,
+                title, client_id:null, memo:memo||null
+              })
+              .select().single();
+            if(evErr) throw evErr;
+            events.push({id:createdEv.id,type:'inip',date,time,title,cid:null,memo,_supabase:true});
+          }catch(evErr){
+            console.warn('일정 Supabase 저장 실패 (로컬 폴백):', evErr.message);
+            uid.e++;
+            events.push({id:uid.e,type:'inip',date,time,title,cid:null,memo});
+          }
+        }else{
+          uid.e++;
+          events.push({id:uid.e,type:'inip',date,time,title,cid:null,memo});
+        }
+        toast('일정이 추가되었습니다');
+      }
+
+    }else{
+      // ── 비고객인입 일정 ──
+      const cidV=$('ev-client').value;
+      const memo=$('ev-memo').value.trim();
+      if(canUseCloud){
+        try{
+          const{data:createdEv,error:evErr}=await supabaseClient
+            .from('events')
+            .insert({
+              user_id:currentUser.id, organization_id:currentOrganization.id,
+              event_type:type, event_date:date, event_time:time||null,
+              title, client_id:cidV||null, memo:memo||null
+            })
+            .select().single();
+          if(evErr) throw evErr;
+          events.push({id:createdEv.id,type,date,time,title,cid:cidV||null,memo,_supabase:true});
+        }catch(evErr){
+          console.warn('일정 Supabase 저장 실패 (로컬 폴백):', evErr.message);
+          uid.e++;
+          events.push({id:uid.e,type,date,time,title,cid:cidV||null,memo});
+        }
+      }else{
+        uid.e++;
+        events.push({id:uid.e,type,date,time,title,cid:cidV||null,memo});
+      }
+      toast('일정이 추가되었습니다');
+    }
+  }
+
+  persist();
+  syncContractsFromEvents();
+  closeEventModal();
+  const p=date.split('-');
+  calY=parseInt(p[0]);calM=parseInt(p[1])-1;selDate=date;
+  $('dayTitle').textContent=fmtKorean(date)+' 일정';
+  drawCal();
+  if(curPage==='clients'){buildMF();renderClients();}
+  if(curPage==='settlement')renderSettlement();
+}
+
+function deleteEventFromModal(){
+  if(!editEvId) return;
+  if(!confirm('이 일정을 삭제하시겠습니까?')) return;
+
+  const ev = events.find(e => idEq(e.id, editEvId));
+  const canUseCloud = !!(supabaseClient && currentUser && currentOrganization);
+
+  if(ev && ev._supabase && canUseCloud){
+    supabaseClient.from('events').delete().eq('id', editEvId)
+      .then(({ error }) => {
+        if(error) console.error('일정 Supabase 삭제 실패:', error.message);
+      });
+  }
+
+  events = events.filter(e => !idEq(e.id, editEvId));
+  persist();
+  closeEventModal();
+  drawCal();
+  if(curPage === 'settlement') renderSettlement();
+  toast('일정이 삭제되었습니다');
+}
+
+// ── CLIENT MODAL ──
+function openClientModal(id){
+  closeQuickPop();closeMP();
+  // HTML onclick에서 항상 문자열로 전달되므로 로컬 숫자 ID는 복원
+  if(id !== null && id !== undefined && String(id).indexOf('-') === -1 && !isNaN(id)){
+    id = parseInt(id, 10);
+  }
+  editClientId=id||null;
+  if(id){
+    const c=clients.find(x=>idEq(x.id, id));
+    if(!c){toast('고객을 찾을 수 없습니다');return;}
+    $('cModalTitle').textContent='고객 정보 수정';
+    $('cDelBtn').style.display='inline-flex';
+    $('c-name').value=c.name;
+    $('c-phone').value=c.phone||'';
+    $('c-type').value=c.ctype;
+    $('c-priority').value=c.priority;
+    $('c-memo').value=c.memo||'';
+  } else {
+    $('cModalTitle').textContent='고객 추가';
+    $('cDelBtn').style.display='none';
+    $('c-name').value='';$('c-phone').value='';$('c-memo').value='';
+    $('c-priority').value='2';$('c-type').value='사무실';
+  }
+  $('mClient').classList.add('open');
+}
+
+function closeClientModal(){$('mClient').classList.remove('open');editClientId=null;}
+
+async function saveClient(){
+  // ═══ 1단계: 입력값 검증 ═══
+  const name=$('c-name').value.trim();
+  const phone=$('c-phone').value.trim();
+  if(!name){alert('고객명을 입력해주세요.');return;}
+  if(!phone){alert('전화번호를 입력해주세요.');return;}
+  
+  const ctype = $('c-type').value;
+  const priority = parseInt($('c-priority').value);
+  const memo = $('c-memo').value.trim();
+  
+  console.log('═══════════════════════════════════════');
+  console.log('🚀 [saveClient] 시작');
+  console.log('   - name:', name);
+  console.log('   - editClientId:', editClientId);
+  
+  // ═══ 2단계: 클라우드 vs 로컬 결정 ═══
+  const canUseCloud = (
+    typeof supabaseClient !== 'undefined' && supabaseClient !== null &&
+    typeof currentUser !== 'undefined' && currentUser !== null &&
+    typeof currentOrganization !== 'undefined' && currentOrganization !== null
+  );
+  
+  console.log('☁️ canUseCloud:', canUseCloud);
+
+  // ═══ 3단계: 클라우드 모드 ═══
+  if(canUseCloud){
+    console.log('📡 클라우드 모드로 처리');
+    
+    if(editClientId){
+      // 수정
+      console.log('   → 수정 모드');
+      try {
+        const { data: updated, error } = await supabaseClient
+          .from('clients')
+          .update({
+            name: name, phone: phone, ctype: ctype,
+            priority: priority, memo: memo || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editClientId)
+          .select()
+          .single();
+        
+        if(error){
+          console.error('❌ 수정 실패:', error);
+          alert('수정 실패: ' + error.message);
+          return;
+        }
+        
+        // 로컬 배열 업데이트
+        const i = clients.findIndex(x => idEq(x.id, editClientId));
+        if(i >= 0){
+          clients[i] = {
+            id: updated.id,
+            name: updated.name,
+            phone: updated.phone,
+            ctype: updated.ctype,
+            priority: updated.priority,
+            memo: updated.memo || '',
+            date: updated.inquiry_date || updated.created_at?.split('T')[0],
+            _supabase: true
+          };
+        }
+        
+        console.log('✅ 수정 완료:', updated);
+        toast('고객 정보 수정 완료 (클라우드)');
+      } catch(err){
+        console.error('💥 수정 예외:', err);
+        alert('수정 중 오류: ' + err.message);
+        return;
+      }
+    } else {
+      // 신규 추가
+      console.log('   → 신규 추가 모드');
+      try {
+        const insertData = {
+          user_id: currentUser.id,
+          organization_id: currentOrganization.id,
+          name: name,
+          phone: phone,
+          ctype: ctype,
+          priority: priority,
+          memo: memo || null,
+          inquiry_date: todayStr()
+        };
+        console.log('📤 보낼 데이터:', insertData);
+        
+        const { data: created, error } = await supabaseClient
+          .from('clients')
+          .insert(insertData)
+          .select()
+          .single();
+        
+        if(error){
+          console.error('❌ 추가 실패:', error);
+          alert('추가 실패: ' + error.message + '\n\n힌트: ' + (error.hint || '없음'));
+          return;
+        }
+        
+        // 로컬 배열에도 추가
+        clients.push({
+          id: created.id,
+          name: created.name,
+          phone: created.phone,
+          ctype: created.ctype,
+          priority: created.priority,
+          memo: created.memo || '',
+          date: created.inquiry_date || todayStr(),
+          _supabase: true
+        });
+
+        // 고객인입 일정 자동 생성 (Supabase)
+        try {
+          const { data: createdEv, error: evErr } = await supabaseClient
+            .from('events')
+            .insert({
+              user_id: currentUser.id,
+              organization_id: currentOrganization.id,
+              event_type: 'inip',
+              event_date: created.inquiry_date || todayStr(),
+              event_time: '12:00',
+              title: `${name} 고객인입`,
+              client_id: created.id,
+              memo: ctype || null
+            })
+            .select().single();
+          if(evErr) throw evErr;
+          events.push({
+            id: createdEv.id, type: 'inip',
+            date: createdEv.event_date, time: '12:00',
+            title: `${name} 고객인입`, cid: created.id,
+            memo: ctype, _supabase: true
+          });
+        } catch(evErr){
+          console.warn('고객인입 일정 생성 실패 (무시):', evErr.message);
+          uid.e++;
+          events.push({
+            id: uid.e, type: 'inip',
+            date: created.inquiry_date || todayStr(), time: '12:00',
+            title: `${name} 고객인입`, cid: created.id, memo: ctype
+          });
+        }
+
+        console.log('✅ 추가 완료:', created);
+        toast(`고객 "${name}" 등록 완료 (클라우드)`);
+      } catch(err){
+        console.error('💥 추가 예외:', err);
+        alert('추가 중 오류: ' + err.message);
+        return;
+      }
+    }
+  } else {
+    toast('로그인이 필요합니다');
+    return;
+  }
+
+  // ═══ 5단계: UI 갱신 ═══
+  console.log('🔄 UI 갱신');
+  persist();
+  closeClientModal();
+  buildMF();
+  renderClients();
+  if(curPage === 'schedule') drawCal();
+  console.log('═══════════════════════════════════════');
+}
+
+async function deleteClientFromModal(){
+  if(!editClientId)return;
+  const c=clients.find(x=>idEq(x.id, editClientId));
+  if(!c)return;
+  if(!confirm(`고객 "${c.name}" 을(를) 삭제하시겠습니까?\n관련 일정은 유지되지만 고객 연결이 끊깁니다.`))return;
+
+  // 로그인 상태면 Supabase에서도 삭제
+  const useSupabase = !!(supabaseClient && currentUser && currentOrganization);
+  if(useSupabase && c._supabase){
+    const success = await deleteClientFromSupabase(editClientId);
+    if(!success){
+      toast('삭제 실패. 다시 시도해주세요.');
+      return;
+    }
+  }
+
+  // Unlink events (UUID/숫자 타입 무관하게 비교)
+  events.forEach(e=>{if(idEq(e.cid, editClientId))e.cid=null;});
+  clients=clients.filter(x=>!idEq(x.id, editClientId));
+  persist();closeClientModal();renderClients();
+  if(curPage==='schedule')drawCal();
+  toast(useSupabase ? '고객이 삭제되었습니다 (클라우드)' : '고객이 삭제되었습니다');
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// RATIO MODAL (정산 비율 설정)
+// ═══════════════════════════════════════════════════════
+function openRatioModal(){
+  const r=getMyShareRatio();
+  $('ratioInput').value=r;
+  $('ratioRemain').textContent=100-r;
+  highlightPreset(r);
+  updateRatioPreview(r);
+  $('mRatio').classList.add('open');
+}
+function closeRatioModal(){$('mRatio').classList.remove('open');}
+
+function highlightPreset(r){
+  document.querySelectorAll('.ratio-preset').forEach(b=>{
+    b.classList.toggle('active', parseInt(b.dataset.ratio)===r);
+  });
+}
+
+function updateRatioPreview(r){
+  const my=Math.round(1000000*r/100);
+  const office=1000000-my;
+  $('previewMine').textContent='₩'+my.toLocaleString();
+  $('previewOffice').textContent='₩'+office.toLocaleString();
+}
+
+// 프리셋 버튼 클릭 핸들러 (이벤트 위임으로 통합 클릭에서 처리)
+function onRatioPresetClick(r){
+  $('ratioInput').value=r;
+  $('ratioRemain').textContent=100-r;
+  highlightPreset(r);
+  updateRatioPreview(r);
+}
+
+function saveRatio(){
+  let r=parseInt($('ratioInput').value);
+  if(isNaN(r)||r<1||r>100){
+    alert('1~100 사이의 숫자를 입력해주세요.');
+    return;
+  }
+  settings.myShareRatio=r;
+  persist();
+  updateRatioBadges();
+  closeRatioModal();
+  toast(`내 정산 비율: ${ratioLabel()} (본인 ${r}%)`);
+  // 현재 화면 새로고침
+  if(curPage==='settlement')renderSettlement();
+}
+
+function exportData(){
+  const data={clients,events,fees,uid,contracts,settings,exportedAt:new Date().toISOString(),version:4};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`crm-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('백업 파일이 다운로드되었습니다');
+}
+
+function importData(ev){
+  const file=ev.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.clients||!d.events){throw new Error('Invalid format');}
+      if(!confirm(`백업을 불러오시겠습니까?\n현재 데이터(고객 ${clients.length}명, 일정 ${events.length}건)는 덮어씌워집니다.`))return;
+      clients=d.clients||[];events=d.events||[];fees=d.fees||[];uid=d.uid||{c:1000,e:1000,f:1000};
+      contracts=migrateContracts(d.contracts)||[];
+      if(d.settings)settings=d.settings;
+      persist();
+      drawCal();buildMF();renderClients();renderSettlement();
+      updateRatioBadges();
+      toast(`복원 완료: 고객 ${clients.length}명, 일정 ${events.length}건`);
+    }catch(err){
+      alert('잘못된 백업 파일입니다.');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value='';
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL BACKDROP & ESC
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.modal').forEach(m=>{
+  // mousedown으로 처리하면 click 이벤트와의 경합을 줄임
+  let _backdropDown=false;
+  m.addEventListener('mousedown',e=>{
+    _backdropDown = (e.target===m);
+  });
+  m.addEventListener('click',e=>{
+    // 백드롭에서 mousedown + click 모두 발생했을 때만 닫기
+    if(e.target===m && _backdropDown){
+      _backdropDown=false;
+      if(m.id==='mEvent')closeEventModal();
+      else if(m.id==='mClient')closeClientModal();
+      else if(m.id==='mContract')closeContractModal();
+      else if(m.id==='mClientDelChoice')closeClientDelChoice();
+      else if(m.id==='mRatio')closeRatioModal();
+      else if(m.id==='mAuth')closeAuthModal();
+      else if(m.id==='mConfirm'){
+        window.__confirmCallback=null;
+        m.classList.remove('open');
+      }
+    }
+  });
+});
+
+// ── 통합 클릭 핸들러: data-action 우선, 외부클릭 닫기 후순위 ──
+document.addEventListener('click',function(e){
+  // 비율 프리셋 버튼
+  const preset=e.target.closest('.ratio-preset');
+  if(preset && preset.dataset.ratio){
+    e.stopPropagation();
+    onRatioPresetClick(parseInt(preset.dataset.ratio));
+    return;
+  }
+  const t=e.target.closest('[data-action]');
+  if(t){
+    e.stopPropagation();
+    const action=t.dataset.action;
+    const rawId=t.dataset.id;
+    // open-client, edit-event, del-event는 UUID일 수 있으므로 raw 문자열 유지
+    const _needsRaw = action==='open-client'||action==='edit-event'||action==='del-event';
+    const id=rawId?(_needsRaw?rawId:parseInt(rawId,10)):null;
+
+    if(action==='del-event'){
+      const _delEv=events.find(x=>idEq(x.id,id));
+      const _canCloud=!!(supabaseClient&&currentUser&&currentOrganization);
+      setTimeout(()=>{
+        askConfirm('일정 삭제','이 일정을 삭제하시겠습니까?',()=>{
+          if(_delEv&&_delEv._supabase&&_canCloud){
+            supabaseClient.from('events').delete().eq('id',id)
+              .then(({error})=>{if(error)console.error('일정 Supabase 삭제 실패:',error.message);});
+          }
+          events=events.filter(x=>!idEq(x.id,id));
+          persist();
+          syncContractsFromEvents();
+          drawCal();
+          if(curPage==='settlement')renderSettlement();
+          toast('일정이 삭제되었습니다');
+        });
+      },0);
+      return;
+    }
+    if(action==='del-event-modal'){
+      if(!editEvId){alert('편집 중인 일정이 없습니다');return;}
+      const eid=editEvId;
+      const _delEv=events.find(x=>idEq(x.id,eid));
+      const _canCloud=!!(supabaseClient&&currentUser&&currentOrganization);
+      setTimeout(()=>{
+        askConfirm('일정 삭제','이 일정을 삭제하시겠습니까?',()=>{
+          if(_delEv&&_delEv._supabase&&_canCloud){
+            supabaseClient.from('events').delete().eq('id',eid)
+              .then(({error})=>{if(error)console.error('일정 Supabase 삭제 실패:',error.message);});
+          }
+          events=events.filter(x=>!idEq(x.id,eid));
+          persist();
+          syncContractsFromEvents();
+          closeEventModal();
+          drawCal();
+          if(curPage==='settlement')renderSettlement();
+          toast('일정이 삭제되었습니다');
+        });
+      },0);
+      return;
+    }
+    if(action==='del-client-modal'){
+      if(!editClientId){alert('편집 중인 고객이 없습니다');return;}
+      const c=clients.find(x=>idEq(x.id, editClientId));
+      if(!c)return;
+      const cid=editClientId;
+      const useSupabase=!!(supabaseClient&&currentUser&&currentOrganization);
+      // 이 고객과 연결된 정산 계약이 있는지 확인
+      const relatedContracts=contracts.filter(ct=>idEq(ct.cid, cid));
+      const hasContracts=relatedContracts.length>0;
+
+      // Supabase + 로컬 동시 삭제 (계약 처리 제외)
+      const doBaseDelete=async()=>{
+        if(useSupabase&&c._supabase){
+          const ok=await deleteClientFromSupabase(cid);
+          if(!ok){toast('삭제 실패. 다시 시도해주세요.');return false;}
+        }
+        events.forEach(ev=>{if(idEq(ev.cid,cid))ev.cid=null;});
+        clients=clients.filter(x=>!idEq(x.id,cid));
+        return true;
+      };
+
+      // ⚠️ setTimeout으로 미뤄서 같은 클릭 이벤트의 잔여 처리(backdrop 등)와 분리
+      setTimeout(()=>{
+        if(!hasContracts){
+          // 정산 계약 없으면 단순 확인
+          askConfirm('고객 삭제','고객 "'+c.name+'"을(를) 삭제하시겠습니까?\n관련 일정의 고객 연결이 끊깁니다.',async()=>{
+            if(!await doBaseDelete())return;
+            persist();
+            closeClientModal();
+            buildMF();renderClients();
+            if(curPage==='schedule')drawCal();
+            toast(useSupabase&&c._supabase?'고객이 삭제되었습니다 (클라우드)':'고객이 삭제되었습니다');
+          });
+        } else {
+          // 정산 계약 있음 → 3가지 선택 모달
+          showClientDeleteWithContracts(c, cid, relatedContracts.length, useSupabase);
+        }
+      },0);
+      return;
+    }
+    if(action==='del-contract-modal'){
+      if(!editContractId){alert('편집 중인 계약이 없습니다');return;}
+      const ct=getEditingContract();
+      if(!ct)return;
+      const c=ct.cid?clients.find(x=>idEq(x.id, ct.cid)):null;
+      const name=c?c.name:'(고객 없음)';
+      const ctId=editContractId;
+      setTimeout(()=>{
+        askConfirm(
+          '계약 삭제',
+          `${name} 계약을 정산관리에서 삭제하시겠습니까?\n수령 내역과 매물 정보가 모두 삭제됩니다.\n(일정관리의 잔금 일정과 고객정보는 유지됩니다)`,
+          ()=>{
+            contracts=contracts.filter(c=>String(c.id)!==String(ctId));
+            persist();
+            closeContractModal();
+            renderContracts();
+            toast('계약이 삭제되었습니다');
+          }
+        );
+      },0);
+      return;
+    }
+    if(action==='edit-event'){openEventModal(id,null);return;}
+    if(action==='open-client'){openClientModal(id);return;}
+    if(action==='confirm-ok'){
+      const cb=window.__confirmCallback;
+      window.__confirmCallback=null;
+      $('mConfirm').classList.remove('open');
+      if(cb)cb();
+      return;
+    }
+    if(action==='confirm-cancel'){
+      window.__confirmCallback=null;
+      $('mConfirm').classList.remove('open');
+      return;
+    }
+    return;
+  }
+  // 외부클릭으로 팝업/드롭다운 닫기
+  if(mpOpen && !e.target.closest('#monthPicker') && !e.target.closest('#calTitle'))closeMP();
+  if(qpDate && !e.target.closest('#quickPop') && !e.target.closest('.cd'))closeQuickPop();
+  if(!e.target.closest('#clientSearchWrap')){
+    const dd=$('clientDropdown');
+    if(dd)dd.style.display='none';
+  }
+});
+
+// 커스텀 확인 모달
+function askConfirm(title, msg, onOk){
+  $('confirmTitle').textContent=title;
+  $('confirmMsg').textContent=msg;
+  window.__confirmCallback=onOk;
+  $('mConfirm').classList.add('open');
+}
+
+// 고객 삭제 시 정산 계약 있는 경우 - 3가지 선택 모달
+function showClientDeleteWithContracts(c, cid, contractCount, useSupabase){
+  $('clientDelMsg').textContent=`고객 "${c.name}"을(를) 삭제하시겠습니까?\n관련 정산 계약 ${contractCount}건이 있습니다.\n어떻게 처리할까요?`;
+
+  // Supabase + 로컬 동시 삭제 (계약 처리 제외)
+  const doBaseDelete=async()=>{
+    if(useSupabase&&c._supabase){
+      const ok=await deleteClientFromSupabase(cid);
+      if(!ok){toast('삭제 실패. 다시 시도해주세요.');return false;}
+    }
+    events.forEach(ev=>{if(idEq(ev.cid,cid))ev.cid=null;});
+    clients=clients.filter(x=>!idEq(x.id,cid));
+    return true;
+  };
+
+  $('btnDelClientKeep').onclick=async()=>{
+    closeClientDelChoice();
+    // 계약은 유지하되 cid만 끊음
+    contracts.forEach(ct=>{if(idEq(ct.cid,cid))ct.cid=null;});
+    if(!await doBaseDelete())return;
+    persist();
+    closeClientModal();
+    buildMF();renderClients();
+    if(curPage==='schedule')drawCal();
+    if(curPage==='settlement')renderSettlement();
+    toast(useSupabase&&c._supabase?'고객 삭제됨 (클라우드, 계약 유지)':'고객 삭제됨 (계약은 유지)');
+  };
+
+  $('btnDelClientAll').onclick=()=>{
+    closeClientDelChoice();
+    askConfirm(
+      '⚠ 정말 모두 삭제하시겠습니까?',
+      `고객 "${c.name}"과 관련된 정산 계약 ${contractCount}건이 영구 삭제됩니다.\n수수료 기록까지 모두 사라지며 복구할 수 없습니다.`,
+      async()=>{
+        contracts=contracts.filter(ct=>!idEq(ct.cid,cid));
+        if(!await doBaseDelete())return;
+        persist();
+        closeClientModal();
+        buildMF();renderClients();
+        if(curPage==='schedule')drawCal();
+        if(curPage==='settlement')renderSettlement();
+        toast(`고객 및 계약 ${contractCount}건 삭제됨`);
+      }
+    );
+  };
+
+  $('mClientDelChoice').classList.add('open');
+}
+
+function closeClientDelChoice(){
+  $('mClientDelChoice').classList.remove('open');
+}
+
+document.addEventListener('keydown',e=>{
+  // 랜딩 페이지 인증 폼에서 Enter 키 처리
+  if(e.key==='Enter'){
+    const t = e.target;
+    if(t && (t.id==='land-email' || t.id==='land-password' || t.id==='land-name' || t.id==='land-phone')){
+      e.preventDefault();
+      handleLandingAuthSubmit();
+      return;
+    }
+  }
+  // 인증 모달에서 Enter 키 처리
+  if(e.key==='Enter' && $('mAuth').classList.contains('open')){
+    const target = e.target;
+    if(target && (target.id==='auth-email' || target.id==='auth-password' || target.id==='auth-name' || target.id==='auth-phone')){
+      e.preventDefault();
+      handleAuthSubmit();
+      return;
+    }
+  }
+  if(e.key==='Escape'){
+    if($('mConfirm').classList.contains('open')){
+      window.__confirmCallback=null;
+      $('mConfirm').classList.remove('open');
+    }
+    else if($('mEvent').classList.contains('open'))closeEventModal();
+    else if($('mClient').classList.contains('open'))closeClientModal();
+    else if($('mContract').classList.contains('open'))closeContractModal();
+    else if($('mClientDelChoice').classList.contains('open'))closeClientDelChoice();
+    else if($('mRatio').classList.contains('open'))closeRatioModal();
+    else if($('mAuth').classList.contains('open'))closeAuthModal();
+    else if(mpOpen)closeMP();
+    else if(qpDate)closeQuickPop();
+  }
+});
+
+// 비율 input 실시간 업데이트
+document.addEventListener('input',e=>{
+  if(e.target && e.target.id==='ratioInput'){
+    let r=parseInt(e.target.value);
+    if(isNaN(r))r=50;
+    r=Math.max(1,Math.min(100,r));
+    $('ratioRemain').textContent=100-r;
+    highlightPreset(r);
+    updateRatioPreview(r);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE 연결 (2단계: 인증 기능 추가)
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://ofligfzilhmnxdgnodrr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_dUCi6PQaoqcQ723O3s1drg_nSdITrO4';
+
+let supabaseClient = null;
+let currentUser = null;
+let currentProfile = null;
+let currentOrganization = null;
+let _authInitialized = false;  // 프로필/조직 fetch 완료 여부
+let _dataLoaded = false;       // Supabase 데이터 로드 완료 여부
+
+function initSupabase(){
+  try {
+    if(typeof supabase === 'undefined'){
+      console.error('❌ Supabase 라이브러리가 로드되지 않았습니다.');
+      showSupabaseStatus('error', 'Supabase 라이브러리 로드 실패');
+      return false;
+    }
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false  // postMessage 경고 방지
+      }
+    });
+    console.log('✅ Supabase 클라이언트 생성 완료');
+    
+    // 기존 세션 확인 (자동 로그인)
+    checkExistingSession();
+    
+    // 인증 상태 변경 감지
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      console.log('🔔 Auth event:', event);
+      if(event === 'SIGNED_IN' && session){
+        handleSignedIn(session.user);
+      } else if(event === 'SIGNED_OUT'){
+        handleSignedOut();
+      }
+    });
+    
+    return true;
+  } catch(err){
+    console.error('❌ Supabase 연결 실패:', err);
+    showSupabaseStatus('error', 'Supabase 연결 실패');
+    return false;
+  }
+}
+
+async function checkExistingSession(){
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if(error){
+      console.log('세션 확인 오류:', error.message);
+      updateAuthUI(null);
+      return;
+    }
+    if(session && session.user){
+      console.log('✅ 기존 세션 발견:', session.user.email);
+      await handleSignedIn(session.user);
+    } else {
+      console.log('ℹ️ 로그인 안 됨 (로컬 모드)');
+      updateAuthUI(null);
+      showSupabaseStatus('info', 'Supabase 준비됨 (로컬 모드)');
+    }
+  } catch(err){
+    console.error('세션 확인 실패:', err);
+    updateAuthUI(null);
+  }
+}
+
+async function handleSignedIn(user){
+  currentUser = user;
+  console.log('👤 로그인됨:', user.email);
+
+  // 프로필/조직 fetch는 한 번만 (중복 호출 안전)
+  if(!_authInitialized){
+    _authInitialized = true;
+    try {
+      // 1. 프로필 정보 가져오기 (없으면 생성)
+      let { data: profile, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if(error && error.code !== 'PGRST116'){
+        console.warn('프로필 조회 오류:', error.message);
+      }
+
+      if(!profile){
+        console.log('🆕 프로필 없음 → 생성 시작');
+        profile = await createProfile(user);
+      } else {
+        console.log('✅ 기존 프로필 확인:', profile.name);
+      }
+
+      currentProfile = profile;
+
+      // 2. 조직 확인 (없으면 생성)
+      if(profile && !profile.organization_id){
+        console.log('🆕 조직 없음 → 자동 생성 시작');
+        const org = await createDefaultOrganization(user, profile);
+        if(org){
+          currentProfile.organization_id = org.id;
+          currentOrganization = org;
+        }
+      } else if(profile && profile.organization_id){
+        const { data: org, error: orgErr } = await supabaseClient
+          .from('organizations')
+          .select('*')
+          .eq('id', profile.organization_id)
+          .maybeSingle();
+
+        if(!orgErr && org){
+          currentOrganization = org;
+          console.log('✅ 조직 확인:', org.name, '/', org.plan);
+        }
+      }
+    } catch(err){
+      _authInitialized = false;  // 오류 시 재시도 가능하도록 리셋
+      console.error('프로필/조직 처리 실패:', err);
+    }
+  }
+
+  // UI 갱신은 항상 실행 (중복 호출이어도 문제 없음)
+  updateAuthUI(user);
+  showSupabaseStatus('success', `${user.email} 로그인됨`);
+
+  // 데이터 로드는 한 번만
+  if(!_dataLoaded){
+    _dataLoaded = true;
+    await loadDataFromSupabase();
+  }
+}
+
+// ─────────────────────────────────────
+// 프로필 자동 생성
+// ─────────────────────────────────────
+async function createProfile(user){
+  try {
+    // 가입시 입력한 메타데이터 추출
+    const meta = user.user_metadata || {};
+    const name = meta.name || user.email.split('@')[0];
+    const phone = meta.phone || null;
+    
+    const profileData = {
+      id: user.id,
+      email: user.email,
+      name: name,
+      phone: phone,
+      role: 'owner',  // 본인 사무소 소유자
+      share_ratio: 50  // 기본 수수료 비율
+    };
+    
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .insert(profileData)
+      .select()
+      .single();
+    
+    if(error){
+      console.error('❌ 프로필 생성 실패:', error.message);
+      return null;
+    }
+    
+    console.log('✅ 프로필 생성 완료:', data.name);
+    return data;
+  } catch(err){
+    console.error('프로필 생성 중 오류:', err);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────
+// 기본 조직 자동 생성 (개인 모드)
+// ─────────────────────────────────────
+async function createDefaultOrganization(user, profile){
+  try {
+    // 조직 생성
+    const orgData = {
+      name: `${profile.name}의 사무소`,
+      plan: 'free',  // 무료 플랜
+      max_members: 1,  // 개인 모드
+      owner_id: user.id
+    };
+    
+    const { data: org, error: orgError } = await supabaseClient
+      .from('organizations')
+      .insert(orgData)
+      .select()
+      .single();
+    
+    if(orgError){
+      console.error('❌ 조직 생성 실패:', orgError.message);
+      return null;
+    }
+    
+    console.log('✅ 조직 생성 완료:', org.name);
+    
+    // 프로필에 organization_id 업데이트
+    const { error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({ organization_id: org.id })
+      .eq('id', user.id);
+    
+    if(updateError){
+      console.warn('프로필 업데이트 실패:', updateError.message);
+    } else {
+      console.log('✅ 프로필에 조직 연결 완료');
+    }
+    
+    return org;
+  } catch(err){
+    console.error('조직 생성 중 오류:', err);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 🔬 진단 함수 (임시)
+// ═══════════════════════════════════════════════════════
+async function runDiagnosis(){
+  console.log('═══════════════════════════════════════');
+  console.log('🔬 시스템 진단 시작');
+  console.log('═══════════════════════════════════════');
+  
+  // 1. 라이브러리 확인
+  console.log('1️⃣ Supabase 라이브러리:', typeof supabase !== 'undefined' ? '✅ 로드됨' : '❌ 없음');
+  
+  // 2. 클라이언트 확인
+  console.log('2️⃣ supabaseClient:', supabaseClient ? '✅ 있음' : '❌ 없음');
+  
+  // 3. 사용자 변수 확인
+  console.log('3️⃣ currentUser:', currentUser ? `✅ ${currentUser.email}` : '❌ null');
+  console.log('   - User ID:', currentUser?.id);
+  
+  // 4. 프로필 변수 확인
+  console.log('4️⃣ currentProfile:', currentProfile ? `✅ ${currentProfile.name}` : '❌ null');
+  console.log('   - Profile ID:', currentProfile?.id);
+  console.log('   - Org ID in profile:', currentProfile?.organization_id);
+  
+  // 5. 조직 변수 확인
+  console.log('5️⃣ currentOrganization:', currentOrganization ? `✅ ${currentOrganization.name}` : '❌ null');
+  console.log('   - Org ID:', currentOrganization?.id);
+  console.log('   - Plan:', currentOrganization?.plan);
+  
+  // 6. 세션 확인
+  if(supabaseClient){
+    try {
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      console.log('6️⃣ Supabase Session:', session ? '✅ 활성' : '❌ 없음');
+      if(session){
+        console.log('   - 만료 시간:', new Date(session.expires_at * 1000).toLocaleString());
+        console.log('   - 사용자:', session.user.email);
+      }
+      if(error) console.log('   - 에러:', error.message);
+    } catch(err){
+      console.log('6️⃣ 세션 확인 실패:', err.message);
+    }
+  }
+  
+  // 7. 직접 Supabase 테스트
+  if(supabaseClient && currentUser && currentOrganization){
+    console.log('7️⃣ Supabase 직접 추가 테스트...');
+    try {
+      const testData = {
+        user_id: currentUser.id,
+        organization_id: currentOrganization.id,
+        name: '진단테스트_' + new Date().getTime(),
+        phone: '010-0000-0000',
+        ctype: '주거',
+        priority: 2
+      };
+      console.log('   - 보낼 데이터:', testData);
+      
+      const { data, error } = await supabaseClient
+        .from('clients')
+        .insert(testData)
+        .select()
+        .single();
+      
+      if(error){
+        console.log('   ❌ 실패!');
+        console.log('   - 에러 코드:', error.code);
+        console.log('   - 에러 메시지:', error.message);
+        console.log('   - 에러 힌트:', error.hint);
+        console.log('   - 전체 에러:', error);
+      } else {
+        console.log('   ✅ 성공! 데이터:', data);
+        console.log('   👉 이제 Supabase clients 테이블 새로고침해서 확인하세요!');
+      }
+    } catch(err){
+      console.log('   ❌ 예외:', err.message);
+    }
+  } else {
+    console.log('7️⃣ 직접 테스트 불가 (필수 정보 없음)');
+  }
+  
+  // 8. 결론
+  console.log('═══════════════════════════════════════');
+  const useSupabase = !!(supabaseClient && currentUser && currentOrganization);
+  console.log('🎯 결론: Supabase 사용 가능?', useSupabase ? '✅ YES' : '❌ NO');
+  console.log('═══════════════════════════════════════');
+  
+  // 화면에도 알림
+  if(useSupabase){
+    alert('✅ Supabase 사용 가능 상태!\nF12 → Console에서 자세한 결과 확인하세요.');
+  } else {
+    alert('❌ Supabase 사용 불가 상태!\nF12 → Console에서 어디가 문제인지 확인하세요.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 4단계: 고객(CLIENTS) 데이터 Supabase 연동
+// ═══════════════════════════════════════════════════════
+
+// 로그인 상태 확인
+function isUserLoggedIn(){
+  return currentUser && currentProfile && currentOrganization;
+}
+
+// 로그인 후 Supabase에서 데이터 로드
+async function loadDataFromSupabase(){
+  if(!isUserLoggedIn()){
+    console.log('비로그인 - localStorage 모드');
+    return;
+  }
+  
+  console.log('📥 Supabase에서 데이터 로드 시작...');
+  showSupabaseStatus('info', '데이터 불러오는 중...');
+  
+  try {
+    // 고객 데이터 로드 (본인 조직 데이터만)
+    const { data: cloudClients, error: clientErr } = await supabaseClient
+      .from('clients')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .order('created_at', { ascending: false });
+    
+    if(clientErr){
+      console.error('고객 로드 실패:', clientErr.message);
+      showSupabaseStatus('error', '고객 데이터 로드 실패');
+      return;
+    }
+    
+    // Supabase 데이터를 로컬 형식으로 변환
+    clients = (cloudClients || []).map(c => ({
+      id: c.id,  // UUID 그대로 사용
+      name: c.name,
+      phone: c.phone || '',
+      ctype: c.ctype || '주거',
+      priority: c.priority || 2,
+      memo: c.memo || '',
+      date: c.inquiry_date || c.created_at?.split('T')[0] || todayStr(),
+      _supabase: true  // Supabase 데이터 표시
+    }));
+    
+    console.log(`✅ 고객 ${clients.length}명 로드 완료`);
+
+    // 일정 데이터 로드 (본인 조직 데이터만)
+    const { data: cloudEvents, error: eventErr } = await supabaseClient
+      .from('events')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .order('event_date', { ascending: true });
+
+    if(eventErr){
+      console.error('일정 로드 실패:', eventErr.message);
+    } else {
+      events = (cloudEvents || []).map(e => ({
+        id: e.id,             // UUID 그대로 사용
+        type: e.event_type || 'general',
+        date: e.event_date || '',
+        time: e.event_time || '12:00',
+        title: e.title || '',
+        cid: e.client_id || null,
+        memo: e.memo || '',
+        _supabase: true
+      }));
+      console.log(`✅ 일정 ${events.length}개 로드 완료`);
+    }
+
+    // UI 갱신
+    persist();
+    buildMF();
+    renderClients();
+    if(typeof drawCal === 'function') drawCal();
+
+    showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 동기화 완료`);
+  } catch(err){
+    console.error('데이터 로드 중 오류:', err);
+    showSupabaseStatus('error', '데이터 로드 오류');
+  }
+}
+
+// Supabase에 고객 추가
+async function addClientToSupabase(clientData){
+  if(!isUserLoggedIn()) return null;
+  
+  try {
+    const insertData = {
+      user_id: currentUser.id,
+      organization_id: currentOrganization.id,
+      name: clientData.name,
+      phone: clientData.phone,
+      ctype: clientData.ctype,
+      priority: clientData.priority,
+      memo: clientData.memo || null,
+      inquiry_date: clientData.date || todayStr()
+    };
+    
+    const { data, error } = await supabaseClient
+      .from('clients')
+      .insert(insertData)
+      .select()
+      .single();
+    
+    if(error){
+      console.error('Supabase 고객 추가 실패:', error.message);
+      showSupabaseStatus('error', '클라우드 저장 실패: ' + error.message.substring(0, 30));
+      return null;
+    }
+    
+    console.log('✅ Supabase 고객 추가 완료:', data.name);
+    return data;
+  } catch(err){
+    console.error('고객 추가 중 오류:', err);
+    return null;
+  }
+}
+
+// Supabase에서 고객 업데이트
+async function updateClientInSupabase(clientId, updates){
+  if(!isUserLoggedIn()) return false;
+  
+  try {
+    const updateData = {
+      name: updates.name,
+      phone: updates.phone,
+      ctype: updates.ctype,
+      priority: updates.priority,
+      memo: updates.memo || null,
+      updated_at: new Date().toISOString()
+    };
+    
+    const { error } = await supabaseClient
+      .from('clients')
+      .update(updateData)
+      .eq('id', clientId);
+    
+    if(error){
+      console.error('Supabase 고객 수정 실패:', error.message);
+      showSupabaseStatus('error', '클라우드 수정 실패');
+      return false;
+    }
+    
+    console.log('✅ Supabase 고객 수정 완료');
+    return true;
+  } catch(err){
+    console.error('고객 수정 중 오류:', err);
+    return false;
+  }
+}
+
+// Supabase에서 고객 삭제
+async function deleteClientFromSupabase(clientId){
+  if(!isUserLoggedIn()) return false;
+  
+  try {
+    const { error } = await supabaseClient
+      .from('clients')
+      .delete()
+      .eq('id', clientId);
+    
+    if(error){
+      console.error('Supabase 고객 삭제 실패:', error.message);
+      showSupabaseStatus('error', '클라우드 삭제 실패');
+      return false;
+    }
+    
+    console.log('✅ Supabase 고객 삭제 완료');
+    return true;
+  } catch(err){
+    console.error('고객 삭제 중 오류:', err);
+    return false;
+  }
+}
+
+function handleSignedOut(){
+  currentUser = null;
+  currentProfile = null;
+  currentOrganization = null;
+  _authInitialized = false;
+  _dataLoaded = false;
+  console.log('👋 로그아웃됨');
+  
+  // 클라우드 데이터를 로컬에서 제거 (개인정보 보호)
+  clients = clients.filter(c => !c._supabase);
+  events = events.filter(e => !e._supabase);
+  persist();
+  buildMF();
+  renderClients();
+  if(typeof drawCal === 'function') drawCal();
+  
+  updateAuthUI(null);
+  showSupabaseStatus('info', '로그아웃됨 (로컬 모드)');
+}
+
+function showLanding(){
+  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('mainApp').style.display = 'none';
+  document.body.style.overflow = 'auto'; // 모바일에서 랜딩 페이지 스크롤 허용
+}
+
+function showMain(){
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  document.body.style.overflow = 'hidden'; // 앱 모드: 내부 스크롤
+}
+
+function updateAuthUI(user){
+  const authArea = document.getElementById('authArea');
+  if(!authArea) return;
+  
+  if(user){
+    showMain();
+    // 로그인된 상태
+    const email = user.email || '';
+    const displayName = currentProfile?.name || email.split('@')[0];
+    const orgName = currentOrganization?.name || '';
+    const plan = currentOrganization?.plan || 'free';
+    const planBadge = plan === 'team' 
+      ? '<span style="background:var(--gold);color:var(--bg);padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px">TEAM</span>' 
+      : '<span style="background:var(--bg3);color:var(--text2);padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-left:4px">FREE</span>';
+    
+    let orgHtml = '';
+    if(orgName){
+      orgHtml = `
+        <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);font-weight:500">
+          <span>🏢 ${orgName}</span>
+          ${planBadge}
+        </div>
+      `;
+    }
+    
+    authArea.innerHTML = `
+      ${orgHtml}
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--green-dim);border:1px solid rgba(63,185,80,0.3);border-radius:6px;font-size:11px;color:var(--green);font-weight:500">
+        <span>👤 ${displayName}</span>
+      </div>
+      <button class="btn" onclick="handleLogout()" style="font-size:11px">
+        🚪 로그아웃
+      </button>
+    `;
+  } else {
+    showLanding();
+    // 로그인 안 된 상태 (authArea는 메인 앱 topbar에 존재하므로 그대로 유지)
+    authArea.innerHTML = `
+      <button class="btn" id="loginBtn" onclick="openAuthModal()" style="font-size:11px">
+        🔐 로그인
+      </button>
+    `;
+  }
+}
+
+async function handleLogout(){
+  if(!confirm('로그아웃 하시겠습니까?'))return;
+  try {
+    const { error } = await supabaseClient.auth.signOut();
+    if(error){
+      alert('로그아웃 실패: ' + error.message);
+      return;
+    }
+    toast('로그아웃되었습니다');
+  } catch(err){
+    console.error('로그아웃 오류:', err);
+    alert('로그아웃 중 오류가 발생했습니다.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTH MODAL (로그인/회원가입)
+// ═══════════════════════════════════════════════════════
+let authMode = 'login'; // 'login' or 'signup'
+
+function openAuthModal(){
+  authMode = 'login';
+  switchAuthTab('login');
+  $('auth-email').value = '';
+  $('auth-password').value = '';
+  $('auth-name').value = '';
+  $('auth-phone').value = '';
+  $('authInfo').style.display = 'none';
+  $('mAuth').classList.add('open');
+  setTimeout(()=>$('auth-email').focus(), 100);
+}
+
+function closeAuthModal(){
+  $('mAuth').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════
+// LANDING AUTH (랜딩 페이지 인증 폼)
+// ═══════════════════════════════════════════════════════
+let landingAuthMode = 'login';
+
+function switchLandingTab(mode){
+  landingAuthMode = mode;
+  if(mode === 'login'){
+    $('landTabLogin').classList.add('on'); $('landTabSignup').classList.remove('on');
+    $('landNameGroup').style.display = 'none'; $('landPhoneGroup').style.display = 'none';
+    $('landSubmitBtn').textContent = '로그인'; $('landPwHint').textContent = '';
+    $('landKeepLogin').style.display = 'flex';
+  } else {
+    $('landTabSignup').classList.add('on'); $('landTabLogin').classList.remove('on');
+    $('landNameGroup').style.display = 'flex'; $('landPhoneGroup').style.display = 'flex';
+    $('landSubmitBtn').textContent = '회원가입'; $('landPwHint').textContent = '(최소 6자)';
+    $('landKeepLogin').style.display = 'none';
+  }
+  $('landInfo').style.display = 'none';
+}
+
+function showLandingInfo(type, msg){
+  const info = $('landInfo');
+  info.style.display = 'block';
+  info.textContent = msg;
+  if(type === 'success'){
+    info.style.background = 'var(--green-dim)';
+    info.style.borderColor = 'rgba(63,185,80,0.3)';
+    info.style.color = 'var(--green)';
+  } else if(type === 'error'){
+    info.style.background = 'var(--red-dim)';
+    info.style.borderColor = 'rgba(248,81,73,0.3)';
+    info.style.color = 'var(--red)';
+  } else {
+    info.style.background = 'var(--blue-dim)';
+    info.style.borderColor = 'rgba(88,166,255,0.3)';
+    info.style.color = 'var(--blue)';
+  }
+}
+
+async function handleLandingAuthSubmit(){
+  if(!supabaseClient){ showLandingInfo('error','서버에 연결되지 않았습니다'); return; }
+  const email = $('land-email').value.trim();
+  const password = $('land-password').value;
+  if(!email){ showLandingInfo('error','이메일을 입력해주세요'); $('land-email').focus(); return; }
+  if(!password){ showLandingInfo('error','비밀번호를 입력해주세요'); $('land-password').focus(); return; }
+  if(!email.includes('@')){ showLandingInfo('error','올바른 이메일 형식이 아닙니다'); return; }
+  const btn = $('landSubmitBtn');
+  btn.disabled = true; btn.textContent = '처리중...';
+  try {
+    if(landingAuthMode === 'login'){
+      await doLandingLogin(email, password);
+    } else {
+      await doLandingSignup(email, password);
+    }
+  } catch(err){
+    showLandingInfo('error','오류: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = landingAuthMode === 'login' ? '로그인' : '회원가입';
+  }
+}
+
+async function doLandingLogin(email, password){
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error){
+    if(error.message.includes('Email not confirmed')){
+      showLandingInfo('error','⚠️ 이메일 인증이 필요합니다. 가입시 받은 이메일을 확인해주세요.');
+    } else if(error.message.includes('Invalid login credentials')){
+      showLandingInfo('error','❌ 이메일 또는 비밀번호가 올바르지 않습니다.');
+    } else {
+      showLandingInfo('error','로그인 실패: ' + error.message);
+    }
+    return;
+  }
+  showLandingInfo('success','✅ 로그인 성공!');
+  // onAuthStateChange → handleSignedIn → updateAuthUI(user) → showMain() 자동 전환
+}
+
+async function doLandingSignup(email, password){
+  if(password.length < 6){ showLandingInfo('error','비밀번호는 최소 6자 이상이어야 합니다'); return; }
+  const name = $('land-name').value.trim();
+  const phone = $('land-phone').value.trim();
+  if(!name){ showLandingInfo('error','이름을 입력해주세요'); $('land-name').focus(); return; }
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { data: { name, phone } }
+  });
+  if(error){
+    if(error.message.includes('already registered')){
+      showLandingInfo('error','❌ 이미 가입된 이메일입니다. 로그인을 시도해주세요.');
+    } else {
+      showLandingInfo('error','회원가입 실패: ' + error.message);
+    }
+    return;
+  }
+  showLandingInfo('success','✅ 회원가입 완료! 📧 ' + email + ' 으로 인증 메일을 보냈습니다. 링크를 클릭하면 로그인할 수 있습니다.');
+  $('land-password').value = '';
+}
+
+function switchAuthTab(mode){
+  authMode = mode;
+  const tabLogin = $('authTabLogin');
+  const tabSignup = $('authTabSignup');
+  const nameGroup = $('authNameGroup');
+  const phoneGroup = $('authPhoneGroup');
+  const submitBtn = $('authSubmitBtn');
+  const title = $('authModalTitle');
+  const pwHint = $('authPwHint');
+  const keepLogin = $('authKeepLogin');
+  
+  if(mode === 'login'){
+    tabLogin.classList.add('on');
+    tabSignup.classList.remove('on');
+    nameGroup.style.display = 'none';
+    phoneGroup.style.display = 'none';
+    submitBtn.textContent = '로그인';
+    title.textContent = '로그인';
+    pwHint.textContent = '';
+    keepLogin.style.display = 'flex';
+  } else {
+    tabSignup.classList.add('on');
+    tabLogin.classList.remove('on');
+    nameGroup.style.display = 'flex';
+    phoneGroup.style.display = 'flex';
+    submitBtn.textContent = '회원가입';
+    title.textContent = '회원가입';
+    pwHint.textContent = '(최소 6자)';
+    keepLogin.style.display = 'none';
+  }
+  $('authInfo').style.display = 'none';
+}
+
+function showAuthInfo(type, msg){
+  const info = $('authInfo');
+  info.style.display = 'block';
+  info.textContent = msg;
+  if(type === 'success'){
+    info.style.background = 'var(--green-dim)';
+    info.style.borderColor = 'rgba(63,185,80,0.3)';
+    info.style.color = 'var(--green)';
+  } else if(type === 'error'){
+    info.style.background = 'var(--red-dim)';
+    info.style.borderColor = 'rgba(248,81,73,0.3)';
+    info.style.color = 'var(--red)';
+  } else {
+    info.style.background = 'var(--blue-dim)';
+    info.style.borderColor = 'rgba(88,166,255,0.3)';
+    info.style.color = 'var(--blue)';
+  }
+}
+
+async function handleAuthSubmit(){
+  const email = $('auth-email').value.trim();
+  const password = $('auth-password').value;
+  
+  if(!email){showAuthInfo('error','이메일을 입력해주세요');$('auth-email').focus();return;}
+  if(!password){showAuthInfo('error','비밀번호를 입력해주세요');$('auth-password').focus();return;}
+  if(!email.includes('@')){showAuthInfo('error','올바른 이메일 형식이 아닙니다');return;}
+  
+  const submitBtn = $('authSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '처리중...';
+  
+  try {
+    if(authMode === 'login'){
+      await doLogin(email, password);
+    } else {
+      await doSignup(email, password);
+    }
+  } catch(err){
+    console.error('인증 오류:', err);
+    showAuthInfo('error', '오류: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = authMode === 'login' ? '로그인' : '회원가입';
+  }
+}
+
+async function doLogin(email, password){
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email, password
+  });
+  
+  if(error){
+    if(error.message.includes('Email not confirmed')){
+      showAuthInfo('error', '⚠️ 이메일 인증이 필요합니다. 가입시 받은 이메일을 확인해주세요.');
+    } else if(error.message.includes('Invalid login credentials')){
+      showAuthInfo('error', '❌ 이메일 또는 비밀번호가 올바르지 않습니다.');
+    } else {
+      showAuthInfo('error', '로그인 실패: ' + error.message);
+    }
+    return;
+  }
+  
+  showAuthInfo('success', '✅ 로그인 성공!');
+  setTimeout(()=>closeAuthModal(), 800);
+}
+
+async function doSignup(email, password){
+  if(password.length < 6){
+    showAuthInfo('error', '비밀번호는 최소 6자 이상이어야 합니다');
+    return;
+  }
+  
+  const name = $('auth-name').value.trim();
+  const phone = $('auth-phone').value.trim();
+  
+  if(!name){showAuthInfo('error','이름을 입력해주세요');$('auth-name').focus();return;}
+  
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: {
+      data: {
+        name: name,
+        phone: phone
+      }
+    }
+  });
+  
+  if(error){
+    if(error.message.includes('already registered')){
+      showAuthInfo('error', '❌ 이미 가입된 이메일입니다. 로그인을 시도해주세요.');
+    } else {
+      showAuthInfo('error', '회원가입 실패: ' + error.message);
+    }
+    return;
+  }
+  
+  // 이메일 인증 필요
+  showAuthInfo('success', '✅ 회원가입 완료!\n📧 ' + email + ' 으로 인증 메일을 보냈습니다.\n메일의 링크를 클릭하면 로그인할 수 있습니다.');
+  
+  // 입력값 초기화
+  $('auth-password').value = '';
+}
+
+function showSupabaseStatus(type, msg){
+  let badge = document.getElementById('supabaseStatusBadge');
+  if(!badge){
+    badge = document.createElement('div');
+    badge.id = 'supabaseStatusBadge';
+    badge.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.3);transition:all 0.3s';
+    document.body.appendChild(badge);
+  }
+  const colors = {
+    success: {bg:'rgba(63,185,80,0.95)', color:'#fff', icon:'✅'},
+    error:   {bg:'rgba(248,81,73,0.95)', color:'#fff', icon:'❌'},
+    info:    {bg:'rgba(88,166,255,0.95)', color:'#fff', icon:'ℹ️'}
+  };
+  const c = colors[type] || colors.info;
+  badge.style.background = c.bg;
+  badge.style.color = c.color;
+  badge.textContent = `${c.icon} ${msg}`;
+  badge.style.display = 'block';
+  badge.style.opacity = '1';
+  
+  clearTimeout(badge._timer);
+  badge._timer = setTimeout(()=>{
+    badge.style.opacity = '0';
+    setTimeout(()=>{badge.style.display='none';}, 300);
+  }, 5000);
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+drawCal();
+buildMF();
+renderClients();
+updateRatioBadges();
+initSupabase(); // Supabase 연결 시도
+</script>
+</body>
+</html>
