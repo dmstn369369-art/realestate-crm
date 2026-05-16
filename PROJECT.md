@@ -10,7 +10,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| 파일 구조 | 단일 HTML 파일 (`중개사CRM.html`) |
+| 파일 구조 | 단일 HTML 파일 (`index.html`) |
 | 인증/DB | Supabase (supabase-js v2) |
 | 오프라인 | localStorage 백업 |
 | 언어 | 바닐라 JS, 외부 라이브러리 없음 |
