@@ -1848,7 +1848,7 @@ let editContractId=null;
 
 function getEditingContract(){
   if(!editContractId)return null;
-  return contracts.find(c=>c.id==editContractId);
+  return contracts.find(c=>idEq(c.id,editContractId));
 }
 
 function openContractModal(contractId){
@@ -2039,10 +2039,48 @@ function updateModalTotal(){
   }
 }
 
-function saveContractFromModal(){
+async function saveContractFromModal(){
   const ct=getEditingContract();
   if(!ct)return;
   ct._saved=true;
+
+  const canUseCloud=!!(supabaseClient&&currentUser&&currentOrganization);
+  if(canUseCloud){
+    const row={
+      address:ct.address||null,
+      contract_type:ct.contractType||null,
+      sign_date:ct.signDate||null,
+      balance_date:ct.balanceDate||null,
+      deposit:ct.deposit||null,
+      monthly:ct.monthly||null,
+      maintenance:ct.maintenance||null,
+      co_tenant:ct.coTenant||false,
+      co_landlord:ct.coLandlord||false,
+      memo:ct.memo||null,
+      is_saved:true,
+      client_id:ct.cid||null,
+      balance_event_id:ct.balanceEventId||null
+    };
+    if(ct._supabase){
+      // 수정
+      const{error}=await supabaseClient.from('contracts').update(row).eq('id',ct.id);
+      if(error)console.error('계약 Supabase 수정 실패:',error.message);
+    } else {
+      // 신규 insert
+      const{data:created,error}=await supabaseClient
+        .from('contracts')
+        .insert({...row,user_id:currentUser.id,organization_id:currentOrganization.id})
+        .select().single();
+      if(error){
+        console.error('계약 Supabase 추가 실패:',error.message);
+      } else {
+        ct.id=created.id;
+        ct._supabase=true;
+        editContractId=created.id;
+      }
+    }
+  }
+
   persistContractsOnly();
   closeContractModal();
   renderContracts();
@@ -2855,16 +2893,22 @@ document.addEventListener('click',function(e){
       if(!editContractId){alert('편집 중인 계약이 없습니다');return;}
       const ct=getEditingContract();
       if(!ct)return;
-      const c=ct.cid?clients.find(x=>idEq(x.id, ct.cid)):null;
+      const c=ct.cid?clients.find(x=>idEq(x.id,ct.cid)):null;
       const name=c?c.name:'(고객 없음)';
       const ctId=editContractId;
+      const ctSupabase=ct._supabase;
+      const _canCloud=!!(supabaseClient&&currentUser&&currentOrganization);
       setTimeout(()=>{
         askConfirm(
           '계약 삭제',
           `${name} 계약을 정산관리에서 삭제하시겠습니까?\n수령 내역과 매물 정보가 모두 삭제됩니다.\n(일정관리의 잔금 일정과 고객정보는 유지됩니다)`,
           ()=>{
-            contracts=contracts.filter(c=>String(c.id)!==String(ctId));
-            persist();
+            if(ctSupabase&&_canCloud){
+              supabaseClient.from('contracts').delete().eq('id',ctId)
+                .then(({error})=>{if(error)console.error('계약 Supabase 삭제 실패:',error.message);});
+            }
+            contracts=contracts.filter(x=>!idEq(x.id,ctId));
+            persistContractsOnly();
             closeContractModal();
             renderContracts();
             toast('계약이 삭제되었습니다');
@@ -2940,6 +2984,13 @@ function showClientDeleteWithContracts(c, cid, contractCount, useSupabase){
       '⚠ 정말 모두 삭제하시겠습니까?',
       `고객 "${c.name}"과 관련된 정산 계약 ${contractCount}건이 영구 삭제됩니다.\n수수료 기록까지 모두 사라지며 복구할 수 없습니다.`,
       async()=>{
+        const _canCloud=!!(supabaseClient&&currentUser&&currentOrganization);
+        if(_canCloud){
+          contracts.filter(ct=>idEq(ct.cid,cid)&&ct._supabase).forEach(ct=>{
+            supabaseClient.from('contracts').delete().eq('id',ct.id)
+              .then(({error})=>{if(error)console.error('계약 Supabase 삭제 실패:',error.message);});
+          });
+        }
         contracts=contracts.filter(ct=>!idEq(ct.cid,cid));
         if(!await doBaseDelete())return;
         persist();
@@ -3390,13 +3441,49 @@ async function loadDataFromSupabase(){
       console.log(`✅ 일정 ${events.length}개 로드 완료`);
     }
 
+    // 계약 데이터 로드 (본인 조직 데이터만)
+    const { data: cloudContracts, error: contractErr } = await supabaseClient
+      .from('contracts')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .order('balance_date', { ascending: false });
+
+    if(contractErr){
+      console.error('계약 로드 실패:', contractErr.message);
+    } else {
+      // 기존 로컬 payments 보존 (다음 단계 전까지 로컬 보관)
+      const localPaymentsMap = {};
+      contracts.forEach(ct => {
+        if(ct.payments && ct.payments.length > 0) localPaymentsMap[String(ct.id)] = ct.payments;
+      });
+      contracts = (cloudContracts || []).map(ct => ({
+        id: ct.id,
+        cid: ct.client_id || null,
+        balanceEventId: ct.balance_event_id || null,
+        address: ct.address || '',
+        contractType: ct.contract_type || '',
+        signDate: ct.sign_date || '',
+        balanceDate: ct.balance_date || '',
+        deposit: ct.deposit || '',
+        monthly: ct.monthly || '',
+        maintenance: ct.maintenance || '',
+        coTenant: ct.co_tenant || false,
+        coLandlord: ct.co_landlord || false,
+        memo: ct.memo || '',
+        _saved: ct.is_saved || false,
+        payments: localPaymentsMap[String(ct.id)] || [],
+        _supabase: true
+      }));
+      console.log(`✅ 계약 ${contracts.length}건 로드 완료`);
+    }
+
     // UI 갱신
     persist();
     buildMF();
     renderClients();
     if(typeof drawCal === 'function') drawCal();
 
-    showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 동기화 완료`);
+    showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 · 계약 ${contracts.length}건 동기화 완료`);
   } catch(err){
     console.error('데이터 로드 중 오류:', err);
     showSupabaseStatus('error', '데이터 로드 오류');
@@ -3507,6 +3594,7 @@ function handleSignedOut(){
   // 클라우드 데이터를 로컬에서 제거 (개인정보 보호)
   clients = clients.filter(c => !c._supabase);
   events = events.filter(e => !e._supabase);
+  contracts = contracts.filter(ct => !ct._supabase);
   persist();
   buildMF();
   renderClients();
