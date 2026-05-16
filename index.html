@@ -498,25 +498,17 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
     <div class="ni" onclick="go('settlement',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4M6 12V7M10 12V5M14 12V2"/><path d="M1 14h14"/></svg>정산관리
     </div>
-    <div class="ns" style="margin-top:10px">설정</div>
-    <div class="ni" onclick="openRatioModal()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M5 11l6-6"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg><span>내 정산 비율 <span id="navRatioBadge" style="font-size:9px;padding:1px 5px;background:var(--gold-dim);color:var(--gold);border-radius:8px;margin-left:4px;font-weight:700">5:5</span></span>
-    </div>
-    <div class="ns" style="margin-top:10px">데이터</div>
-    <div class="ni" onclick="exportData()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1v9M5 7l3 3 3-3M2 13h12"/></svg>백업 내보내기
-    </div>
-    <div class="ni" onclick="document.getElementById('importInput').click()">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 11V2M5 5l3-3 3 3M2 13h12"/></svg>백업 불러오기
+    <div class="ni" onclick="go('settings',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>설정
     </div>
     <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
   </nav>
-  <div class="sf">
+  <div class="sf" id="sideFooter" onclick="openProfileModal()" style="cursor:pointer;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''">
     <div style="display:flex;align-items:center;gap:8px">
-      <div class="av">김</div>
+      <div class="av" id="sfAvatar">?</div>
       <div>
-        <div style="font-size:11px;color:var(--text);font-weight:500">김정훈 중개사</div>
-        <div style="font-size:9px;color:var(--text3)">공인중개사</div>
+        <div style="font-size:11px;color:var(--text);font-weight:500" id="sfName">로그인 필요</div>
+        <div style="font-size:9px;color:var(--text3)" id="sfJobTitle">-</div>
       </div>
     </div>
   </div>
@@ -532,10 +524,6 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
           🔐 로그인
         </button>
       </div>
-      <!-- 진단 버튼 (임시) -->
-      <button class="btn" onclick="runDiagnosis()" style="font-size:11px;background:var(--blue-dim);color:var(--blue);border-color:rgba(88,166,255,0.3)">
-        🔬 진단
-      </button>
       <button class="btn btn-gold" onclick="openEventModal(null,null)">+ 일정 추가</button>
     </div>
   </div>
@@ -675,6 +663,50 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
       </div>
     </div>
   </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="p-settings">
+      <div style="max-width:540px;margin:0 auto">
+        <div style="margin-bottom:20px">
+          <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px">설정</div>
+          <div style="font-size:12px;color:var(--text3)">계정 및 앱 설정을 관리합니다</div>
+        </div>
+
+        <!-- 내 정보 카드 -->
+        <div class="panel" style="margin-bottom:12px;cursor:pointer;transition:border-color .15s" onclick="openProfileModal()" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor=''">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">📋</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">내 정보</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">이름, 직책, 사무소 정보 수정</div>
+              </div>
+            </div>
+            <span style="color:var(--text3);font-size:18px;font-weight:300">›</span>
+          </div>
+          <div style="padding:10px 16px 12px;font-size:11px;color:var(--text2)" id="settingsProfilePreview">로그인 후 확인 가능합니다</div>
+        </div>
+
+        <!-- 정산 비율 카드 -->
+        <div class="panel" style="cursor:pointer;transition:border-color .15s" onclick="openRatioModal()" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor=''">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">💰</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">정산 비율</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">수수료 중 내가 받는 비율 설정</div>
+              </div>
+            </div>
+            <span style="color:var(--text3);font-size:18px;font-weight:300">›</span>
+          </div>
+          <div style="padding:10px 16px 12px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px;font-family:'Noto Serif KR',serif;font-weight:700;color:var(--gold)" id="settingsRatioDisplay">5:5</span>
+            <span style="font-size:11px;color:var(--text3)">내 정산 : 사무실</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
 </div>
 </div>
 
@@ -841,6 +873,51 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
       <div class="modal-foot-right">
         <button type="button" class="btn" onclick="closeClientModal()">취소</button>
         <button type="button" class="btn btn-gold" onclick="saveClient()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 내 정보 모달 -->
+<div class="modal" id="mProfile">
+  <div class="modal-box" style="width:480px">
+    <div class="modal-head">
+      <div class="modal-title">📋 내 정보 수정</div>
+      <button type="button" class="modal-close" onclick="closeProfileModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- 프로필 사진 placeholder -->
+      <div style="display:flex;justify-content:center;margin-bottom:20px">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--bg3);border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+          <span id="profileAvatarPreview" style="font-size:26px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">?</span>
+          <span style="font-size:8px;color:var(--text3)">사진 추후 지원</span>
+        </div>
+      </div>
+      <!-- 개인 정보 -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase">개인 정보</div>
+        <div class="fr" style="margin-bottom:8px">
+          <div class="fg"><label>이름</label><input type="text" id="prof-name" placeholder="홍길동"></div>
+          <div class="fg"><label>직책</label><input type="text" id="prof-job" placeholder="공인중개사"></div>
+        </div>
+        <div class="fr">
+          <div class="fg"><label>이메일</label><input type="email" id="prof-email" readonly style="opacity:.5;cursor:not-allowed" placeholder="로그인 이메일"></div>
+          <div class="fg"><label>개인 휴대폰</label><input type="tel" id="prof-phone" placeholder="010-0000-0000"></div>
+        </div>
+      </div>
+      <!-- 사무소 정보 -->
+      <div>
+        <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase">사무소 정보</div>
+        <div class="fg" style="margin-bottom:8px"><label>사무소 이름</label><input type="text" id="prof-org-name" placeholder="○○부동산"></div>
+        <div class="fg" style="margin-bottom:8px"><label>사무소 주소</label><input type="text" id="prof-org-address" placeholder="서울시 강남구..."></div>
+        <div class="fg"><label>사무소 전화번호</label><input type="tel" id="prof-org-phone" placeholder="02-0000-0000"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeProfileModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveProfile()">저장</button>
       </div>
     </div>
   </div>
@@ -1116,11 +1193,10 @@ function ratioLabel(){
 function updateRatioBadges(){
   const lbl=ratioLabel();
   const r=getMyShareRatio();
-  const navBadge=$('navRatioBadge');
-  if(navBadge)navBadge.textContent=lbl;
   if($('ct-myshare-ratio'))$('ct-myshare-ratio').textContent=r;
   if($('st-m-myshare-ratio'))$('st-m-myshare-ratio').textContent=r;
   if($('ctm-myshare-ratio'))$('ctm-myshare-ratio').textContent=r;
+  if($('settingsRatioDisplay'))$('settingsRatioDisplay').textContent=lbl;
 }
 
 function mkClients(){return []}
@@ -1146,11 +1222,26 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리'}[id];
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',settings:'설정'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
+  else if(id==='settings')renderSettingsPage();
+}
+
+function renderSettingsPage(){
+  const rd=$('settingsRatioDisplay');
+  if(rd)rd.textContent=ratioLabel();
+  const pp=$('settingsProfilePreview');
+  if(pp){
+    if(currentProfile){
+      const parts=[currentProfile.name||'',currentProfile.job_title||'',currentOrganization?.name||''].filter(Boolean);
+      pp.textContent=parts.join(' · ')||'-';
+    } else {
+      pp.textContent='로그인 후 확인 가능합니다';
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2771,6 +2862,64 @@ function saveRatio(){
   if(curPage==='settlement')renderSettlement();
 }
 
+// ═══════════════════════════════════════════════════════
+// 내 정보 모달
+// ═══════════════════════════════════════════════════════
+function openProfileModal(){
+  if(!currentUser){toast('로그인이 필요합니다');return;}
+  $('prof-name').value=currentProfile?.name||'';
+  $('prof-job').value=currentProfile?.job_title||'공인중개사';
+  $('prof-email').value=currentUser.email||'';
+  $('prof-phone').value=currentProfile?.phone||'';
+  $('prof-org-name').value=currentOrganization?.name||'';
+  $('prof-org-address').value=currentOrganization?.address||'';
+  $('prof-org-phone').value=currentOrganization?.phone||'';
+  const firstChar=(currentProfile?.name||currentUser.email||'?')[0];
+  $('profileAvatarPreview').textContent=firstChar.toUpperCase();
+  $('mProfile').classList.add('open');
+}
+
+function closeProfileModal(){
+  $('mProfile').classList.remove('open');
+}
+
+async function saveProfile(){
+  if(!currentUser||!currentProfile||!currentOrganization){
+    toast('로그인이 필요합니다');return;
+  }
+  const name=$('prof-name').value.trim();
+  const jobTitle=$('prof-job').value.trim();
+  const phone=$('prof-phone').value.trim();
+  const orgName=$('prof-org-name').value.trim();
+  const orgAddress=$('prof-org-address').value.trim();
+  const orgPhone=$('prof-org-phone').value.trim();
+  if(!name){alert('이름을 입력해주세요.');return;}
+
+  try {
+    const{error:pErr}=await supabaseClient.from('profiles')
+      .update({name,job_title:jobTitle||null,phone:phone||null})
+      .eq('id',currentUser.id);
+    if(pErr)throw pErr;
+
+    const finalOrgName=orgName||currentOrganization.name;
+    const{error:oErr}=await supabaseClient.from('organizations')
+      .update({name:finalOrgName,address:orgAddress||null,phone:orgPhone||null})
+      .eq('id',currentOrganization.id);
+    if(oErr)throw oErr;
+
+    currentProfile={...currentProfile,name,job_title:jobTitle,phone};
+    currentOrganization={...currentOrganization,name:finalOrgName,address:orgAddress,phone:orgPhone};
+
+    closeProfileModal();
+    updateAuthUI(currentUser);
+    if(curPage==='settings')renderSettingsPage();
+    toast('내 정보가 저장되었습니다');
+  } catch(err){
+    console.error('프로필 저장 오류:',err);
+    toast('저장 실패: '+(err.message?.substring(0,40)||'알 수 없는 오류'));
+  }
+}
+
 function exportData(){
   const data={clients,events,fees,uid,contracts,settings,exportedAt:new Date().toISOString(),version:4};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2823,6 +2972,7 @@ document.querySelectorAll('.modal').forEach(m=>{
       else if(m.id==='mClient')closeClientModal();
       else if(m.id==='mContract')closeContractModal();
       else if(m.id==='mClientDelChoice')closeClientDelChoice();
+      else if(m.id==='mProfile')closeProfileModal();
       else if(m.id==='mRatio')closeRatioModal();
       else if(m.id==='mAuth')closeAuthModal();
       else if(m.id==='mConfirm'){
@@ -3085,6 +3235,7 @@ document.addEventListener('keydown',e=>{
     else if($('mClient').classList.contains('open'))closeClientModal();
     else if($('mContract').classList.contains('open'))closeContractModal();
     else if($('mClientDelChoice').classList.contains('open'))closeClientDelChoice();
+    else if($('mProfile').classList.contains('open'))closeProfileModal();
     else if($('mRatio').classList.contains('open'))closeRatioModal();
     else if($('mAuth').classList.contains('open'))closeAuthModal();
     else if(mpOpen)closeMP();
@@ -3718,6 +3869,11 @@ function updateAuthUI(user){
         🚪 로그아웃
       </button>
     `;
+    // 사이드바 하단 사용자 정보 갱신
+    const firstChar = (displayName||'?')[0].toUpperCase();
+    if($('sfAvatar'))$('sfAvatar').textContent=firstChar;
+    if($('sfName'))$('sfName').textContent=displayName;
+    if($('sfJobTitle'))$('sfJobTitle').textContent=currentProfile?.job_title||'공인중개사';
   } else {
     showLanding();
     // 로그인 안 된 상태 (authArea는 메인 앱 topbar에 존재하므로 그대로 유지)
@@ -3726,6 +3882,10 @@ function updateAuthUI(user){
         🔐 로그인
       </button>
     `;
+    // 사이드바 하단 초기화
+    if($('sfAvatar'))$('sfAvatar').textContent='?';
+    if($('sfName'))$('sfName').textContent='로그인 필요';
+    if($('sfJobTitle'))$('sfJobTitle').textContent='-';
   }
 }
 
