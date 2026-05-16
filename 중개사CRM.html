@@ -1845,6 +1845,7 @@ function persistContractsOnly(){sv(KEY.contracts,contracts);}
 // 계약 정산 모달 (팝업)
 // ═══════════════════════════════════════════════════════
 let editContractId=null;
+let _originalPaymentIds=[]; // 모달 열 때 Supabase payment UUID 스냅샷 (삭제 감지용)
 
 function getEditingContract(){
   if(!editContractId)return null;
@@ -1897,6 +1898,9 @@ function openContractModal(contractId){
   $('ctm-maintenance').value=formatMoney(ct.maintenance);
   $('ctm-memo').value=ct.memo||'';
 
+  // 모달 열 때 Supabase payment ID 스냅샷 (save 시 삭제 감지용)
+  _originalPaymentIds=(ct.payments||[]).filter(p=>p._supabase).map(p=>String(p.id));
+
   // 수령 내역: 비어있으면 임차인측/임대인측 1건씩 자동 추가
   if(!ct.payments)ct.payments=[];
   if(ct.payments.length===0){
@@ -1916,6 +1920,7 @@ function openContractModal(contractId){
 function closeContractModal(){
   $('mContract').classList.remove('open');
   editContractId=null;
+  _originalPaymentIds=[];
 }
 
 // 숫자만 추출
@@ -2079,6 +2084,44 @@ async function saveContractFromModal(){
         editContractId=created.id;
       }
     }
+
+    // ── payments 동기화 ──
+    const contractUUID=ct.id;
+
+    // 1) 모달에서 삭제된 Supabase payments 삭제
+    const currentPids=(ct.payments||[]).map(p=>String(p.id));
+    _originalPaymentIds.filter(id=>!currentPids.includes(id)).forEach(id=>{
+      supabaseClient.from('payments').delete().eq('id',id)
+        .then(({error})=>{if(error)console.error('수수료 Supabase 삭제 실패:',error.message);});
+    });
+
+    // 2) 현재 payments upsert (금액이 없는 빈 항목 제외)
+    for(const p of (ct.payments||[])){
+      if(!parseMoney(p.amount))continue;
+      const pRow={
+        contract_id:contractUUID,
+        user_id:currentUser.id,
+        organization_id:currentOrganization.id,
+        payment_date:p.date||null,
+        side:p.side,
+        amount:String(parseMoney(p.amount)),
+        memo:p.memo||null
+      };
+      if(p._supabase){
+        const{error}=await supabaseClient.from('payments').update(pRow).eq('id',p.id);
+        if(error)console.error('수수료 Supabase 수정 실패:',error.message);
+      } else {
+        const{data:cp,error}=await supabaseClient.from('payments').insert(pRow).select().single();
+        if(error){
+          console.error('수수료 Supabase 추가 실패:',error.message);
+        } else {
+          p.id=cp.id;
+          p._supabase=true;
+        }
+      }
+    }
+    // 저장된 ID로 스냅샷 갱신
+    _originalPaymentIds=(ct.payments||[]).filter(p=>p._supabase).map(p=>String(p.id));
   }
 
   persistContractsOnly();
@@ -2904,8 +2947,12 @@ document.addEventListener('click',function(e){
           `${name} 계약을 정산관리에서 삭제하시겠습니까?\n수령 내역과 매물 정보가 모두 삭제됩니다.\n(일정관리의 잔금 일정과 고객정보는 유지됩니다)`,
           ()=>{
             if(ctSupabase&&_canCloud){
-              supabaseClient.from('contracts').delete().eq('id',ctId)
-                .then(({error})=>{if(error)console.error('계약 Supabase 삭제 실패:',error.message);});
+              // payments 먼저 삭제 → 계약 삭제 (순서 보장)
+              (async()=>{
+                await supabaseClient.from('payments').delete().eq('contract_id',ctId);
+                const{error}=await supabaseClient.from('contracts').delete().eq('id',ctId);
+                if(error)console.error('계약 Supabase 삭제 실패:',error.message);
+              })();
             }
             contracts=contracts.filter(x=>!idEq(x.id,ctId));
             persistContractsOnly();
@@ -3451,11 +3498,6 @@ async function loadDataFromSupabase(){
     if(contractErr){
       console.error('계약 로드 실패:', contractErr.message);
     } else {
-      // 기존 로컬 payments 보존 (다음 단계 전까지 로컬 보관)
-      const localPaymentsMap = {};
-      contracts.forEach(ct => {
-        if(ct.payments && ct.payments.length > 0) localPaymentsMap[String(ct.id)] = ct.payments;
-      });
       contracts = (cloudContracts || []).map(ct => ({
         id: ct.id,
         cid: ct.client_id || null,
@@ -3471,10 +3513,36 @@ async function loadDataFromSupabase(){
         coLandlord: ct.co_landlord || false,
         memo: ct.memo || '',
         _saved: ct.is_saved || false,
-        payments: localPaymentsMap[String(ct.id)] || [],
+        payments: [],
         _supabase: true
       }));
       console.log(`✅ 계약 ${contracts.length}건 로드 완료`);
+    }
+
+    // 수수료 데이터 로드 (contract_id로 그룹핑 후 contracts에 매핑)
+    const { data: cloudPayments, error: paymentErr } = await supabaseClient
+      .from('payments')
+      .select('*')
+      .eq('organization_id', currentOrganization.id);
+
+    if(paymentErr){
+      console.error('수수료 로드 실패:', paymentErr.message);
+    } else {
+      const paymentsByContract = {};
+      (cloudPayments || []).forEach(p => {
+        const cid = String(p.contract_id);
+        if(!paymentsByContract[cid]) paymentsByContract[cid] = [];
+        paymentsByContract[cid].push({
+          id: p.id,
+          date: p.payment_date || '',
+          side: p.side || 'tenant',
+          amount: p.amount || '',
+          memo: p.memo || '',
+          _supabase: true
+        });
+      });
+      contracts.forEach(ct => { ct.payments = paymentsByContract[String(ct.id)] || []; });
+      console.log(`✅ 수수료 ${(cloudPayments||[]).length}건 로드 완료`);
     }
 
     // UI 갱신
