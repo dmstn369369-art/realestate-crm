@@ -3428,7 +3428,7 @@ function initSupabase(){
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false  // postMessage 경고 방지
+        detectSessionInUrl: true  // recovery/signup 토큰 자동 감지
       }
     });
     console.log('✅ Supabase 클라이언트 생성 완료');
@@ -3479,6 +3479,7 @@ async function checkExistingSession(){
 }
 
 async function handleSignedIn(user){
+  if(window._isDeletingAccount) return;  // 회원탈퇴 진행 중에는 무시
   currentUser = user;
   console.log('👤 로그인됨:', user.email);
 
@@ -3540,6 +3541,13 @@ async function handleSignedIn(user){
   if(!_dataLoaded){
     _dataLoaded = true;
     await loadDataFromSupabase();
+  }
+
+  // 이메일 인증 완료 환영 메시지
+  if(window._emailVerified){
+    window._emailVerified = false;
+    history.replaceState(null,'',window.location.pathname);
+    setTimeout(()=>toast('🎉 이메일 인증이 완료되었습니다! Brokid에 오신 것을 환영합니다.'),600);
   }
 }
 
@@ -4157,7 +4165,9 @@ async function saveNewPassword(){
     const{error}=await supabaseClient.auth.updateUser({password:pw});
     if(error)throw error;
     closeNewPasswordModal();
-    toast('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+    history.replaceState(null,'',window.location.pathname);
+    await supabaseClient.auth.signOut();
+    setTimeout(()=>toast('✅ 비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.'),300);
   }catch(err){
     showNewPwInfo('error','변경 실패: '+err.message);
     btn.disabled=false;btn.textContent='변경 완료';
@@ -4243,15 +4253,10 @@ function showDeleteAccInfo(type,msg){
 async function deleteAccount(){
   const password=($('deleteAccPassword').value)||'';
   if(!password){showDeleteAccInfo('error','비밀번호를 입력해주세요');$('deleteAccPassword').focus();return;}
+  window._isDeletingAccount=true;  // auth 이벤트 차단 (SIGNED_IN 토스트 방지)
   const btn=$('deleteAccSubmitBtn');
   btn.disabled=true;btn.textContent='삭제 중...';
   try{
-    // 비밀번호 재확인
-    const{error:signInErr}=await supabaseClient.auth.signInWithPassword({
-      email:currentUser.email,password
-    });
-    if(signInErr)throw new Error('비밀번호가 올바르지 않습니다');
-
     const orgId=currentOrganization?.id;
     if(orgId){
       const{error:pErr}=await supabaseClient.from('payments').delete().eq('organization_id',orgId);
@@ -4271,11 +4276,13 @@ async function deleteAccount(){
     const{error:rpcErr}=await supabaseClient.rpc('delete_user');
     if(rpcErr)throw rpcErr;
 
+    await supabaseClient.auth.signOut().catch(()=>{});
     localStorage.clear();
     closeDeleteAccountModal();
     alert('계정이 삭제되었습니다. 이용해주셔서 감사합니다.');
     location.reload();
   }catch(err){
+    window._isDeletingAccount=false;
     showDeleteAccInfo('error',err.message);
     btn.disabled=false;btn.textContent='계정 삭제';
     checkDeleteBtnState();
@@ -4550,6 +4557,14 @@ function showSupabaseStatus(type, msg){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+// 페이지 로드 직후 URL 해시에서 인증 유형 감지 (Supabase 처리 전)
+(function detectAuthUrlType(){
+  const h = window.location.hash;
+  if(h.includes('type=signup') || h.includes('type=email_change')){
+    window._emailVerified = true;
+  }
+})();
+
 drawCal();
 buildMF();
 renderClients();
