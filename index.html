@@ -4336,11 +4336,19 @@ async function deleteAccount(){
       else console.log('[deleteAccount] 탈퇴 사유 저장됨:',reason);
     }catch(e){console.warn('탈퇴 로그 저장 실패:',e);}
 
-    // 프로필 삭제 (실패 무시)
+    // 프로필 삭제 (실패 무시) — organizations 외래키보다 먼저
     try{
       const{error}=await supabaseClient.from('profiles').delete().eq('id',uid);
       if(error)console.warn('프로필 삭제 오류:',error.message);
+      else console.log('[deleteAccount] 프로필 삭제 완료');
     }catch(e){console.warn('프로필 삭제 실패:',e);}
+
+    // 사무소(organization) 삭제 (profiles 삭제 후, 1인 모드 기준, 실패 무시)
+    try{
+      const{error}=await supabaseClient.from('organizations').delete().eq('id',orgId);
+      if(error)console.warn('사무소 삭제 오류:',error.message);
+      else console.log('[deleteAccount] 사무소 삭제 완료');
+    }catch(e){console.warn('사무소 삭제 실패:',e);}
 
     // auth.users 삭제 (RPC - 실패 시 중단)
     const{error:rpcErr}=await supabaseClient.rpc('delete_user');
