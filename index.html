@@ -392,6 +392,9 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
   .landing-right{flex:none;padding:24px;justify-content:flex-start}
   .landing-auth-box{max-width:100%}
 }
+/* 비밀번호 재설정 모드: 랜딩/앱 강제 숨김, 모달 강제 표시 */
+html.password-recovery-mode #landing,html.password-recovery-mode #mainApp{display:none!important}
+html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all!important}
 </style>
 </head>
 <body>
@@ -894,6 +897,20 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
         ⚠️ 계정과 모든 데이터(고객, 계약, 수수료, 일정)가 즉시 삭제되며 복구할 수 없습니다.
       </div>
       <div class="info-box" id="deleteAccInfo" style="display:none"></div>
+      <!-- 탈퇴 사유 드롭다운 -->
+      <div class="fg" style="margin-bottom:14px">
+        <label style="font-size:11px;color:var(--text2)">탈퇴 사유 <span style="color:var(--text3)">(선택 사항)</span></label>
+        <select id="deletionReason" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);font-size:12px;cursor:pointer">
+          <option value="">선택 안 함</option>
+          <option value="더 이상 사용하지 않음">더 이상 사용하지 않음</option>
+          <option value="다른 서비스 이용">다른 서비스 이용</option>
+          <option value="기능이 부족함">기능이 부족함</option>
+          <option value="가격이 부담됨">가격이 부담됨</option>
+          <option value="사용법이 어려움">사용법이 어려움</option>
+          <option value="기타">기타</option>
+        </select>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">더 나은 서비스를 만드는 데 활용됩니다</div>
+      </div>
       <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:8px">
         <input type="checkbox" id="deleteAccCheck" onchange="checkDeleteBtnState()" style="width:auto;margin:2px 0 0">
         <label for="deleteAccCheck" style="cursor:pointer;font-size:12px;color:var(--text2)">위 내용을 이해했으며, 계정 삭제에 동의합니다</label>
@@ -3438,24 +3455,40 @@ function initSupabase(){
     
     // 인증 상태 변경 감지
     supabaseClient.auth.onAuthStateChange((event, session) => {
-      console.log('🔔 Auth event:', event);
+      console.log('[Auth Event]', event, '| recovery:', !!window._isPasswordRecovery);
+
+      // 회원탈퇴 중이면 모든 이벤트 무시
+      if(window._isDeletingAccount) return;
+
+      // PASSWORD_RECOVERY: 무조건 최우선 처리
+      if(event === 'PASSWORD_RECOVERY'){
+        window._isPasswordRecovery = true;
+        document.documentElement.classList.add('password-recovery-mode');
+        setTimeout(openNewPasswordModal, 300);
+        return;
+      }
+
+      // 비밀번호 재설정 중이면 SIGNED_IN 이벤트 차단
+      if(window._isPasswordRecovery && event === 'SIGNED_IN'){
+        console.log('[비밀번호 재설정 중] SIGNED_IN 이벤트 차단');
+        if(!$('mNewPassword').classList.contains('open')){
+          setTimeout(openNewPasswordModal, 300);
+        }
+        return;
+      }
+
+      // 정상 SIGNED_IN 처리
       if(event === 'SIGNED_IN' && session){
         handleSignedIn(session.user);
-      } else if(event === 'PASSWORD_RECOVERY'){
-        openNewPasswordModal();
       } else if(event === 'SIGNED_OUT'){
         handleSignedOut();
       }
     });
 
-    // URL 해시에 recovery 토큰이 있는 경우 백업 감지 (이벤트 발화 타이밍 보완)
-    if(window._passwordRecovery){
-      (async()=>{
-        try{
-          const{data:{session}}=await supabaseClient.auth.getSession();
-          if(session)openNewPasswordModal();
-        }catch(e){console.warn('recovery 세션 확인 실패:',e);}
-      })();
+    // URL 해시에 recovery 토큰이 있는 경우 백업 감지 (자동 로그인 세션이 먼저 처리될 경우 대비)
+    if(window._isPasswordRecovery){
+      console.log('[비밀번호 재설정] 초기화 후 모달 강제 표시 예약');
+      setTimeout(openNewPasswordModal, 500);
     }
 
     return true;
@@ -4175,11 +4208,16 @@ async function saveNewPassword(){
   try{
     const{error}=await supabaseClient.auth.updateUser({password:pw});
     if(error)throw error;
-    closeNewPasswordModal();
+    // 플래그 및 CSS 클래스 정리
+    window._isPasswordRecovery=false;
+    document.documentElement.classList.remove('password-recovery-mode');
     history.replaceState(null,'',window.location.pathname);
-    await supabaseClient.auth.signOut();
-    setTimeout(()=>toast('✅ 비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.'),300);
+    // 로그아웃 후 홈으로 이동 (로그아웃 실패 시 무시)
+    try{await supabaseClient.auth.signOut();}catch(e){console.warn('로그아웃 실패:',e);}
+    alert('✅ 비밀번호가 변경되었습니다.\n새 비밀번호로 로그인해주세요.');
+    window.location.href='/';
   }catch(err){
+    console.error('[saveNewPassword] 에러:',err);
     showNewPwInfo('error','변경 실패: '+err.message);
     btn.disabled=false;btn.textContent='변경 완료';
   }
@@ -4233,6 +4271,7 @@ function openDeleteAccountModal(){
   if($('deleteAccCheck'))$('deleteAccCheck').checked=false;
   if($('deleteAccConfirmText'))$('deleteAccConfirmText').value='';
   if($('deleteAccPassword'))$('deleteAccPassword').value='';
+  if($('deletionReason'))$('deletionReason').value='';
   const info=$('deleteAccInfo');
   if(info)info.style.display='none';
   const btn=$('deleteAccSubmitBtn');
@@ -4289,10 +4328,12 @@ async function deleteAccount(){
       }catch(e){console.error(`${tbl} 삭제 실패:`,e);}
     }
 
-    // 탈퇴 사유 기록 (익명, 실패 무시)
+    // 탈퇴 사유 기록 (선택한 사유 또는 기본값, 실패 무시)
     try{
-      const{error}=await supabaseClient.from('deletion_logs').insert({reason:'사용자 직접 탈퇴'});
+      const reason=($('deletionReason')?.value)||'사용자 직접 탈퇴';
+      const{error}=await supabaseClient.from('deletion_logs').insert({reason});
       if(error)console.warn('탈퇴 로그 저장 실패:',error.message);
+      else console.log('[deleteAccount] 탈퇴 사유 저장됨:',reason);
     }catch(e){console.warn('탈퇴 로그 저장 실패:',e);}
 
     // 프로필 삭제 (실패 무시)
@@ -4595,14 +4636,17 @@ function showSupabaseStatus(type, msg){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-// 페이지 로드 직후 URL 해시에서 인증 유형 감지 (Supabase 처리 전)
+// 페이지 로드 직후 URL 해시에서 인증 유형 감지 (Supabase 처리 전 - 최우선 실행)
 (function detectAuthUrlType(){
   const h = window.location.hash;
+  const s = window.location.search;
   if(h.includes('type=signup') || h.includes('type=email_change')){
     window._emailVerified = true;
   }
-  if(h.includes('type=recovery')){
-    window._passwordRecovery = true;
+  if(h.includes('type=recovery') || s.includes('type=recovery')){
+    window._isPasswordRecovery = true;
+    document.documentElement.classList.add('password-recovery-mode');
+    console.log('[비밀번호 재설정] URL 토큰 감지');
   }
 })();
 
