@@ -3447,7 +3447,17 @@ function initSupabase(){
         handleSignedOut();
       }
     });
-    
+
+    // URL 해시에 recovery 토큰이 있는 경우 백업 감지 (이벤트 발화 타이밍 보완)
+    if(window._passwordRecovery){
+      (async()=>{
+        try{
+          const{data:{session}}=await supabaseClient.auth.getSession();
+          if(session)openNewPasswordModal();
+        }catch(e){console.warn('recovery 세션 확인 실패:',e);}
+      })();
+    }
+
     return true;
   } catch(err){
     console.error('❌ Supabase 연결 실패:', err);
@@ -4119,7 +4129,7 @@ async function sendResetEmail(){
   btn.disabled=true;btn.textContent='전송 중...';
   try{
     const{error}=await supabaseClient.auth.resetPasswordForEmail(email,{
-      redirectTo:'https://brokid.kr/#reset-password'
+      redirectTo:window.location.origin
     });
     if(error)throw error;
     showForgotInfo('success','재설정 링크를 이메일로 전송했습니다. 메일함을 확인해주세요.');
@@ -4131,6 +4141,7 @@ async function sendResetEmail(){
 }
 
 function openNewPasswordModal(){
+  if($('mNewPassword').classList.contains('open'))return;  // 이중 열림 방지
   if($('new-password'))$('new-password').value='';
   if($('new-password-confirm'))$('new-password-confirm').value='';
   const info=$('newPwInfo');
@@ -4251,39 +4262,66 @@ function showDeleteAccInfo(type,msg){
 }
 
 async function deleteAccount(){
+  // canUseCloud 체크 (PROJECT.md 표준)
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){showDeleteAccInfo('error','로그인 후 사용 가능합니다');return;}
+
   const password=($('deleteAccPassword').value)||'';
   if(!password){showDeleteAccInfo('error','비밀번호를 입력해주세요');$('deleteAccPassword').focus();return;}
+
   window._isDeletingAccount=true;  // auth 이벤트 차단 (SIGNED_IN 토스트 방지)
   const btn=$('deleteAccSubmitBtn');
   btn.disabled=true;btn.textContent='삭제 중...';
+
   try{
-    const orgId=currentOrganization?.id;
-    if(orgId){
-      const{error:pErr}=await supabaseClient.from('payments').delete().eq('organization_id',orgId);
-      if(pErr)console.error('payments 삭제 오류:',pErr.message);
-      const{error:ctErr}=await supabaseClient.from('contracts').delete().eq('organization_id',orgId);
-      if(ctErr)console.error('contracts 삭제 오류:',ctErr.message);
-      const{error:evErr}=await supabaseClient.from('events').delete().eq('organization_id',orgId);
-      if(evErr)console.error('events 삭제 오류:',evErr.message);
-      const{error:clErr}=await supabaseClient.from('clients').delete().eq('organization_id',orgId);
-      if(clErr)console.error('clients 삭제 오류:',clErr.message);
+    const uid=currentUser.id;
+    const orgId=currentOrganization.id;
+
+    // 데이터 삭제 (organization_id 기준, 실패해도 계속 진행)
+    for(const tbl of ['payments','contracts','events','clients']){
+      try{
+        const{error}=await supabaseClient.from(tbl).delete().eq('organization_id',orgId);
+        if(error)console.error(`${tbl} 삭제 오류:`,error.message);
+      }catch(e){console.error(`${tbl} 삭제 실패:`,e);}
     }
-    // 탈퇴 사유 기록 (익명)
-    await supabaseClient.from('deletion_logs').insert({reason:'사용자 직접 탈퇴'}).catch(()=>{});
-    // 프로필 삭제
-    await supabaseClient.from('profiles').delete().eq('id',currentUser.id).catch(()=>{});
-    // auth.users 삭제 (RPC)
+
+    // 탈퇴 사유 기록 (익명, 실패 무시)
+    try{
+      const{error}=await supabaseClient.from('deletion_logs').insert({reason:'사용자 직접 탈퇴'});
+      if(error)console.warn('탈퇴 로그 저장 실패:',error.message);
+    }catch(e){console.warn('탈퇴 로그 저장 실패:',e);}
+
+    // 프로필 삭제 (실패 무시)
+    try{
+      const{error}=await supabaseClient.from('profiles').delete().eq('id',uid);
+      if(error)console.warn('프로필 삭제 오류:',error.message);
+    }catch(e){console.warn('프로필 삭제 실패:',e);}
+
+    // auth.users 삭제 (RPC - 실패 시 중단)
     const{error:rpcErr}=await supabaseClient.rpc('delete_user');
     if(rpcErr)throw rpcErr;
 
-    await supabaseClient.auth.signOut().catch(()=>{});
+    // 로그아웃 (실패 무시)
+    try{
+      await supabaseClient.auth.signOut();
+    }catch(e){console.warn('로그아웃 실패:',e);}
+
+    // 인증 플래그 리셋 (PROJECT.md 표준)
+    _authInitialized=false;
+    _dataLoaded=false;
     localStorage.clear();
     closeDeleteAccountModal();
     alert('계정이 삭제되었습니다. 이용해주셔서 감사합니다.');
     location.reload();
+
   }catch(err){
+    console.error('회원탈퇴 에러:',err);
     window._isDeletingAccount=false;
-    showDeleteAccInfo('error',err.message);
+    showDeleteAccInfo('error','탈퇴 실패: '+err.message);
     btn.disabled=false;btn.textContent='계정 삭제';
     checkDeleteBtnState();
   }
@@ -4562,6 +4600,9 @@ function showSupabaseStatus(type, msg){
   const h = window.location.hash;
   if(h.includes('type=signup') || h.includes('type=email_change')){
     window._emailVerified = true;
+  }
+  if(h.includes('type=recovery')){
+    window._passwordRecovery = true;
   }
 })();
 
