@@ -478,6 +478,9 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
       </div>
       <!-- 제출 버튼 -->
       <button class="btn btn-gold" id="landSubmitBtn" onclick="handleLandingAuthSubmit()" style="width:100%;justify-content:center;padding:10px 12px">로그인</button>
+      <div id="landForgotWrap" style="text-align:right;margin-top:8px">
+        <span onclick="openForgotPasswordModal()" style="font-size:11px;color:var(--gold);cursor:pointer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">비밀번호를 잊으셨나요?</span>
+      </div>
     </div>
   </div>
 </div>
@@ -710,6 +713,46 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
             <span style="font-size:11px;color:var(--text3)">내 정산 : 사무실</span>
           </div>
         </div>
+
+        <!-- 비밀번호 변경 카드 -->
+        <div class="panel" style="margin-top:12px">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">🔒</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">비밀번호 변경</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">현재 비밀번호를 확인한 후 변경합니다</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:0 16px 16px">
+            <div id="changePwNotLoggedIn" style="font-size:11px;color:var(--text3);padding:8px 0">로그인 후 사용 가능합니다</div>
+            <div id="changePwForm" style="display:none">
+              <div class="fg"><label style="font-size:11px">현재 비밀번호</label><input type="password" id="chPwCurrent" placeholder="현재 비밀번호" autocomplete="current-password"></div>
+              <div class="fg"><label style="font-size:11px">새 비밀번호 <span style="color:var(--text3);font-weight:400">(최소 6자)</span></label><input type="password" id="chPwNew" placeholder="새 비밀번호" autocomplete="new-password"></div>
+              <div class="fg" style="margin-bottom:10px"><label style="font-size:11px">새 비밀번호 확인</label><input type="password" id="chPwConfirm" placeholder="비밀번호 재입력" autocomplete="new-password"></div>
+              <div class="info-box" id="changePwInfo" style="display:none;margin-bottom:10px"></div>
+              <button class="btn btn-gold" onclick="changePassword()" id="changePwBtn" style="font-size:12px;padding:6px 16px">비밀번호 변경</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 위험 구역 -->
+        <div class="panel" style="margin-top:12px;border-color:rgba(248,81,73,0.2)">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">⚠️</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--red)">위험 구역</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">되돌릴 수 없는 작업입니다</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:0 16px 16px">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">계정과 모든 데이터가 즉시 삭제되며 복구할 수 없습니다.</div>
+            <button class="btn" onclick="openDeleteAccountModal()" id="deleteAccountBtn" style="display:none;border-color:var(--red);color:var(--red);font-size:11px;padding:6px 14px">계정 삭제</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -782,6 +825,92 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
       <button class="btn" onclick="closeAuthModal()">취소</button>
       <div class="modal-foot-right">
         <button class="btn btn-gold" id="authSubmitBtn" onclick="handleAuthSubmit()">로그인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- FORGOT PASSWORD MODAL -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal" id="mForgotPassword">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title">비밀번호 찾기</div>
+      <button type="button" class="modal-close" onclick="closeForgotPasswordModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" id="forgotInfo" style="display:none"></div>
+      <div class="fg">
+        <label>가입한 이메일 주소</label>
+        <input type="email" id="forgot-email" placeholder="example@email.com" autocomplete="email">
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">해당 이메일로 비밀번호 재설정 링크를 보내드립니다.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeForgotPasswordModal()">취소</button>
+      <div class="modal-foot-right">
+        <button class="btn btn-gold" id="forgotSubmitBtn" onclick="sendResetEmail()">전송</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW PASSWORD MODAL (비밀번호 재설정 링크 클릭 후) -->
+<div class="modal" id="mNewPassword">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title">새 비밀번호 설정</div>
+      <button type="button" class="modal-close" onclick="closeNewPasswordModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" id="newPwInfo" style="display:none"></div>
+      <div class="fg">
+        <label>새 비밀번호 <span style="color:var(--text3);font-weight:400">(최소 6자)</span></label>
+        <input type="password" id="new-password" placeholder="새 비밀번호">
+      </div>
+      <div class="fg">
+        <label>새 비밀번호 확인</label>
+        <input type="password" id="new-password-confirm" placeholder="비밀번호 재입력">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="modal-foot-right">
+        <button class="btn btn-gold" id="newPwSubmitBtn" onclick="saveNewPassword()">변경 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT MODAL -->
+<div class="modal" id="mDeleteAccount">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-head">
+      <div class="modal-title" style="color:var(--red)">계정 삭제</div>
+      <button type="button" class="modal-close" onclick="closeDeleteAccountModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--red-dim);border:1px solid rgba(248,81,73,0.3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--red)">
+        ⚠️ 계정과 모든 데이터(고객, 계약, 수수료, 일정)가 즉시 삭제되며 복구할 수 없습니다.
+      </div>
+      <div class="info-box" id="deleteAccInfo" style="display:none"></div>
+      <div style="margin-bottom:14px;display:flex;align-items:flex-start;gap:8px">
+        <input type="checkbox" id="deleteAccCheck" onchange="checkDeleteBtnState()" style="width:auto;margin:2px 0 0">
+        <label for="deleteAccCheck" style="cursor:pointer;font-size:12px;color:var(--text2)">위 내용을 이해했으며, 계정 삭제에 동의합니다</label>
+      </div>
+      <div class="fg">
+        <label style="font-size:11px">확인을 위해 <strong style="color:var(--red)">삭제</strong> 를 입력하세요</label>
+        <input type="text" id="deleteAccConfirmText" placeholder="삭제" oninput="checkDeleteBtnState()">
+      </div>
+      <div class="fg">
+        <label style="font-size:11px">계정 비밀번호</label>
+        <input type="password" id="deleteAccPassword" placeholder="비밀번호 입력">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeDeleteAccountModal()">취소</button>
+      <div class="modal-foot-right">
+        <button class="btn" id="deleteAccSubmitBtn" onclick="deleteAccount()" disabled style="border-color:var(--red);color:var(--red);opacity:0.5">계정 삭제</button>
       </div>
     </div>
   </div>
@@ -1249,6 +1378,13 @@ function renderSettingsPage(){
       pp.textContent='로그인 후 확인 가능합니다';
     }
   }
+  const isLoggedIn=!!currentUser;
+  const nlg=$('changePwNotLoggedIn');
+  const cpf=$('changePwForm');
+  if(nlg)nlg.style.display=isLoggedIn?'none':'';
+  if(cpf)cpf.style.display=isLoggedIn?'':'none';
+  const dab=$('deleteAccountBtn');
+  if(dab)dab.style.display=isLoggedIn?'':'none';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2982,6 +3118,9 @@ document.querySelectorAll('.modal').forEach(m=>{
       else if(m.id==='mProfile')closeProfileModal();
       else if(m.id==='mRatio')closeRatioModal();
       else if(m.id==='mAuth')closeAuthModal();
+      else if(m.id==='mForgotPassword')closeForgotPasswordModal();
+      else if(m.id==='mNewPassword')closeNewPasswordModal();
+      else if(m.id==='mDeleteAccount')closeDeleteAccountModal();
       else if(m.id==='mConfirm'){
         window.__confirmCallback=null;
         m.classList.remove('open');
@@ -3245,6 +3384,9 @@ document.addEventListener('keydown',e=>{
     else if($('mProfile').classList.contains('open'))closeProfileModal();
     else if($('mRatio').classList.contains('open'))closeRatioModal();
     else if($('mAuth').classList.contains('open'))closeAuthModal();
+    else if($('mForgotPassword').classList.contains('open'))closeForgotPasswordModal();
+    else if($('mNewPassword').classList.contains('open'))closeNewPasswordModal();
+    else if($('mDeleteAccount').classList.contains('open'))closeDeleteAccountModal();
     else if(mpOpen)closeMP();
     else if(qpDate)closeQuickPop();
   }
@@ -3299,6 +3441,8 @@ function initSupabase(){
       console.log('🔔 Auth event:', event);
       if(event === 'SIGNED_IN' && session){
         handleSignedIn(session.user);
+      } else if(event === 'PASSWORD_RECOVERY'){
+        openNewPasswordModal();
       } else if(event === 'SIGNED_OUT'){
         handleSignedOut();
       }
@@ -3933,6 +4077,212 @@ function closeAuthModal(){
 }
 
 // ═══════════════════════════════════════════════════════
+// 비밀번호 찾기 / 재설정
+// ═══════════════════════════════════════════════════════
+function openForgotPasswordModal(){
+  if($('forgot-email'))$('forgot-email').value='';
+  const info=$('forgotInfo');
+  if(info)info.style.display='none';
+  const btn=$('forgotSubmitBtn');
+  if(btn){btn.disabled=false;btn.textContent='전송';}
+  $('mForgotPassword').classList.add('open');
+  setTimeout(()=>{if($('forgot-email'))$('forgot-email').focus();},100);
+}
+function closeForgotPasswordModal(){
+  $('mForgotPassword').classList.remove('open');
+}
+
+function showForgotInfo(type,msg){
+  const info=$('forgotInfo');
+  if(!info)return;
+  info.style.display='block';
+  info.textContent=msg;
+  const s={success:['var(--green-dim)','rgba(63,185,80,0.3)','var(--green)'],error:['var(--red-dim)','rgba(248,81,73,0.3)','var(--red)']};
+  const [bg,border,color]=s[type]||['var(--blue-dim)','rgba(88,166,255,0.3)','var(--blue)'];
+  info.style.background=bg;info.style.borderColor=border;info.style.color=color;
+}
+
+async function sendResetEmail(){
+  if(!supabaseClient)return;
+  const email=($('forgot-email').value||'').trim();
+  if(!email){showForgotInfo('error','이메일을 입력해주세요');$('forgot-email').focus();return;}
+  if(!email.includes('@')){showForgotInfo('error','올바른 이메일 형식이 아닙니다');return;}
+  const btn=$('forgotSubmitBtn');
+  btn.disabled=true;btn.textContent='전송 중...';
+  try{
+    const{error}=await supabaseClient.auth.resetPasswordForEmail(email,{
+      redirectTo:'https://brokid.kr/#reset-password'
+    });
+    if(error)throw error;
+    showForgotInfo('success','재설정 링크를 이메일로 전송했습니다. 메일함을 확인해주세요.');
+    btn.textContent='전송됨';
+  }catch(err){
+    showForgotInfo('error','전송 실패: '+err.message);
+    btn.disabled=false;btn.textContent='전송';
+  }
+}
+
+function openNewPasswordModal(){
+  if($('new-password'))$('new-password').value='';
+  if($('new-password-confirm'))$('new-password-confirm').value='';
+  const info=$('newPwInfo');
+  if(info)info.style.display='none';
+  const btn=$('newPwSubmitBtn');
+  if(btn){btn.disabled=false;btn.textContent='변경 완료';}
+  $('mNewPassword').classList.add('open');
+  setTimeout(()=>{if($('new-password'))$('new-password').focus();},100);
+}
+function closeNewPasswordModal(){
+  $('mNewPassword').classList.remove('open');
+}
+
+function showNewPwInfo(type,msg){
+  const info=$('newPwInfo');
+  if(!info)return;
+  info.style.display='block';
+  info.textContent=msg;
+  const s={success:['var(--green-dim)','rgba(63,185,80,0.3)','var(--green)'],error:['var(--red-dim)','rgba(248,81,73,0.3)','var(--red)']};
+  const [bg,border,color]=s[type]||['var(--blue-dim)','rgba(88,166,255,0.3)','var(--blue)'];
+  info.style.background=bg;info.style.borderColor=border;info.style.color=color;
+}
+
+async function saveNewPassword(){
+  const pw=($('new-password').value)||'';
+  const pw2=($('new-password-confirm').value)||'';
+  if(!pw||pw.length<6){showNewPwInfo('error','비밀번호는 최소 6자 이상이어야 합니다');return;}
+  if(pw!==pw2){showNewPwInfo('error','두 비밀번호가 일치하지 않습니다');return;}
+  const btn=$('newPwSubmitBtn');
+  btn.disabled=true;btn.textContent='변경 중...';
+  try{
+    const{error}=await supabaseClient.auth.updateUser({password:pw});
+    if(error)throw error;
+    closeNewPasswordModal();
+    toast('비밀번호가 변경되었습니다. 다시 로그인해주세요.');
+  }catch(err){
+    showNewPwInfo('error','변경 실패: '+err.message);
+    btn.disabled=false;btn.textContent='변경 완료';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 비밀번호 변경 (설정 페이지 인라인)
+// ═══════════════════════════════════════════════════════
+function showChangePwInfo(type,msg){
+  const info=$('changePwInfo');
+  if(!info)return;
+  info.style.display='block';
+  info.textContent=msg;
+  const s={success:['var(--green-dim)','rgba(63,185,80,0.3)','var(--green)'],error:['var(--red-dim)','rgba(248,81,73,0.3)','var(--red)']};
+  const [bg,border,color]=s[type]||['var(--blue-dim)','rgba(88,166,255,0.3)','var(--blue)'];
+  info.style.background=bg;info.style.borderColor=border;info.style.color=color;
+}
+
+async function changePassword(){
+  const current=($('chPwCurrent').value)||'';
+  const pw=($('chPwNew').value)||'';
+  const pw2=($('chPwConfirm').value)||'';
+  if(!current){showChangePwInfo('error','현재 비밀번호를 입력해주세요');return;}
+  if(!pw||pw.length<6){showChangePwInfo('error','새 비밀번호는 최소 6자 이상이어야 합니다');return;}
+  if(pw!==pw2){showChangePwInfo('error','새 비밀번호가 일치하지 않습니다');return;}
+  const btn=$('changePwBtn');
+  btn.disabled=true;btn.textContent='변경 중...';
+  try{
+    // 현재 비밀번호 확인
+    const{error:signInErr}=await supabaseClient.auth.signInWithPassword({
+      email:currentUser.email,password:current
+    });
+    if(signInErr)throw new Error('현재 비밀번호가 올바르지 않습니다');
+    // 새 비밀번호 설정
+    const{error:updateErr}=await supabaseClient.auth.updateUser({password:pw});
+    if(updateErr)throw updateErr;
+    $('chPwCurrent').value='';$('chPwNew').value='';$('chPwConfirm').value='';
+    showChangePwInfo('success','비밀번호가 변경되었습니다');
+  }catch(err){
+    showChangePwInfo('error',err.message);
+  }finally{
+    btn.disabled=false;btn.textContent='비밀번호 변경';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// 회원탈퇴
+// ═══════════════════════════════════════════════════════
+function openDeleteAccountModal(){
+  if(!currentUser){toast('로그인 후 사용 가능합니다');return;}
+  if($('deleteAccCheck'))$('deleteAccCheck').checked=false;
+  if($('deleteAccConfirmText'))$('deleteAccConfirmText').value='';
+  if($('deleteAccPassword'))$('deleteAccPassword').value='';
+  const info=$('deleteAccInfo');
+  if(info)info.style.display='none';
+  const btn=$('deleteAccSubmitBtn');
+  if(btn){btn.disabled=true;btn.style.opacity='0.5';btn.textContent='계정 삭제';}
+  $('mDeleteAccount').classList.add('open');
+}
+function closeDeleteAccountModal(){
+  $('mDeleteAccount').classList.remove('open');
+}
+
+function checkDeleteBtnState(){
+  const checked=$('deleteAccCheck')?.checked;
+  const text=($('deleteAccConfirmText')?.value||'').trim();
+  const btn=$('deleteAccSubmitBtn');
+  const ok=checked&&text==='삭제';
+  if(btn){btn.disabled=!ok;btn.style.opacity=ok?'1':'0.5';}
+}
+
+function showDeleteAccInfo(type,msg){
+  const info=$('deleteAccInfo');
+  if(!info)return;
+  info.style.display='block';
+  info.textContent=msg;
+  const s={success:['var(--green-dim)','rgba(63,185,80,0.3)','var(--green)'],error:['var(--red-dim)','rgba(248,81,73,0.3)','var(--red)']};
+  const [bg,border,color]=s[type]||['var(--blue-dim)','rgba(88,166,255,0.3)','var(--blue)'];
+  info.style.background=bg;info.style.borderColor=border;info.style.color=color;
+}
+
+async function deleteAccount(){
+  const password=($('deleteAccPassword').value)||'';
+  if(!password){showDeleteAccInfo('error','비밀번호를 입력해주세요');$('deleteAccPassword').focus();return;}
+  const btn=$('deleteAccSubmitBtn');
+  btn.disabled=true;btn.textContent='삭제 중...';
+  try{
+    // 비밀번호 재확인
+    const{error:signInErr}=await supabaseClient.auth.signInWithPassword({
+      email:currentUser.email,password
+    });
+    if(signInErr)throw new Error('비밀번호가 올바르지 않습니다');
+
+    const orgId=currentOrganization?.id;
+    if(orgId){
+      const{error:pErr}=await supabaseClient.from('payments').delete().eq('organization_id',orgId);
+      if(pErr)console.error('payments 삭제 오류:',pErr.message);
+      const{error:ctErr}=await supabaseClient.from('contracts').delete().eq('organization_id',orgId);
+      if(ctErr)console.error('contracts 삭제 오류:',ctErr.message);
+      const{error:evErr}=await supabaseClient.from('events').delete().eq('organization_id',orgId);
+      if(evErr)console.error('events 삭제 오류:',evErr.message);
+      const{error:clErr}=await supabaseClient.from('clients').delete().eq('organization_id',orgId);
+      if(clErr)console.error('clients 삭제 오류:',clErr.message);
+    }
+    // 탈퇴 사유 기록 (익명)
+    await supabaseClient.from('deletion_logs').insert({reason:'사용자 직접 탈퇴'}).catch(()=>{});
+    // 프로필 삭제
+    await supabaseClient.from('profiles').delete().eq('id',currentUser.id).catch(()=>{});
+    // auth.users 삭제 (RPC)
+    const{error:rpcErr}=await supabaseClient.rpc('delete_user');
+    if(rpcErr)throw rpcErr;
+
+    localStorage.clear();
+    closeDeleteAccountModal();
+    alert('계정이 삭제되었습니다. 이용해주셔서 감사합니다.');
+    location.reload();
+  }catch(err){
+    showDeleteAccInfo('error',err.message);
+    btn.disabled=false;btn.textContent='계정 삭제';
+    checkDeleteBtnState();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // LANDING AUTH (랜딩 페이지 인증 폼)
 // ═══════════════════════════════════════════════════════
 let landingAuthMode = 'login';
@@ -3944,11 +4294,13 @@ function switchLandingTab(mode){
     $('landNameGroup').style.display = 'none'; $('landPhoneGroup').style.display = 'none';
     $('landSubmitBtn').textContent = '로그인'; $('landPwHint').textContent = '';
     $('landKeepLogin').style.display = 'flex';
+    if($('landForgotWrap'))$('landForgotWrap').style.display='';
   } else {
     $('landTabSignup').classList.add('on'); $('landTabLogin').classList.remove('on');
     $('landNameGroup').style.display = 'flex'; $('landPhoneGroup').style.display = 'flex';
     $('landSubmitBtn').textContent = '회원가입'; $('landPwHint').textContent = '(최소 6자)';
     $('landKeepLogin').style.display = 'none';
+    if($('landForgotWrap'))$('landForgotWrap').style.display='none';
   }
   $('landInfo').style.display = 'none';
 }
