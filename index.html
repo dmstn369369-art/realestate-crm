@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>부동산 중개 보조 시스템</title>
+<title>Brokid - 부동산 중개 보조 시스템</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath d='M 40 10 L 68 32 L 68 68 L 12 68 L 12 32 Z' fill='none' stroke='%23D4A24C' stroke-width='6' stroke-linejoin='round'/%3E%3Ctext x='40' y='58' font-family='Arial' font-size='28' font-weight='700' fill='%23D4A24C' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- Supabase Client Library (v2) -->
@@ -483,9 +484,15 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
 
 <div class="app" id="mainApp" style="display:none">
 <div class="sidebar">
-  <div class="logo">
-    <div class="logo-name">중개 보조 시스템</div>
-    <div class="logo-sub">Real Estate Pro</div>
+  <div class="logo" style="display:flex;align-items:center;gap:10px">
+    <svg width="36" height="36" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+      <path d="M 40 10 L 68 32 L 68 68 L 12 68 L 12 32 Z" fill="none" stroke="#D4A24C" stroke-width="4" stroke-linejoin="round"/>
+      <text x="40" y="58" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#D4A24C" text-anchor="middle">B</text>
+    </svg>
+    <div>
+      <div class="logo-name" style="font-size:18px;letter-spacing:1px">Brokid</div>
+      <div class="logo-sub">부동산 중개 보조 시스템</div>
+    </div>
   </div>
   <nav class="nav">
     <div class="ns">업무</div>
