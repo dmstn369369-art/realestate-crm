@@ -9,6 +9,7 @@
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- Supabase Client Library (v2) -->
 <!-- ═══════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -547,6 +548,70 @@ html{overflow-x:hidden}
   .landing-features{grid-template-columns:1fr!important}
   .cal-layout{gap:8px}
 }
+
+/* ═══════════════════════════════════════════════════════ */
+/* NOTICES / INQUIRIES / ADMIN                             */
+/* ═══════════════════════════════════════════════════════ */
+.notice-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.notice-card:hover{border-color:var(--border2);background:var(--bg3)}
+.notice-card.important{border-left:3px solid var(--red);background:linear-gradient(90deg,rgba(248,81,73,.04) 0%,transparent 60%)}
+.notice-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.notice-title{font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0}
+.notice-preview{font-size:12px;color:var(--text2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.notice-meta{font-size:10px;color:var(--text3);margin-top:6px}
+.ncat{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+.ncat-update{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+.ncat-general{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,67,.25)}
+.ncat-maintenance{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,129,74,.25)}
+.ncat-event{background:rgba(188,140,255,.18);color:#bc8cff;border:1px solid rgba(188,140,255,.3)}
+
+.inq-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.inq-card:hover{border-color:var(--border2)}
+.inq-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.inq-title{font-size:13px;font-weight:600;color:var(--text);flex:1;min-width:0}
+.inq-meta{font-size:11px;color:var(--text3);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.inq-status{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.inq-status.pending{background:rgba(139,148,158,.15);color:var(--text2);border:1px solid rgba(139,148,158,.25)}
+.inq-status.in_progress{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+.inq-status.completed{background:var(--green-dim);color:var(--green);border:1px solid rgba(63,185,80,.25)}
+.iqcat-bug{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,81,73,.25)}
+.iqcat-feature{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,166,255,.25)}
+.iqcat-modify{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,129,74,.25)}
+.iqcat-other{background:rgba(139,148,158,.15);color:var(--text2);border:1px solid rgba(139,148,158,.25)}
+
+.admin-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:3px;margin-bottom:16px}
+.admin-tab{flex:1;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500;text-align:center}
+.admin-tab.on{background:var(--gold);color:var(--bg);font-weight:700}
+.admin-section{display:none}
+.admin-section.on{display:block}
+.admin-today-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.admin-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 18px;position:relative;overflow:hidden}
+.admin-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold)}
+.admin-stat.red::before{background:var(--red)}.admin-stat.blue::before{background:var(--blue)}.admin-stat.green::before{background:var(--green)}
+.admin-stat-icon{font-size:22px;margin-bottom:6px}
+.admin-stat-label{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
+.admin-stat-val{font-family:'Noto Serif KR',serif;font-size:28px;font-weight:700;color:var(--text)}
+.admin-stat-val.red{color:var(--red)}.admin-stat-val.blue{color:var(--blue)}.admin-stat-val.green{color:var(--green)}
+.admin-quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.admin-quick-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:20px;text-align:center;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:8px}
+.admin-quick-btn:hover{border-color:var(--gold);background:var(--bg3);transform:translateY(-2px)}
+.admin-quick-btn .aqb-icon{font-size:28px}.admin-quick-btn .aqb-label{font-size:13px;font-weight:600;color:var(--text)}.admin-quick-btn .aqb-desc{font-size:11px;color:var(--text3)}
+.admin-tbl{width:100%;border-collapse:collapse}
+.admin-tbl th{padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.3px;white-space:nowrap}
+.admin-tbl td{padding:10px 12px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+.admin-tbl tr:hover td{background:rgba(255,255,255,.03);cursor:pointer}
+.admin-tbl tr:last-child td{border-bottom:none}
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;margin-bottom:16px}
+.chart-title{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.3px;margin-bottom:12px}
+.chart-canvas{width:100%!important}
+@media(max-width:768px){
+  .admin-today-grid{grid-template-columns:1fr 1fr!important}
+  .admin-quick-grid{grid-template-columns:1fr!important}
+  #adminSec_stats>div{grid-template-columns:1fr!important}
+}
+@media(max-width:480px){
+  .admin-today-grid{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -673,6 +738,16 @@ html{overflow-x:hidden}
     </div>
     <div class="ni" onclick="go('settings',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>설정
+    </div>
+    <div class="ns" style="margin-top:4px">서비스</div>
+    <div class="ni" id="navNotices" onclick="go('notices',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1z"/><path d="M4 7h8M4 10h5"/></svg>공지사항
+    </div>
+    <div class="ni" id="navInquiries" onclick="go('inquiries',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12a1 1 0 011 1v8a1 1 0 01-1 1H5l-3 2V3a1 1 0 011-1z"/></svg>문의하기
+    </div>
+    <div class="ni" id="navAdmin" style="display:none" onclick="go('admin',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="12" height="8" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/><circle cx="8" cy="11" r="1" fill="currentColor" stroke="none"/></svg>관리자
     </div>
     <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
   </nav>
@@ -924,6 +999,124 @@ html{overflow-x:hidden}
       </div>
     </div>
 
+    <!-- ══ NOTICES (공지사항) ══ -->
+    <div class="page" id="p-notices">
+      <div style="max-width:720px">
+        <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">공지사항</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">서비스 업데이트 및 공지를 확인하세요</div>
+          </div>
+        </div>
+        <div id="noticesWrap"><div class="empty">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ INQUIRIES (문의하기) ══ -->
+    <div class="page" id="p-inquiries">
+      <div style="max-width:720px">
+        <div style="margin-bottom:16px">
+          <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">문의하기</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">버그 신고, 기능 요청, 수정 요청을 남겨주세요</div>
+        </div>
+        <div id="inquiriesWrap"><div class="empty">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN (관리자 대시보드) ══ -->
+    <div class="page" id="p-admin">
+      <div id="adminWrap">
+        <div style="margin-bottom:16px">
+          <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">관리자 대시보드</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">서비스 운영 현황</div>
+        </div>
+        <div class="admin-tabs">
+          <div class="admin-tab on" id="adminTab_dashboard" onclick="setAdminTab('dashboard',this)">📊 대시보드</div>
+          <div class="admin-tab" id="adminTab_users" onclick="setAdminTab('users',this)">👥 사용자 관리</div>
+          <div class="admin-tab" id="adminTab_stats" onclick="setAdminTab('stats',this)">📈 통계</div>
+        </div>
+
+        <!-- 대시보드 -->
+        <div class="admin-section on" id="adminSec_dashboard">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:10px">오늘 현황</div>
+          <div class="admin-today-grid">
+            <div class="admin-stat">
+              <div class="admin-stat-icon">📅</div>
+              <div class="admin-stat-label">오늘 신규 가입</div>
+              <div class="admin-stat-val" id="adm-today-signups">-</div>
+              <div class="stat-sub">명</div>
+            </div>
+            <div class="admin-stat blue">
+              <div class="admin-stat-icon">👥</div>
+              <div class="admin-stat-label">총 사용자</div>
+              <div class="admin-stat-val blue" id="adm-total-users">-</div>
+              <div class="stat-sub">명</div>
+            </div>
+            <div class="admin-stat" id="adm-pending-card">
+              <div class="admin-stat-icon">⚠️</div>
+              <div class="admin-stat-label">미답변 문의</div>
+              <div class="admin-stat-val" id="adm-pending-inq">-</div>
+              <div class="stat-sub">건</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:10px;margin-top:20px">전체 통계</div>
+          <div class="set-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:0">
+            <div class="stat s-gold"><div class="stat-label">총 사무소</div><div class="stat-val" id="adm-total-orgs">-</div><div class="stat-sub">개</div></div>
+            <div class="stat s-blue"><div class="stat-label">총 고객</div><div class="stat-val" id="adm-total-clients">-</div><div class="stat-sub">명</div></div>
+            <div class="stat s-green"><div class="stat-label">총 계약</div><div class="stat-val" id="adm-total-contracts">-</div><div class="stat-sub">건</div></div>
+            <div class="stat s-orange"><div class="stat-label">이번달 거래액</div><div class="stat-val" id="adm-month-fee" style="font-size:15px">-</div><div class="stat-sub">원</div></div>
+            <div class="stat"><div class="stat-label">총 문의</div><div class="stat-val" id="adm-total-inq">-</div><div class="stat-sub">건</div></div>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;margin-bottom:10px;margin-top:20px">빠른 액션</div>
+          <div class="admin-quick-grid">
+            <div class="admin-quick-btn" onclick="go('notices',$('navNotices'));setTimeout(()=>isAdmin()&&openNoticeEdit(null),400)">
+              <div class="aqb-icon">📢</div><div class="aqb-label">새 공지 작성</div><div class="aqb-desc">공지사항 페이지로 이동</div>
+            </div>
+            <div class="admin-quick-btn" onclick="go('inquiries',$('navInquiries'))">
+              <div class="aqb-icon">💬</div><div class="aqb-label">문의 답변하기</div><div class="aqb-desc">미답변 문의 처리</div>
+            </div>
+            <div class="admin-quick-btn" onclick="setAdminTab('users',$('adminTab_users'))">
+              <div class="aqb-icon">👤</div><div class="aqb-label">사용자 관리</div><div class="aqb-desc">가입자 현황 확인</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 사용자 관리 -->
+        <div class="admin-section" id="adminSec_users">
+          <div class="filters" style="margin-bottom:14px">
+            <div class="sbar" style="flex:1">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+              <input type="text" id="adminUserSearch" placeholder="이메일, 이름 검색..." oninput="renderUserManagement()" style="font-size:12px">
+            </div>
+            <select class="btn" id="adminUserFilter" onchange="renderUserManagement()" style="font-size:11px">
+              <option value="">전체</option><option value="active">활성 (30일 이내)</option><option value="inactive">비활성</option>
+            </select>
+            <select class="btn" id="adminUserSort" onchange="renderUserManagement()" style="font-size:11px">
+              <option value="created_at">가입일순</option><option value="updated_at">최근활동순</option>
+            </select>
+          </div>
+          <div class="tbl-wrap">
+            <table class="admin-tbl">
+              <thead><tr><th>이메일</th><th>이름</th><th>사무소</th><th>가입일</th><th>최근활동</th><th>고객</th><th>계약</th><th>거래액</th><th>상태</th></tr></thead>
+              <tbody id="adminUsersTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 통계 -->
+        <div class="admin-section" id="adminSec_stats">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="chart-wrap"><div class="chart-title">📅 일별 신규 가입 (최근 30일)</div><canvas id="chartSignups" height="200" class="chart-canvas"></canvas></div>
+            <div class="chart-wrap"><div class="chart-title">💬 카테고리별 문의</div><canvas id="chartInquiries" height="200" class="chart-canvas"></canvas></div>
+            <div class="chart-wrap"><div class="chart-title">🏢 사무소별 고객 수 TOP10</div><canvas id="chartOrgClients" height="200" class="chart-canvas"></canvas></div>
+            <div class="chart-wrap"><div class="chart-title">💰 월별 수수료 (최근 6개월, 만원)</div><canvas id="chartMonthlyFee" height="200" class="chart-canvas"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 </div>
@@ -938,6 +1131,124 @@ html{overflow-x:hidden}
   <div class="quick-pop-item" onclick="qpAdd('sign')"><span class="qp-dot" style="background:var(--c-sign)"></span>계약서 작성</div>
   <div class="quick-pop-item" onclick="qpAdd('balance')"><span class="qp-dot" style="background:var(--c-balance)"></span>잔금</div>
   <div class="quick-pop-item" onclick="qpAdd('general')"><span class="qp-dot" style="background:var(--c-general)"></span>일반일정</div>
+</div>
+
+<!-- ══ 공지 상세 모달 ══ -->
+<div class="modal" id="mNoticeDetail">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <div class="modal-title" id="noticeDetailTitle">공지</div>
+      <button class="modal-close" onclick="$('mNoticeDetail').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="noticeDetailMeta" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div id="noticeDetailBody" style="font-size:13px;color:var(--text);line-height:1.8"></div>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn" onclick="$('mNoticeDetail').classList.remove('open')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 공지 작성/수정 모달 (admin) ══ -->
+<div class="modal" id="mNoticeEdit">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head">
+      <div class="modal-title" id="noticeEditTitle">새 공지 작성</div>
+      <button class="modal-close" onclick="$('mNoticeEdit').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>카테고리</label>
+        <select id="noticeEditCat">
+          <option value="general">📢 공지</option><option value="update">🔄 업데이트</option>
+          <option value="maintenance">🔧 점검</option><option value="event">🎉 이벤트</option>
+        </select>
+      </div>
+      <div class="fg"><label>제목 *</label><input type="text" id="noticeEditTitleInput" placeholder="공지 제목을 입력하세요"></div>
+      <div class="fg"><label>내용 *</label><textarea id="noticeEditContent" placeholder="공지 내용을 입력하세요 (줄바꿈 지원)" style="min-height:180px"></textarea></div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-top:4px">
+        <input type="checkbox" id="noticeEditImportant" style="width:auto;margin:0">
+        <label for="noticeEditImportant" style="cursor:pointer;margin:0">📌 중요 공지 (상단 고정 + 강조)</label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="$('mNoticeEdit').classList.remove('open')">취소</button>
+      <div class="modal-foot-right"><button class="btn btn-gold" id="noticeEditSaveBtn" onclick="saveNotice()">저장</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 문의 작성 모달 ══ -->
+<div class="modal" id="mInquiryWrite">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <div class="modal-title">문의 작성</div>
+      <button class="modal-close" onclick="$('mInquiryWrite').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>문의 유형</label>
+        <select id="inqWriteCat">
+          <option value="bug">🐛 버그 신고</option><option value="feature">💡 기능 요청</option>
+          <option value="modify">✏️ 수정 요청</option><option value="other">💬 기타 문의</option>
+        </select>
+      </div>
+      <div class="fg"><label>제목 *</label><input type="text" id="inqWriteTitle" placeholder="문의 제목을 입력하세요"></div>
+      <div class="fg"><label>내용 *</label><textarea id="inqWriteContent" placeholder="자세히 입력해주세요" style="min-height:150px"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="$('mInquiryWrite').classList.remove('open')">취소</button>
+      <div class="modal-foot-right"><button class="btn btn-gold" id="inqSubmitBtn" onclick="submitInquiry()">문의 등록</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 문의 상세 모달 ══ -->
+<div class="modal" id="mInquiryDetail">
+  <div class="modal-box" style="max-width:540px">
+    <div class="modal-head">
+      <div class="modal-title" id="inqDetailTitle">문의 상세</div>
+      <button class="modal-close" onclick="$('mInquiryDetail').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="inqDetailMeta" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+        <div id="inqDetailBody" style="font-size:13px;color:var(--text);line-height:1.8"></div>
+      </div>
+      <div id="inqDetailReply" style="display:none;background:var(--green-dim);border:1px solid rgba(63,185,80,.25);border-radius:var(--radius);padding:14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">💬 관리자 답변 <span id="inqReplyDate" style="font-weight:400;color:var(--text3)"></span></div>
+        <div id="inqDetailReplyText" style="font-size:13px;color:var(--text);line-height:1.8"></div>
+      </div>
+      <div id="inqAdminReplyArea" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px;border-top:1px solid var(--border);padding-top:14px">📝 답변 작성</div>
+        <div class="fr" style="margin-bottom:10px">
+          <div class="fg" style="margin-bottom:0"><label>처리 상태</label>
+            <select id="inqAdminStatusSel">
+              <option value="in_progress">처리중</option><option value="completed">완료</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><textarea id="inqAdminReplyText" placeholder="답변을 입력하세요" style="min-height:120px"></textarea></div>
+        <button class="btn btn-gold" id="inqAdminReplyBtn" onclick="submitAdminReply()" style="width:100%;justify-content:center">답변 저장</button>
+      </div>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn" onclick="$('mInquiryDetail').classList.remove('open')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 관리자 사용자 상세 모달 ══ -->
+<div class="modal" id="mAdminUser">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <div class="modal-title">사용자 상세</div>
+      <button class="modal-close" onclick="$('mAdminUser').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body" id="adminUserDetailContent"></div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn" onclick="$('mAdminUser').classList.remove('open')">닫기</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -1540,12 +1851,15 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',settings:'설정'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='settings')renderSettingsPage();
+  else if(id==='notices')renderNotices();
+  else if(id==='inquiries')renderInquiries();
+  else if(id==='admin')renderAdminDashboard();
   closeMobileMenu();
 }
 
@@ -4286,6 +4600,7 @@ function updateAuthUI(user){
     if($('sfAvatar'))$('sfAvatar').textContent=firstChar;
     if($('sfName'))$('sfName').textContent=displayName;
     if($('sfJobTitle'))$('sfJobTitle').textContent=currentProfile?.job_title||'공인중개사';
+    updateAdminMenu();
   } else {
     showLanding();
     // 로그인 안 된 상태 (authArea는 메인 앱 topbar에 존재하므로 그대로 유지)
@@ -4298,6 +4613,7 @@ function updateAuthUI(user){
     if($('sfAvatar'))$('sfAvatar').textContent='?';
     if($('sfName'))$('sfName').textContent='로그인 필요';
     if($('sfJobTitle'))$('sfJobTitle').textContent='-';
+    updateAdminMenu();
   }
 }
 
@@ -4867,6 +5183,432 @@ function showSupabaseStatus(type, msg){
 
 // ═══════════════════════════════════════════════════════
 // INIT
+// ═══════════════════════════════════════════════════════
+// ADMIN / NOTICES / INQUIRIES
+// ═══════════════════════════════════════════════════════
+
+function isAdmin(){ return currentProfile?.role === 'admin'; }
+
+function updateAdminMenu(){
+  const nav=$('navAdmin');
+  if(nav) nav.style.display = isAdmin() ? '' : 'none';
+}
+
+// ─── XSS 방지 헬퍼 ───
+function escHtml(str){
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── 텍스트 줄바꿈 → DOM ───
+function setTextWithBreaks(el,text){
+  el.textContent='';
+  (text||'').split('\n').forEach((line,i)=>{
+    if(i>0)el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(line));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// NOTICES
+// ═══════════════════════════════════════════════════════
+
+let notices=[], noticeFilter='', editingNoticeId=null;
+const CAT_LABEL={general:'공지',update:'업데이트',maintenance:'점검',event:'이벤트'};
+const CAT_CLS={general:'ncat-general',update:'ncat-update',maintenance:'ncat-maintenance',event:'ncat-event'};
+
+async function renderNotices(){
+  const wrap=$('noticesWrap');
+  if(!wrap)return;
+  if(!(supabaseClient&&currentUser)){
+    wrap.innerHTML='<div class="empty">로그인 후 공지사항을 볼 수 있습니다.</div>';return;
+  }
+  wrap.innerHTML='<div class="empty">로딩 중...</div>';
+  try{
+    const{data,error}=await supabaseClient.from('announcements')
+      .select('*').order('is_important',{ascending:false}).order('created_at',{ascending:false});
+    if(error)throw error;
+    notices=data||[];
+    _renderNoticeList();
+  }catch(err){ wrap.innerHTML=`<div class="empty">오류: ${escHtml(err.message)}</div>`; }
+}
+
+function _renderNoticeList(){
+  const wrap=$('noticesWrap');
+  if(!wrap)return;
+  let filtered=noticeFilter?notices.filter(n=>n.category===noticeFilter):notices;
+
+  const adminBar=isAdmin()?`<div style="margin-bottom:14px;display:flex;justify-content:flex-end"><button class="btn btn-gold" onclick="openNoticeEdit(null)" style="font-size:12px">+ 새 공지 작성</button></div>`:'';
+  const filters=['','general','update','maintenance','event'].map(c=>
+    `<button class="btn${noticeFilter===c?' btn-gold':''}" onclick="setNoticeFilter('${c}')" style="font-size:11px;padding:5px 10px">${c===''?'전체':CAT_LABEL[c]}</button>`
+  ).join('');
+  const filterHtml=`<div class="filters" style="margin-bottom:14px">${filters}</div>`;
+
+  if(!filtered.length){wrap.innerHTML=adminBar+filterHtml+'<div class="empty">공지사항이 없습니다.</div>';return;}
+
+  const cardsHtml=filtered.map(n=>{
+    const dt=n.created_at?new Date(n.created_at).toLocaleDateString('ko-KR'):'';
+    const preview=(n.content||'').slice(0,100);
+    const impBadge=n.is_important?'<span class="ncat" style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,81,73,.25)">📌 중요</span>':'';
+    const adminBtns=isAdmin()?`<div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()"><button class="btn btn-sm" onclick="openNoticeEdit('${n.id}')" style="font-size:10px;min-height:28px">수정</button><button class="btn btn-sm btn-red" onclick="deleteNotice('${n.id}')" style="font-size:10px;min-height:28px">삭제</button></div>`:'';
+    return `<div class="notice-card${n.is_important?' important':''}" onclick="openNoticeDetail('${n.id}')">
+      <div class="notice-head">${impBadge}<span class="ncat ${CAT_CLS[n.category]||'ncat-general'}">${CAT_LABEL[n.category]||n.category}</span><span class="notice-title">${escHtml(n.title)}</span>${adminBtns}</div>
+      <div class="notice-preview">${escHtml(preview)}${n.content.length>100?'…':''}</div>
+      <div class="notice-meta">${dt}</div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=adminBar+filterHtml+cardsHtml;
+}
+
+function setNoticeFilter(cat){ noticeFilter=cat; _renderNoticeList(); }
+
+function openNoticeDetail(id){
+  const n=notices.find(x=>x.id===id);
+  if(!n)return;
+  const dt=n.created_at?new Date(n.created_at).toLocaleDateString('ko-KR'):'';
+  $('noticeDetailTitle').textContent=n.title;
+  $('noticeDetailMeta').innerHTML=
+    (n.is_important?'<span class="ncat" style="background:var(--red-dim);color:var(--red);border:1px solid rgba(248,81,73,.25)">📌 중요</span>':'')+
+    `<span class="ncat ${CAT_CLS[n.category]||'ncat-general'}">${CAT_LABEL[n.category]||n.category}</span>`+
+    `<span style="font-size:11px;color:var(--text3)">${dt}</span>`;
+  setTextWithBreaks($('noticeDetailBody'),n.content);
+  $('mNoticeDetail').classList.add('open');
+}
+
+function openNoticeEdit(id){
+  if(!isAdmin()){toast('권한이 없습니다');return;}
+  editingNoticeId=id;
+  const n=id?notices.find(x=>x.id===id):null;
+  $('noticeEditTitle').textContent=id?'공지 수정':'새 공지 작성';
+  $('noticeEditTitleInput').value=n?.title||'';
+  $('noticeEditContent').value=n?.content||'';
+  $('noticeEditCat').value=n?.category||'general';
+  $('noticeEditImportant').checked=n?.is_important||false;
+  $('mNoticeEdit').classList.add('open');
+}
+
+async function saveNotice(){
+  if(!isAdmin())return;
+  const title=$('noticeEditTitleInput').value.trim();
+  const content=$('noticeEditContent').value.trim();
+  const category=$('noticeEditCat').value;
+  const is_important=$('noticeEditImportant').checked;
+  if(!title){toast('제목을 입력해주세요');$('noticeEditTitleInput').focus();return;}
+  if(!content){toast('내용을 입력해주세요');$('noticeEditContent').focus();return;}
+  const btn=$('noticeEditSaveBtn');
+  btn.disabled=true;btn.textContent='저장 중...';
+  try{
+    if(editingNoticeId){
+      const{error}=await supabaseClient.from('announcements').update({title,content,category,is_important,updated_at:new Date().toISOString()}).eq('id',editingNoticeId);
+      if(error)throw error;
+      toast('공지가 수정되었습니다');
+    }else{
+      const{error}=await supabaseClient.from('announcements').insert({title,content,category,is_important,created_by:currentUser.id});
+      if(error)throw error;
+      toast('공지가 작성되었습니다');
+    }
+    $('mNoticeEdit').classList.remove('open');
+    renderNotices();
+  }catch(err){toast('저장 실패: '+err.message);}
+  finally{btn.disabled=false;btn.textContent='저장';}
+}
+
+async function deleteNotice(id){
+  if(!isAdmin())return;
+  if(!confirm('공지를 삭제하시겠습니까?'))return;
+  try{
+    const{error}=await supabaseClient.from('announcements').delete().eq('id',id);
+    if(error)throw error;
+    toast('공지가 삭제되었습니다');
+    renderNotices();
+  }catch(err){toast('삭제 실패: '+err.message);}
+}
+
+// ═══════════════════════════════════════════════════════
+// INQUIRIES
+// ═══════════════════════════════════════════════════════
+
+let inquiries=[], inqAdminFilter={status:'',category:''}, inqSearchQ='', viewingInquiryId=null;
+const INQ_CAT_LABEL={bug:'🐛 버그 신고',feature:'💡 기능 요청',modify:'✏️ 수정 요청',other:'💬 기타 문의'};
+const INQ_CAT_CLS={bug:'iqcat-bug',feature:'iqcat-feature',modify:'iqcat-modify',other:'iqcat-other'};
+const INQ_STATUS_LABEL={pending:'접수',in_progress:'처리중',completed:'완료'};
+
+async function renderInquiries(){
+  const wrap=$('inquiriesWrap');
+  if(!wrap)return;
+  if(!(supabaseClient&&currentUser)){
+    wrap.innerHTML='<div class="empty">로그인 후 문의하기를 이용할 수 있습니다.</div>';return;
+  }
+  wrap.innerHTML='<div class="empty">로딩 중...</div>';
+  try{
+    let query=supabaseClient.from('inquiries').select('*').order('created_at',{ascending:false});
+    if(!isAdmin())query=query.eq('user_id',currentUser.id);
+    const{data,error}=await query;
+    if(error)throw error;
+    inquiries=data||[];
+    _renderInquiryList();
+  }catch(err){wrap.innerHTML=`<div class="empty">오류: ${escHtml(err.message)}</div>`;}
+}
+
+function _renderInquiryList(){
+  const wrap=$('inquiriesWrap');
+  if(!wrap)return;
+  let list=[...inquiries];
+  if(isAdmin()){
+    if(inqAdminFilter.status)list=list.filter(i=>i.status===inqAdminFilter.status);
+    if(inqAdminFilter.category)list=list.filter(i=>i.category===inqAdminFilter.category);
+    if(inqSearchQ){const q=inqSearchQ.toLowerCase();list=list.filter(i=>(i.title||'').toLowerCase().includes(q)||(i.content||'').toLowerCase().includes(q)||(i.user_email||'').toLowerCase().includes(q));}
+  }
+  const adminBar=isAdmin()?`<div class="filters" style="margin-bottom:12px">
+    <div class="sbar" style="flex:1"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg><input type="text" placeholder="제목, 내용, 이메일 검색..." oninput="inqSearchQ=this.value;_renderInquiryList()" style="font-size:12px"></div>
+    <select class="btn" onchange="inqAdminFilter.status=this.value;_renderInquiryList()" style="font-size:11px"><option value="">상태 전체</option><option value="pending">접수</option><option value="in_progress">처리중</option><option value="completed">완료</option></select>
+    <select class="btn" onchange="inqAdminFilter.category=this.value;_renderInquiryList()" style="font-size:11px"><option value="">유형 전체</option><option value="bug">버그</option><option value="feature">기능요청</option><option value="modify">수정요청</option><option value="other">기타</option></select>
+  </div>`:`<div style="margin-bottom:14px;display:flex;justify-content:flex-end"><button class="btn btn-gold" onclick="openInquiryWrite()" style="font-size:12px">+ 새 문의 작성</button></div>`;
+  if(!list.length){wrap.innerHTML=adminBar+'<div class="empty">문의 내역이 없습니다.</div>';return;}
+  const cardsHtml=list.map(i=>{
+    const dt=i.created_at?new Date(i.created_at).toLocaleDateString('ko-KR'):'';
+    const userInfo=isAdmin()?`<span>${escHtml(i.user_email||'')}</span>`:'';
+    const replied=i.admin_reply?'<span style="color:var(--green)">✓ 답변 완료</span>':'';
+    return `<div class="inq-card" onclick="openInquiryDetail('${i.id}')">
+      <div class="inq-head"><span class="ncat ${INQ_CAT_CLS[i.category]||'iqcat-other'}" style="font-size:10px">${INQ_CAT_LABEL[i.category]||i.category}</span><span class="inq-title">${escHtml(i.title)}</span><span class="inq-status ${i.status}">${INQ_STATUS_LABEL[i.status]||i.status}</span></div>
+      <div class="inq-meta">${userInfo}<span>${dt}</span>${replied}</div>
+    </div>`;
+  }).join('');
+  wrap.innerHTML=adminBar+cardsHtml;
+}
+
+function openInquiryWrite(){
+  if(!currentUser){toast('로그인이 필요합니다');return;}
+  $('inqWriteCat').value='other';$('inqWriteTitle').value='';$('inqWriteContent').value='';
+  $('mInquiryWrite').classList.add('open');
+}
+
+async function submitInquiry(){
+  if(!currentUser)return;
+  const category=$('inqWriteCat').value;
+  const title=$('inqWriteTitle').value.trim();
+  const content=$('inqWriteContent').value.trim();
+  if(!title){toast('제목을 입력해주세요');$('inqWriteTitle').focus();return;}
+  if(!content){toast('내용을 입력해주세요');$('inqWriteContent').focus();return;}
+  const btn=$('inqSubmitBtn');btn.disabled=true;btn.textContent='등록 중...';
+  try{
+    const{error}=await supabaseClient.from('inquiries').insert({
+      user_id:currentUser.id,user_email:currentUser.email,user_name:currentProfile?.name||'',
+      category,title,content,status:'pending'
+    });
+    if(error)throw error;
+    toast('문의가 등록되었습니다');
+    $('mInquiryWrite').classList.remove('open');
+    renderInquiries();
+  }catch(err){toast('등록 실패: '+err.message);}
+  finally{btn.disabled=false;btn.textContent='문의 등록';}
+}
+
+function openInquiryDetail(id){
+  const inq=inquiries.find(x=>x.id===id);
+  if(!inq)return;
+  viewingInquiryId=id;
+  const dt=inq.created_at?new Date(inq.created_at).toLocaleDateString('ko-KR'):'';
+  $('inqDetailTitle').textContent=inq.title;
+  $('inqDetailMeta').innerHTML=
+    `<span class="ncat iqcat-${inq.category||'other'}">${INQ_CAT_LABEL[inq.category]||inq.category}</span>`+
+    `<span class="inq-status ${inq.status}">${INQ_STATUS_LABEL[inq.status]||inq.status}</span>`+
+    `<span style="font-size:11px;color:var(--text3)">${dt}</span>`+
+    (isAdmin()?`<span style="font-size:11px;color:var(--text3)">${escHtml(inq.user_email||'')}</span>`:'');
+  setTextWithBreaks($('inqDetailBody'),inq.content);
+  const replySection=$('inqDetailReply');
+  if(inq.admin_reply){
+    replySection.style.display='';
+    setTextWithBreaks($('inqDetailReplyText'),inq.admin_reply);
+    $('inqReplyDate').textContent=inq.replied_at?new Date(inq.replied_at).toLocaleDateString('ko-KR'):'';
+  }else{replySection.style.display='none';}
+  const adminArea=$('inqAdminReplyArea');
+  if(adminArea){
+    adminArea.style.display=isAdmin()?'':'none';
+    if(isAdmin()){$('inqAdminReplyText').value=inq.admin_reply||'';$('inqAdminStatusSel').value=inq.status||'pending';}
+  }
+  $('mInquiryDetail').classList.add('open');
+}
+
+async function submitAdminReply(){
+  if(!isAdmin())return;
+  const reply=$('inqAdminReplyText').value.trim();
+  const status=$('inqAdminStatusSel').value;
+  if(!reply){toast('답변을 입력해주세요');return;}
+  const btn=$('inqAdminReplyBtn');btn.disabled=true;btn.textContent='저장 중...';
+  try{
+    const{error}=await supabaseClient.from('inquiries').update({
+      admin_reply:reply,status:status||'completed',replied_at:new Date().toISOString()
+    }).eq('id',viewingInquiryId);
+    if(error)throw error;
+    toast('답변이 등록되었습니다');
+    $('mInquiryDetail').classList.remove('open');
+    renderInquiries();
+  }catch(err){toast('저장 실패: '+err.message);}
+  finally{btn.disabled=false;btn.textContent='답변 저장';}
+}
+
+// ═══════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════
+
+let adminTab='dashboard';
+let allProfiles=[],allOrgs=[],allClients=[],allContracts=[],allPayments=[],allInquiries=[];
+let adminCharts={};
+const thirtyDaysAgo=()=>new Date(Date.now()-30*24*3600*1000).toISOString();
+
+async function renderAdminDashboard(){
+  if(!currentUser){toast('로그인이 필요합니다');return;}
+  if(!isAdmin()){
+    const w=$('adminWrap');
+    if(w)w.innerHTML='<div class="empty" style="padding:48px;font-size:14px">🔒 관리자 권한이 필요합니다.</div>';
+    return;
+  }
+  const w=$('adminWrap');if(w)w.style.display='';
+  // 로딩 표시
+  const cur=$('adminSec_'+adminTab);
+  if(cur&&cur.querySelector)cur.innerHTML='<div class="empty">데이터 로딩 중...</div>';
+  try{
+    const[{data:profiles},{data:orgs},{data:cls},{data:cts},{data:pays},{data:inqs}]=await Promise.all([
+      supabaseClient.from('profiles').select('*').order('created_at',{ascending:false}),
+      supabaseClient.from('organizations').select('*'),
+      supabaseClient.from('clients').select('id,organization_id,created_at'),
+      supabaseClient.from('contracts').select('id,organization_id,created_at'),
+      supabaseClient.from('payments').select('id,organization_id,amount,received_at'),
+      supabaseClient.from('inquiries').select('*').order('created_at',{ascending:false})
+    ]);
+    allProfiles=profiles||[];allOrgs=orgs||[];allClients=cls||[];allContracts=cts||[];allPayments=pays||[];allInquiries=inqs||[];
+  }catch(err){toast('데이터 로드 실패: '+err.message);return;}
+  // 탭 활성화
+  setAdminTab(adminTab,$('adminTab_'+adminTab));
+}
+
+function setAdminTab(tab,el){
+  adminTab=tab;
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('on'));
+  if(el)el.classList.add('on');
+  document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('on'));
+  const sec=$('adminSec_'+tab);if(sec)sec.classList.add('on');
+  if(tab==='dashboard')renderAdminSummary();
+  else if(tab==='users')renderUserManagement();
+  else if(tab==='stats')renderAdminStats();
+}
+
+function renderAdminSummary(){
+  const today=new Date().toISOString().slice(0,10);
+  const thisMonth=new Date().toISOString().slice(0,7);
+  const todaySignups=allProfiles.filter(p=>(p.created_at||'').slice(0,10)===today).length;
+  const totalUsers=allProfiles.length;
+  const pendingInq=allInquiries.filter(i=>i.status==='pending').length;
+  const monthFee=allPayments.filter(p=>(p.received_at||'').startsWith(thisMonth)).reduce((s,p)=>s+(Number(p.amount)||0),0);
+  if($('adm-today-signups'))$('adm-today-signups').textContent=todaySignups;
+  if($('adm-total-users'))$('adm-total-users').textContent=totalUsers;
+  if($('adm-pending-inq')){$('adm-pending-inq').textContent=pendingInq;$('adm-pending-inq').className='admin-stat-val'+(pendingInq>0?' red':'');}
+  const pc=$('adm-pending-card');if(pc){pc.className='admin-stat'+(pendingInq>0?' red':'');}
+  if($('adm-total-orgs'))$('adm-total-orgs').textContent=allOrgs.length;
+  if($('adm-total-clients'))$('adm-total-clients').textContent=allClients.length;
+  if($('adm-total-contracts'))$('adm-total-contracts').textContent=allContracts.length;
+  if($('adm-month-fee'))$('adm-month-fee').textContent='₩'+monthFee.toLocaleString();
+  if($('adm-total-inq'))$('adm-total-inq').textContent=allInquiries.length;
+}
+
+function renderUserManagement(){
+  const wrap=$('adminUsersTable');if(!wrap)return;
+  let list=[...allProfiles];
+  const q=($('adminUserSearch')?.value||'').toLowerCase();
+  const flt=$('adminUserFilter')?.value||'';
+  const srt=$('adminUserSort')?.value||'created_at';
+  const ago30=thirtyDaysAgo();
+  if(q)list=list.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.email||'').toLowerCase().includes(q));
+  if(flt==='active')list=list.filter(p=>(p.updated_at||p.created_at||'')>=ago30);
+  else if(flt==='inactive')list=list.filter(p=>(p.updated_at||p.created_at||'')<ago30);
+  list.sort((a,b)=>((b[srt]||'')).localeCompare((a[srt]||'')));
+  if(!list.length){wrap.innerHTML='<tr><td colspan="9" class="empty">사용자가 없습니다</td></tr>';return;}
+  wrap.innerHTML=list.map(p=>{
+    const org=allOrgs.find(o=>o.id===p.organization_id);
+    const cc=allClients.filter(c=>c.organization_id===p.organization_id).length;
+    const ctc=allContracts.filter(c=>c.organization_id===p.organization_id).length;
+    const fee=allPayments.filter(py=>py.organization_id===p.organization_id).reduce((s,py)=>s+(Number(py.amount)||0),0);
+    const dt=p.created_at?new Date(p.created_at).toLocaleDateString('ko-KR'):'-';
+    const upd=p.updated_at?new Date(p.updated_at).toLocaleDateString('ko-KR'):'-';
+    const active=(p.updated_at||p.created_at||'')>=ago30;
+    return `<tr onclick="openAdminUserDetail('${p.id}')">
+      <td style="color:var(--text);max-width:160px;overflow:hidden;text-overflow:ellipsis">${escHtml(p.email||'')}</td>
+      <td style="color:var(--text);font-weight:500">${escHtml(p.name||'-')}</td>
+      <td>${escHtml(org?.name||'-')}</td><td>${dt}</td><td>${upd}</td>
+      <td style="text-align:center">${cc}</td><td style="text-align:center">${ctc}</td>
+      <td style="color:var(--gold)">${fee?'₩'+Math.round(fee/10000)+'만':'-'}</td>
+      <td><span class="inq-status ${active?'completed':'pending'}">${active?'활성':'비활성'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function openAdminUserDetail(profileId){
+  const p=allProfiles.find(x=>x.id===profileId);if(!p)return;
+  const org=allOrgs.find(o=>o.id===p.organization_id);
+  const uc=allClients.filter(c=>c.organization_id===p.organization_id).length;
+  const utc=allContracts.filter(c=>c.organization_id===p.organization_id).length;
+  const fee=allPayments.filter(py=>py.organization_id===p.organization_id).reduce((s,py)=>s+(Number(py.amount)||0),0);
+  const el=$('adminUserDetailContent');if(!el)return;
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="stat s-gold"><div class="stat-label">이름</div><div style="font-size:15px;font-weight:700;color:var(--text)">${escHtml(p.name||'-')}</div></div>
+      <div class="stat s-blue"><div class="stat-label">이메일</div><div style="font-size:11px;color:var(--text);word-break:break-all">${escHtml(p.email||'-')}</div></div>
+      <div class="stat s-green"><div class="stat-label">사무소</div><div style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(org?.name||'-')}</div></div>
+      <div class="stat s-orange"><div class="stat-label">총 수수료</div><div style="font-size:15px;font-weight:700;color:var(--gold)">${fee?'₩'+fee.toLocaleString():'-'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">고객 수</div><div style="font-size:24px;font-weight:700;color:var(--text)">${uc}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">계약 수</div><div style="font-size:24px;font-weight:700;color:var(--text)">${utc}</div></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">가입일</div><div style="font-size:12px;font-weight:600;color:var(--text)">${p.created_at?new Date(p.created_at).toLocaleDateString('ko-KR'):'-'}</div></div>
+    </div>`;
+  $('mAdminUser').classList.add('open');
+}
+
+// ─── 통계 / 차트 ───
+function renderAdminStats(){
+  setTimeout(()=>{drawSignupChart();drawInquiryChart();drawOrgClientChart();drawMonthlyFeeChart();},50);
+}
+
+function destroyChart(key){if(adminCharts[key]){try{adminCharts[key].destroy();}catch(e){}delete adminCharts[key];}}
+
+function _chartDefaults(){
+  return {responsive:true,animation:{duration:600},plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},scales:{x:{ticks:{color:'#8b949e',maxTicksLimit:10}},y:{ticks:{color:'#8b949e'},beginAtZero:true,grid:{color:'rgba(255,255,255,.05)'}}}};
+}
+
+function drawSignupChart(){
+  const canvas=$('chartSignups');if(!canvas||typeof Chart==='undefined')return;
+  destroyChart('signups');
+  const days=30,labels=[],counts=[];
+  for(let i=days-1;i>=0;i--){const d=new Date(Date.now()-i*24*3600*1000);const ds=d.toISOString().slice(0,10);labels.push(ds.slice(5));counts.push(allProfiles.filter(p=>(p.created_at||'').slice(0,10)===ds).length);}
+  adminCharts.signups=new Chart(canvas,{type:'line',data:{labels,datasets:[{label:'신규 가입',data:counts,borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.15)',tension:.3,fill:true,pointRadius:3}]},options:{..._chartDefaults(),plugins:{legend:{display:false}}}});
+}
+
+function drawInquiryChart(){
+  const canvas=$('chartInquiries');if(!canvas||typeof Chart==='undefined')return;
+  destroyChart('inquiries');
+  const cats={bug:0,feature:0,modify:0,other:0};
+  allInquiries.forEach(i=>{if(cats[i.category]!==undefined)cats[i.category]++;});
+  if(!allInquiries.length){canvas.parentElement.innerHTML='<div class="chart-title">💬 카테고리별 문의</div><div class="empty" style="padding:40px">문의 없음</div>';return;}
+  adminCharts.inquiries=new Chart(canvas,{type:'doughnut',data:{labels:['🐛 버그','💡 기능요청','✏️ 수정요청','💬 기타'],datasets:[{data:Object.values(cats),backgroundColor:['#f85149','#58a6ff','#e3814a','#8b949e'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}}}});
+}
+
+function drawOrgClientChart(){
+  const canvas=$('chartOrgClients');if(!canvas||typeof Chart==='undefined')return;
+  destroyChart('orgClients');
+  const data=allOrgs.map(o=>({name:(o.name||'(미지정)').slice(0,12),count:allClients.filter(c=>c.organization_id===o.id).length})).sort((a,b)=>b.count-a.count).slice(0,10);
+  if(!data.length)return;
+  adminCharts.orgClients=new Chart(canvas,{type:'bar',data:{labels:data.map(o=>o.name),datasets:[{label:'고객 수',data:data.map(o=>o.count),backgroundColor:'rgba(212,168,67,.7)',borderColor:'#d4a843',borderWidth:1,borderRadius:4}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b949e',stepSize:1},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true},y:{ticks:{color:'#8b949e'}}}}});
+}
+
+function drawMonthlyFeeChart(){
+  const canvas=$('chartMonthlyFee');if(!canvas||typeof Chart==='undefined')return;
+  destroyChart('monthlyFee');
+  const months=[];
+  for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i);months.push(d.toISOString().slice(0,7));}
+  const fees=months.map(m=>allPayments.filter(p=>(p.received_at||'').startsWith(m)).reduce((s,p)=>s+(Number(p.amount)||0),0));
+  adminCharts.monthlyFee=new Chart(canvas,{type:'line',data:{labels:months.map(m=>m.replace('-','년 ')+'월'),datasets:[{label:'수수료(만원)',data:fees.map(v=>Math.round(v/10000)),borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.15)',tension:.3,fill:true,pointRadius:3}]},options:{..._chartDefaults(),plugins:{legend:{display:false}}}});
+}
+
 // ═══════════════════════════════════════════════════════
 // 페이지 로드 직후 URL 해시에서 인증 유형 감지 (Supabase 처리 전 - 최우선 실행)
 (function detectAuthUrlType(){
