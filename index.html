@@ -469,6 +469,11 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
         <label>비밀번호 * <span style="color:var(--text3);font-weight:400" id="landPwHint"></span></label>
         <input type="password" id="land-password" placeholder="6자 이상" autocomplete="current-password">
       </div>
+      <!-- 비밀번호 확인 (회원가입 전용) -->
+      <div class="fg" id="landPwConfirmGroup" style="display:none">
+        <label>비밀번호 확인 *</label>
+        <input type="password" id="land-pw-confirm" placeholder="비밀번호 확인" autocomplete="new-password">
+      </div>
       <!-- 전화번호 (회원가입 전용) -->
       <div class="fg" id="landPhoneGroup" style="display:none">
         <label>전화번호 (선택)</label>
@@ -719,14 +724,15 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
 
         <!-- 비밀번호 변경 카드 -->
         <div class="panel" style="margin-top:12px">
-          <div class="panel-head">
-            <div style="display:flex;align-items:center;gap:10px">
+          <div class="panel-head" onclick="toggleChangePasswordSection()" style="cursor:pointer;user-select:none">
+            <div style="display:flex;align-items:center;gap:10px;flex:1">
               <span style="font-size:20px">🔒</span>
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--text)">비밀번호 변경</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">현재 비밀번호를 확인한 후 변경합니다</div>
               </div>
             </div>
+            <span id="changePwArrow" style="font-size:12px;color:var(--text3);margin-left:auto">▶</span>
           </div>
           <div style="padding:0 16px 16px">
             <div id="changePwNotLoggedIn" style="font-size:11px;color:var(--text3);padding:8px 0">로그인 후 사용 가능합니다</div>
@@ -735,7 +741,10 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
               <div class="fg"><label style="font-size:11px">새 비밀번호 <span style="color:var(--text3);font-weight:400">(최소 6자)</span></label><input type="password" id="chPwNew" placeholder="새 비밀번호" autocomplete="new-password"></div>
               <div class="fg" style="margin-bottom:10px"><label style="font-size:11px">새 비밀번호 확인</label><input type="password" id="chPwConfirm" placeholder="비밀번호 재입력" autocomplete="new-password"></div>
               <div class="info-box" id="changePwInfo" style="display:none;margin-bottom:10px"></div>
-              <button class="btn btn-gold" onclick="changePassword()" id="changePwBtn" style="font-size:12px;padding:6px 16px">비밀번호 변경</button>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-gold" onclick="changePassword()" id="changePwBtn" style="font-size:12px;padding:6px 16px">비밀번호 변경</button>
+                <button class="btn" onclick="toggleChangePasswordSection()" style="font-size:12px;padding:6px 14px">취소</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1398,10 +1407,34 @@ function renderSettingsPage(){
   const isLoggedIn=!!currentUser;
   const nlg=$('changePwNotLoggedIn');
   const cpf=$('changePwForm');
+  const arr=$('changePwArrow');
   if(nlg)nlg.style.display=isLoggedIn?'none':'';
-  if(cpf)cpf.style.display=isLoggedIn?'':'none';
+  // always start collapsed when logging in or re-entering settings
+  if(cpf)cpf.style.display='none';
+  if(arr)arr.textContent='▶';
   const dab=$('deleteAccountBtn');
   if(dab)dab.style.display=isLoggedIn?'':'none';
+}
+
+function toggleChangePasswordSection(){
+  const cpf=$('changePwForm');
+  const arr=$('changePwArrow');
+  if(!cpf)return;
+  const isOpen=cpf.style.display!=='none';
+  if(isOpen){
+    cpf.style.display='none';
+    if(arr)arr.textContent='▶';
+    $('chPwCurrent').value='';
+    $('chPwNew').value='';
+    $('chPwConfirm').value='';
+    const info=$('changePwInfo');
+    if(info)info.style.display='none';
+  } else {
+    if(!currentUser){ return; }
+    cpf.style.display='';
+    if(arr)arr.textContent='▼';
+    setTimeout(()=>{ const el=$('chPwCurrent'); if(el)el.focus(); },50);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3374,7 +3407,7 @@ document.addEventListener('keydown',e=>{
   // 랜딩 페이지 인증 폼에서 Enter 키 처리
   if(e.key==='Enter'){
     const t = e.target;
-    if(t && (t.id==='land-email' || t.id==='land-password' || t.id==='land-name' || t.id==='land-phone')){
+    if(t && (t.id==='land-email' || t.id==='land-password' || t.id==='land-pw-confirm' || t.id==='land-name' || t.id==='land-phone')){
       e.preventDefault();
       handleLandingAuthSubmit();
       return;
@@ -4386,13 +4419,21 @@ function switchLandingTab(mode){
   if(mode === 'login'){
     $('landTabLogin').classList.add('on'); $('landTabSignup').classList.remove('on');
     $('landNameGroup').style.display = 'none'; $('landPhoneGroup').style.display = 'none';
+    $('landPwConfirmGroup').style.display = 'none';
+    $('land-password').placeholder = '6자 이상';
+    $('land-password').autocomplete = 'current-password';
+    $('land-pw-confirm').value = '';
     $('landSubmitBtn').textContent = '로그인'; $('landPwHint').textContent = '';
     $('landKeepLogin').style.display = 'flex';
     if($('landForgotWrap'))$('landForgotWrap').style.display='';
   } else {
     $('landTabSignup').classList.add('on'); $('landTabLogin').classList.remove('on');
     $('landNameGroup').style.display = 'flex'; $('landPhoneGroup').style.display = 'flex';
-    $('landSubmitBtn').textContent = '회원가입'; $('landPwHint').textContent = '(최소 6자)';
+    $('landPwConfirmGroup').style.display = 'flex';
+    $('land-password').placeholder = '비밀번호 (8자 이상)';
+    $('land-password').autocomplete = 'new-password';
+    $('land-pw-confirm').value = '';
+    $('landSubmitBtn').textContent = '회원가입'; $('landPwHint').textContent = '(최소 8자)';
     $('landKeepLogin').style.display = 'none';
     if($('landForgotWrap'))$('landForgotWrap').style.display='none';
   }
@@ -4425,6 +4466,12 @@ async function handleLandingAuthSubmit(){
   if(!email){ showLandingInfo('error','이메일을 입력해주세요'); $('land-email').focus(); return; }
   if(!password){ showLandingInfo('error','비밀번호를 입력해주세요'); $('land-password').focus(); return; }
   if(!email.includes('@')){ showLandingInfo('error','올바른 이메일 형식이 아닙니다'); return; }
+  if(landingAuthMode === 'signup'){
+    if(password.length < 8){ showLandingInfo('error','비밀번호는 최소 8자 이상이어야 합니다'); $('land-password').focus(); return; }
+    const pw2 = $('land-pw-confirm').value;
+    if(!pw2){ showLandingInfo('error','비밀번호 확인을 입력해주세요'); $('land-pw-confirm').focus(); return; }
+    if(password !== pw2){ showLandingInfo('error','비밀번호가 일치하지 않습니다'); $('land-pw-confirm').focus(); return; }
+  }
   const btn = $('landSubmitBtn');
   btn.disabled = true; btn.textContent = '처리중...';
   try {
@@ -4458,7 +4505,6 @@ async function doLandingLogin(email, password){
 }
 
 async function doLandingSignup(email, password){
-  if(password.length < 6){ showLandingInfo('error','비밀번호는 최소 6자 이상이어야 합니다'); return; }
   const name = $('land-name').value.trim();
   const phone = $('land-phone').value.trim();
   if(!name){ showLandingInfo('error','이름을 입력해주세요'); $('land-name').focus(); return; }
@@ -4476,6 +4522,7 @@ async function doLandingSignup(email, password){
   }
   showLandingInfo('success','✅ 회원가입 완료! 📧 ' + email + ' 으로 인증 메일을 보냈습니다. 링크를 클릭하면 로그인할 수 있습니다.');
   $('land-password').value = '';
+  $('land-pw-confirm').value = '';
 }
 
 function switchAuthTab(mode){
