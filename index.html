@@ -395,6 +395,158 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
 /* 비밀번호 재설정 모드: 랜딩/앱 강제 숨김, 모달 강제 표시 */
 html.password-recovery-mode #landing,html.password-recovery-mode #mainApp{display:none!important}
 html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all!important}
+
+/* ═══════════════════════════════════════════════════════ */
+/* MOBILE / RESPONSIVE UI                                  */
+/* ═══════════════════════════════════════════════════════ */
+
+/* 가로 스크롤 전역 차단 */
+html{overflow-x:hidden}
+
+/* 모바일 오버레이 */
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:199;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.mob-overlay.open{display:block}
+
+/* 햄버거 버튼 (PC에서 숨김) */
+.hamburger-btn{display:none;width:40px;height:40px;border:none;background:none;color:var(--text);font-size:20px;cursor:pointer;align-items:center;justify-content:center;border-radius:var(--radius);flex-shrink:0;transition:background .15s}
+.hamburger-btn:hover{background:rgba(255,255,255,.06)}
+
+/* cd-dots: PC에서 숨김 */
+.cd-dots{display:none}
+.cd-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* 모달 슬라이드업 애니메이션 */
+@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+@media(max-width:768px){
+  /* 사이드바 → 고정 슬라이드 오버레이 */
+  .sidebar{
+    position:fixed!important;top:0;left:0;height:100vh!important;
+    z-index:200;transform:translateX(-100%);transition:transform .28s ease;
+    width:240px!important;min-width:240px!important;
+    box-shadow:6px 0 30px rgba(0,0,0,.55)
+  }
+  .sidebar.open{transform:translateX(0)}
+  .hamburger-btn{display:flex}
+
+  /* 탑바 */
+  .topbar{padding:0 8px;height:56px;position:sticky;top:0;z-index:100}
+  .topbar-title{flex:1;text-align:center;font-size:15px}
+
+  /* authArea: 뱃지 숨기고 버튼만 */
+  #authArea>div{display:none!important}
+  #authArea>button{font-size:11px!important;padding:4px 10px!important;min-height:36px}
+
+  /* 컨텐츠 */
+  .content{padding:12px;overflow-x:hidden}
+
+  /* 캘린더 단일 컬럼 */
+  .cal-layout{grid-template-columns:1fr!important}
+  .cal-body{padding:6px}
+  .cal-dow span{font-size:11px;padding:4px 2px}
+  .cal-legend{display:none}
+  .cd{min-height:46px!important;padding:4px 2px;align-items:center}
+  .cd-events{display:none!important}
+  .cd-dots{display:flex;justify-content:center;gap:2px;flex-wrap:wrap;margin-top:2px}
+  .cd-num{text-align:center!important;font-size:12px!important}
+  /* 오늘 날짜 골드 원형 */
+  .cd.today{background:transparent!important;border-color:transparent!important}
+  .cd.today .cd-num{
+    display:inline-flex!important;align-items:center;justify-content:center;
+    width:24px;height:24px;background:var(--gold)!important;color:var(--bg)!important;
+    border-radius:50%;font-weight:700;margin:0 auto
+  }
+
+  /* 퀵팝업 → 화면 하단 고정 */
+  .quick-pop{
+    position:fixed!important;left:50%!important;
+    transform:translateX(-50%)!important;top:auto!important;
+    bottom:24px!important;width:calc(100vw - 32px)!important;max-width:360px!important
+  }
+
+  /* 모달 → 바텀시트 */
+  .modal{align-items:flex-end!important}
+  .modal-box{
+    width:100%!important;max-width:100%!important;max-height:92vh;
+    border-radius:20px 20px 0 0!important
+  }
+  .modal.open .modal-box{animation:slideUp .25s ease-out}
+  .modal-head{border-radius:20px 20px 0 0!important;padding:16px 20px 14px}
+  .modal-close{width:36px;height:36px;font-size:16px}
+  .modal-body{padding:14px 16px}
+  .modal-foot{padding:12px 16px}
+  .modal-foot .btn{flex:1;justify-content:center}
+
+  /* 폼 입력 */
+  .fg input,.fg select,.fg textarea{min-height:48px;font-size:16px!important;padding:10px 12px}
+  .fg textarea{min-height:100px;height:auto}
+  .fg label{font-size:12px!important}
+
+  /* 버튼 */
+  .btn{min-height:44px;font-size:13px}
+  .btn-sm{min-height:32px;font-size:11px}
+
+  /* 고객 테이블 가로스크롤 */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl-wrap table{min-width:580px}
+
+  /* 정산 통계 2열 */
+  .set-grid{grid-template-columns:1fr 1fr!important;gap:8px}
+  .stat-val{font-size:18px}
+  .stat{padding:12px 14px}
+
+  /* 월별/연도별 테이블 가로스크롤 */
+  #st-monthly .tbl-wrap,#st-yearly .tbl-wrap{overflow-x:auto}
+  .month-row{min-width:650px}
+
+  /* 계약 카드 1열 */
+  .cc-grid{grid-template-columns:1fr!important}
+  .cc-fee-row{grid-template-columns:1fr!important}
+
+  /* fr 2열→1열 */
+  .fr{grid-template-columns:1fr!important}
+
+  /* 필터 영역 */
+  .filters{gap:4px}
+  .sbar{flex:1;min-width:0}
+  .sbar input{width:100%;min-width:0}
+
+  /* 일정 사이드 패널 */
+  .day-panel{gap:10px}
+
+  /* 토스트 */
+  .toast{bottom:80px}
+
+  /* 설정 페이지 */
+  #p-settings>div{max-width:100%!important}
+
+  /* 착신 링크 카드 터치 영역 확보 */
+  .contract-row{padding:14px 14px}
+  .ni{padding:10px 16px;font-size:13px}
+
+  /* 계약 카드 주소 overflow 방지 */
+  .cr-addr{max-width:180px!important}
+
+  /* 탑바 + 일정 추가 버튼 컴팩트 */
+  .topbar .btn-gold{font-size:12px!important;padding:6px 10px!important;min-height:36px!important}
+  .topbar .btn-gold{white-space:nowrap}
+
+  /* 입력 포커스 시 골드 테두리 */
+  .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gold)!important;box-shadow:0 0 0 2px var(--gold-dim)}
+
+  /* 설정 버튼들 full-width */
+  #changePwForm .btn{width:100%;justify-content:center}
+
+  /* day-panel 모바일에서 max-height 제한 해제 */
+  #monthEvList{max-height:none!important}
+}
+
+@media(max-width:480px){
+  .content{padding:10px}
+  .stat-val{font-size:16px}
+  .landing-features{grid-template-columns:1fr!important}
+  .cal-layout{gap:8px}
+}
 </style>
 </head>
 <body>
@@ -493,8 +645,11 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
   </div>
 </div>
 
+<!-- 모바일 사이드바 오버레이 -->
+<div class="mob-overlay" id="mobOverlay" onclick="closeMobileMenu()"></div>
+
 <div class="app" id="mainApp" style="display:none">
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
   <div class="logo" style="display:flex;align-items:center;gap:10px">
     <svg width="36" height="36" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
       <path d="M 40 10 L 68 32 L 68 68 L 12 68 L 12 32 Z" fill="none" stroke="#D4A24C" stroke-width="4" stroke-linejoin="round"/>
@@ -534,15 +689,16 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
 
 <div class="main">
   <div class="topbar">
+    <button class="hamburger-btn" onclick="toggleMobileMenu()" aria-label="메뉴">☰</button>
     <div class="topbar-title" id="ptitle">일정관리</div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:6px;align-items:center">
       <!-- 로그인 상태 표시 영역 -->
-      <div id="authArea" style="display:flex;gap:8px;align-items:center">
+      <div id="authArea" style="display:flex;gap:6px;align-items:center">
         <button class="btn" id="loginBtn" onclick="openAuthModal()" style="font-size:11px">
           🔐 로그인
         </button>
       </div>
-      <button class="btn btn-gold" onclick="openEventModal(null,null)">+ 일정 추가</button>
+      <button class="btn btn-gold" onclick="openEventModal(null,null)" style="white-space:nowrap">+ 일정 추가</button>
     </div>
   </div>
   <div class="content">
@@ -972,7 +1128,7 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
         <div class="info-box" id="inipInfoBox">고객 정보 입력 시 고객 DB에 자동 추가됩니다 · 비워두면 일정만 등록</div>
         <div class="fr">
           <div class="fg"><label>고객명</label><input type="text" id="inip-name" placeholder="홍길동"></div>
-          <div class="fg"><label>전화번호</label><input type="text" id="inip-phone" placeholder="010-0000-0000"></div>
+          <div class="fg"><label>전화번호</label><input type="tel" id="inip-phone" placeholder="010-0000-0000" inputmode="tel"></div>
         </div>
         <div class="fr">
           <div class="fg"><label>고객 유형</label><select id="inip-ctype"><option>사무실</option><option>상가</option><option>주거</option><option>매매</option></select></div>
@@ -1020,7 +1176,7 @@ html.password-recovery-mode #mNewPassword{opacity:1!important;pointer-events:all
     <div class="modal-body">
       <div class="fr">
         <div class="fg"><label>고객명 *</label><input type="text" id="c-name" placeholder="홍길동"></div>
-        <div class="fg"><label>전화번호 *</label><input type="text" id="c-phone" placeholder="010-0000-0000"></div>
+        <div class="fg"><label>전화번호 *</label><input type="tel" id="c-phone" placeholder="010-0000-0000" inputmode="tel"></div>
       </div>
       <div class="fr">
         <div class="fg"><label>고객 유형</label><select id="c-type"><option>사무실</option><option>상가</option><option>주거</option><option>매매</option></select></div>
@@ -1390,6 +1546,26 @@ function go(id,el){
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='settings')renderSettingsPage();
+  closeMobileMenu();
+}
+
+function toggleMobileMenu(){
+  const sb=$('sidebar');
+  const ov=$('mobOverlay');
+  if(!sb)return;
+  if(sb.classList.contains('open')){
+    closeMobileMenu();
+  } else {
+    sb.classList.add('open');
+    if(ov)ov.classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+}
+function closeMobileMenu(){
+  const sb=$('sidebar');
+  const ov=$('mobOverlay');
+  if(sb)sb.classList.remove('open');
+  if(ov)ov.classList.remove('open');
 }
 
 function renderSettingsPage(){
@@ -1491,7 +1667,8 @@ function drawCal(){
       return `<div class="cd-ev ${EV[e.type]?.cls||''}" title="${text}">${text}</div>`;
     }).join('');
     const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
-    html+=`<div class="${cls}" data-date="${ds}" onclick="onCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div></div>`;
+    const dotsH=de.slice(0,5).map(e=>`<span class="cd-dot" style="background:${EV[e.type]?.color||'var(--text3)'}"></span>`).join('');
+    html+=`<div class="${cls}" data-date="${ds}" onclick="onCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div><div class="cd-dots">${dotsH}</div></div>`;
   }
   $('calGrid').innerHTML=html;
   renderDayEv(selDate||todayStr());
