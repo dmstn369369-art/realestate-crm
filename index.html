@@ -306,9 +306,11 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
 .modal-body{padding:16px 20px}
 .modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;background:var(--bg2);border-radius:0 0 16px 16px}
 .modal-foot-right{display:flex;gap:8px;margin-left:auto}
-.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;min-width:0}
+.gr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.gr3>.fg{margin-bottom:0}
 .fg label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.3px}
-.fg input,.fg select,.fg textarea{padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.fg input,.fg select,.fg textarea{padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;width:100%}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gold)}
 .fg select option{background:var(--bg2)}
 .fg textarea{resize:vertical;min-height:96px;line-height:1.6}
@@ -635,7 +637,7 @@ html{overflow-x:hidden}
 .prop-card-meta{display:flex;gap:10px;font-size:10px;color:var(--text3)}
 @media(max-width:480px){
   .prop-card-head{flex-direction:column;gap:6px}
-  #mProperty .fr[style*="1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+  .gr3{grid-template-columns:1fr!important}
 }
 </style>
 </head>
@@ -1630,7 +1632,7 @@ html{overflow-x:hidden}
 
 <!-- PROPERTY MODAL -->
 <div class="modal" id="mProperty">
-  <div class="modal-box" style="max-width:800px">
+  <div class="modal-box" style="width:800px;max-width:calc(100vw - 32px)">
     <div class="modal-head">
       <div class="modal-title" id="propModalTitle">매물 등록</div>
       <button type="button" class="modal-close" onclick="closePropertyModal()">✕</button>
@@ -1658,7 +1660,7 @@ html{overflow-x:hidden}
       </div>
       <!-- 가격: 월세 — 보증금/월세/관리비 3열 동일 크기 -->
       <div id="p-price-monthly-wrap">
-        <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="gr3">
           <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit" placeholder="5000" min="0"></div>
           <div class="fg"><label>월세 (만원)</label><input type="number" id="p-monthly" placeholder="200" min="0"></div>
           <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
@@ -1673,8 +1675,8 @@ html{overflow-x:hidden}
         <div class="fg"><label>매매가 (만원)</label><input type="number" id="p-sale" placeholder="125000" min="0"></div>
       </div>
       <div class="fg"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
-      <!-- 면적/해당층/총층 — 3열로 분리해 overflow 제거 -->
-      <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
+      <!-- 면적/해당층/총층 3열 -->
+      <div class="gr3">
         <div class="fg">
           <label>면적 (평)</label>
           <input type="number" id="p-area" placeholder="30" min="0" step="0.1" oninput="updateAreaSqm(this.value)">
@@ -1684,7 +1686,7 @@ html{overflow-x:hidden}
         <div class="fg"><label>총 층</label><input type="number" id="p-floor-tot" placeholder="10" min="0"></div>
       </div>
       <!-- 방/욕실/방향 3열 -->
-      <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="gr3">
         <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
         <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
         <div class="fg"><label>방향</label>
@@ -1877,7 +1879,7 @@ html{overflow-x:hidden}
           <input type="date" id="ctm-signDate" oninput="updateContractField('signDate',this.value)">
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="gr3">
         <div class="fg"><label>보증금 (원)</label>
           <input type="text" id="ctm-deposit" inputmode="numeric" placeholder="0" oninput="onMoneyInput(this,'deposit')">
         </div>
