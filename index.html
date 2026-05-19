@@ -1495,6 +1495,52 @@ html{overflow-x:hidden}
         <div class="fg"><label>중요도</label><select id="c-priority"><option value="1">★ 낮음</option><option value="2" selected>★★ 중간</option><option value="3">★★★ 최고</option></select></div>
       </div>
       <div class="fg"><label>찾는 조건 / 메모</label><textarea id="c-memo" placeholder="강남구 역세권, 30평 이상, 특이사항..."></textarea></div>
+
+      <!-- 신규 고객: 일정 추가 -->
+      <div id="cNewSchedule" style="display:none">
+        <div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.3px;margin-bottom:10px">📅 다음 일정 추가 (선택)</div>
+        <div class="fr">
+          <div class="fg"><label>날짜</label><input type="date" id="c-ev-date"></div>
+          <div class="fg"><label>유형</label>
+            <select id="c-ev-type">
+              <option value="inip">고객인입</option>
+              <option value="meeting">미팅</option>
+              <option value="sign">계약서</option>
+              <option value="balance">잔금</option>
+              <option value="general">일반일정</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 기존 고객: 일정 이력 -->
+      <div id="cScheduleHistory" style="display:none">
+        <div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.3px">📅 일정 이력</div>
+          <button type="button" class="btn btn-sm" onclick="openClientAddEvent()" style="font-size:11px;min-height:26px;padding:3px 10px">+ 일정 추가</button>
+        </div>
+        <div id="cEvAddForm" style="display:none;margin-bottom:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+          <div class="fr">
+            <div class="fg"><label style="font-size:10px">날짜</label><input type="date" id="c-ev-add-date"></div>
+            <div class="fg"><label style="font-size:10px">유형</label>
+              <select id="c-ev-add-type">
+                <option value="meeting">미팅</option>
+                <option value="inip">고객인입</option>
+                <option value="sign">계약서</option>
+                <option value="balance">잔금</option>
+                <option value="general">일반일정</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
+            <button type="button" class="btn btn-sm" onclick="closeClientAddEvent()">취소</button>
+            <button type="button" class="btn btn-sm btn-gold" id="cEvAddSaveBtn" onclick="saveClientEvent()">저장</button>
+          </div>
+        </div>
+        <div id="cEvHistoryList"></div>
+      </div>
     </div>
     <div class="modal-foot">
       <div>
@@ -3293,11 +3339,19 @@ function openClientModal(id){
     $('c-type').value=c.ctype;
     $('c-priority').value=c.priority;
     $('c-memo').value=c.memo||'';
+    $('cNewSchedule').style.display='none';
+    $('cScheduleHistory').style.display='';
+    $('cEvAddForm').style.display='none';
+    renderClientEventHistory(id);
   } else {
     $('cModalTitle').textContent='고객 추가';
     $('cDelBtn').style.display='none';
     $('c-name').value='';$('c-phone').value='';$('c-memo').value='';
     $('c-priority').value='2';$('c-type').value='사무실';
+    $('cNewSchedule').style.display='';
+    $('cScheduleHistory').style.display='none';
+    $('c-ev-date').value='';
+    $('c-ev-type').value='inip';
   }
   $('mClient').classList.add('open');
 }
@@ -3416,36 +3470,11 @@ async function saveClient(){
           _supabase: true
         });
 
-        // 고객인입 일정 자동 생성 (Supabase)
-        try {
-          const { data: createdEv, error: evErr } = await supabaseClient
-            .from('events')
-            .insert({
-              user_id: currentUser.id,
-              organization_id: currentOrganization.id,
-              event_type: 'inip',
-              event_date: created.inquiry_date || todayStr(),
-              event_time: '12:00',
-              title: `${name} 고객인입`,
-              client_id: created.id,
-              memo: ctype || null
-            })
-            .select().single();
-          if(evErr) throw evErr;
-          events.push({
-            id: createdEv.id, type: 'inip',
-            date: createdEv.event_date, time: '12:00',
-            title: `${name} 고객인입`, cid: created.id,
-            memo: ctype, _supabase: true
-          });
-        } catch(evErr){
-          console.warn('고객인입 일정 생성 실패 (무시):', evErr.message);
-          uid.e++;
-          events.push({
-            id: uid.e, type: 'inip',
-            date: created.inquiry_date || todayStr(), time: '12:00',
-            title: `${name} 고객인입`, cid: created.id, memo: ctype
-          });
+        // 선택적 일정 저장 (사용자가 날짜를 입력한 경우만)
+        const evDate = $('c-ev-date').value;
+        if(evDate){
+          const evType = $('c-ev-type').value || 'inip';
+          await _saveClientEvent(created.id, evDate, evType);
         }
 
         console.log('✅ 추가 완료:', created);
@@ -3469,6 +3498,86 @@ async function saveClient(){
   renderClients();
   if(curPage === 'schedule') drawCal();
   console.log('═══════════════════════════════════════');
+}
+
+// ─── 고객별 일정 이력 렌더 ───
+function renderClientEventHistory(clientId){
+  const el=$('cEvHistoryList');if(!el)return;
+  const today=todayStr();
+  const evList=events.filter(e=>idEq(e.cid,clientId))
+    .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!evList.length){
+    el.innerHTML='<div style="padding:12px 0;font-size:12px;color:var(--text3);text-align:center">아직 등록된 일정이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML=evList.map(e=>{
+    const ev=EV[e.type]||{label:e.type,color:'var(--text3)'};
+    const isPast=e.date<today;
+    return `<div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px">
+      <div style="width:3px;background:${ev.color};flex-shrink:0"></div>
+      <div style="padding:7px 12px;flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">${escHtml(ev.label)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:1px">${e.date||''}</div>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:${isPast?'var(--green)':'var(--gold)'}">${isPast?'완료':'예정'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openClientAddEvent(){
+  $('cEvAddForm').style.display='';
+  $('c-ev-add-date').value=todayStr();
+  $('c-ev-add-type').value='meeting';
+  $('c-ev-add-date').focus();
+}
+
+function closeClientAddEvent(){ $('cEvAddForm').style.display='none'; }
+
+async function saveClientEvent(){
+  if(!editClientId){toast('고객 정보를 먼저 저장해주세요');return;}
+  const date=$('c-ev-add-date').value;
+  const type=$('c-ev-add-type').value;
+  if(!date){toast('날짜를 입력해주세요');$('c-ev-add-date').focus();return;}
+  const btn=$('cEvAddSaveBtn');btn.disabled=true;btn.textContent='저장 중...';
+  try{
+    await _saveClientEvent(editClientId,date,type);
+    closeClientAddEvent();
+    renderClientEventHistory(editClientId);
+    drawCal();
+    toast('일정이 추가되었습니다');
+  }catch(err){toast('일정 추가 실패: '+err.message);}
+  finally{btn.disabled=false;btn.textContent='저장';}
+}
+
+async function _saveClientEvent(clientId,date,type){
+  const c=clients.find(x=>idEq(x.id,clientId));
+  const title=`${c?.name||''} ${EV[type]?.label||type}`.trim();
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(canUseCloud){
+    try{
+      const{data:ev,error}=await supabaseClient.from('events').insert({
+        user_id:currentUser.id,organization_id:currentOrganization.id,
+        event_type:type,event_date:date,event_time:null,
+        title,client_id:clientId,memo:null
+      }).select().single();
+      if(error)throw error;
+      events.push({id:ev.id,type,date,time:null,title,cid:clientId,memo:null,_supabase:true});
+    }catch(err){
+      console.warn('일정 Supabase 저장 실패, 로컬 저장:',err.message);
+      uid.e++;
+      events.push({id:uid.e,type,date,time:null,title,cid:clientId,memo:null});
+    }
+  }else{
+    uid.e++;
+    events.push({id:uid.e,type,date,time:null,title,cid:clientId,memo:null});
+  }
+  persist();
 }
 
 async function deleteClientFromModal(){
