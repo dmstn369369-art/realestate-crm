@@ -584,18 +584,18 @@ html{overflow-x:hidden}
 .admin-tab.on{background:var(--gold);color:var(--bg);font-weight:700}
 .admin-section{display:none}
 .admin-section.on{display:block}
-.admin-today-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
-.admin-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 18px;position:relative;overflow:hidden}
-.admin-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold)}
+.admin-today-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.admin-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:10px 14px;position:relative;overflow:hidden}
+.admin-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)}
 .admin-stat.red::before{background:var(--red)}.admin-stat.blue::before{background:var(--blue)}.admin-stat.green::before{background:var(--green)}
-.admin-stat-icon{font-size:22px;margin-bottom:6px}
-.admin-stat-label{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:4px}
-.admin-stat-val{font-family:'Noto Serif KR',serif;font-size:28px;font-weight:700;color:var(--text)}
+.admin-stat-icon{font-size:16px;margin-bottom:3px}
+.admin-stat-label{font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.3px;margin-bottom:2px}
+.admin-stat-val{font-family:'Noto Serif KR',serif;font-size:20px;font-weight:700;color:var(--text)}
 .admin-stat-val.red{color:var(--red)}.admin-stat-val.blue{color:var(--blue)}.admin-stat-val.green{color:var(--green)}
-.admin-quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
-.admin-quick-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:20px;text-align:center;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:8px}
-.admin-quick-btn:hover{border-color:var(--gold);background:var(--bg3);transform:translateY(-2px)}
-.admin-quick-btn .aqb-icon{font-size:28px}.admin-quick-btn .aqb-label{font-size:13px;font-weight:600;color:var(--text)}.admin-quick-btn .aqb-desc{font-size:11px;color:var(--text3)}
+.admin-quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.admin-quick-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:12px 16px;text-align:center;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:5px}
+.admin-quick-btn:hover{border-color:var(--gold);background:var(--bg3);transform:translateY(-1px)}
+.admin-quick-btn .aqb-icon{font-size:20px}.admin-quick-btn .aqb-label{font-size:12px;font-weight:600;color:var(--text)}.admin-quick-btn .aqb-desc{font-size:10px;color:var(--text3)}
 .admin-tbl{width:100%;border-collapse:collapse}
 .admin-tbl th{padding:8px 12px;font-size:10px;font-weight:700;color:var(--text3);text-align:left;background:var(--bg);border-bottom:1px solid var(--border);letter-spacing:.3px;white-space:nowrap}
 .admin-tbl td{padding:10px 12px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
@@ -914,7 +914,7 @@ html{overflow-x:hidden}
 
     <!-- SETTINGS -->
     <div class="page" id="p-settings">
-      <div style="max-width:540px">
+      <div style="max-width:540px;margin:0 auto">
         <div style="margin-bottom:20px">
           <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold);margin-bottom:4px">설정</div>
           <div style="font-size:12px;color:var(--text3)">계정 및 앱 설정을 관리합니다</div>
@@ -1001,7 +1001,7 @@ html{overflow-x:hidden}
 
     <!-- ══ NOTICES (공지사항) ══ -->
     <div class="page" id="p-notices">
-      <div style="max-width:720px">
+      <div style="max-width:720px;margin:0 auto">
         <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
           <div>
             <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">공지사항</div>
@@ -1014,7 +1014,7 @@ html{overflow-x:hidden}
 
     <!-- ══ INQUIRIES (문의하기) ══ -->
     <div class="page" id="p-inquiries">
-      <div style="max-width:720px">
+      <div style="max-width:720px;margin:0 auto">
         <div style="margin-bottom:16px">
           <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">문의하기</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">버그 신고, 기능 요청, 수정 요청을 남겨주세요</div>
@@ -1025,7 +1025,7 @@ html{overflow-x:hidden}
 
     <!-- ══ ADMIN (관리자 대시보드) ══ -->
     <div class="page" id="p-admin">
-      <div id="adminWrap">
+      <div id="adminWrap" style="max-width:1200px;margin:0 auto">
         <div style="margin-bottom:16px">
           <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">관리자 대시보드</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">서비스 운영 현황</div>
