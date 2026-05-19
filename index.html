@@ -635,6 +635,7 @@ html{overflow-x:hidden}
 .prop-card-meta{display:flex;gap:10px;font-size:10px;color:var(--text3)}
 @media(max-width:480px){
   .prop-card-head{flex-direction:column;gap:6px}
+  #mProperty .fr[style*="1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
 }
 </style>
 </head>
@@ -1634,7 +1635,7 @@ html{overflow-x:hidden}
       <div class="modal-title" id="propModalTitle">매물 등록</div>
       <button type="button" class="modal-close" onclick="closePropertyModal()">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="overflow-x:hidden">
       <div class="fg"><label>매물 제목 *</label><input type="text" id="p-title" placeholder="강남역 사무실, 역세권 원룸 등"></div>
       <div class="fr">
         <div class="fg"><label>매물 종류</label>
@@ -1655,13 +1656,13 @@ html{overflow-x:hidden}
           </select>
         </div>
       </div>
-      <!-- 가격: 월세 -->
+      <!-- 가격: 월세 — 보증금/월세/관리비 3열 동일 크기 -->
       <div id="p-price-monthly-wrap">
-        <div class="fr">
+        <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
           <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit" placeholder="5000" min="0"></div>
           <div class="fg"><label>월세 (만원)</label><input type="number" id="p-monthly" placeholder="200" min="0"></div>
+          <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
         </div>
-        <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
       </div>
       <!-- 가격: 전세 -->
       <div id="p-price-jeonse-wrap" style="display:none">
@@ -1672,21 +1673,17 @@ html{overflow-x:hidden}
         <div class="fg"><label>매매가 (만원)</label><input type="number" id="p-sale" placeholder="125000" min="0"></div>
       </div>
       <div class="fg"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
-      <div class="fr">
+      <!-- 면적/해당층/총층 — 3열로 분리해 overflow 제거 -->
+      <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
         <div class="fg">
           <label>면적 (평)</label>
           <input type="number" id="p-area" placeholder="30" min="0" step="0.1" oninput="updateAreaSqm(this.value)">
           <div id="p-area-sqm" style="font-size:10px;color:var(--text3);margin-top:2px;min-height:14px"></div>
         </div>
-        <div class="fg">
-          <label>층 (해당층 / 총층)</label>
-          <div style="display:flex;gap:6px;align-items:center">
-            <input type="number" id="p-floor-cur" placeholder="2" min="0" style="flex:1">
-            <span style="color:var(--text3);font-size:12px">/</span>
-            <input type="number" id="p-floor-tot" placeholder="10" min="0" style="flex:1">
-          </div>
-        </div>
+        <div class="fg"><label>해당 층</label><input type="number" id="p-floor-cur" placeholder="2" min="0"></div>
+        <div class="fg"><label>총 층</label><input type="number" id="p-floor-tot" placeholder="10" min="0"></div>
       </div>
+      <!-- 방/욕실/방향 3열 -->
       <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
         <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
         <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
