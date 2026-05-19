@@ -1030,6 +1030,7 @@ html{overflow-x:hidden}
           <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">관리자 대시보드</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">서비스 운영 현황</div>
         </div>
+        <div id="adminStatusBar" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px"></div>
         <div class="admin-tabs">
           <div class="admin-tab on" id="adminTab_dashboard" onclick="setAdminTab('dashboard',this)">📊 대시보드</div>
           <div class="admin-tab" id="adminTab_users" onclick="setAdminTab('users',this)">👥 사용자 관리</div>
@@ -5486,6 +5487,14 @@ let allProfiles=[],allOrgs=[],allClients=[],allContracts=[],allPayments=[],allIn
 let adminCharts={};
 const thirtyDaysAgo=()=>new Date(Date.now()-30*24*3600*1000).toISOString();
 
+function _adminStatus(type, msg){
+  const bar=$('adminStatusBar');if(!bar)return;
+  if(!type){bar.style.display='none';return;}
+  const styles={loading:'background:var(--bg3);color:var(--text2)',error:'background:rgba(248,81,73,.12);color:var(--red);border:1px solid rgba(248,81,73,.3)'};
+  bar.style.cssText=`display:block;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:12px;${styles[type]||''}`;
+  bar.innerHTML=type==='error'?`${msg} <button class="btn btn-sm" onclick="renderAdminDashboard()" style="margin-left:8px;font-size:11px;min-height:24px">다시 시도</button>`:msg;
+}
+
 async function renderAdminDashboard(){
   if(!currentUser){toast('로그인이 필요합니다');return;}
   if(!isAdmin()){
@@ -5493,12 +5502,9 @@ async function renderAdminDashboard(){
     if(w)w.innerHTML='<div class="empty" style="padding:48px;font-size:14px">🔒 관리자 권한이 필요합니다.</div>';
     return;
   }
-  const w=$('adminWrap');if(w)w.style.display='';
-  // 로딩 표시
-  const cur=$('adminSec_'+adminTab);
-  if(cur&&cur.querySelector)cur.innerHTML='<div class="empty">데이터 로딩 중...</div>';
+  _adminStatus('loading','⏳ 데이터 로딩 중...');
   try{
-    const[{data:profiles},{data:orgs},{data:cls},{data:cts},{data:pays},{data:inqs}]=await Promise.all([
+    const results=await Promise.all([
       supabaseClient.from('profiles').select('*').order('created_at',{ascending:false}),
       supabaseClient.from('organizations').select('*'),
       supabaseClient.from('clients').select('id,organization_id,created_at'),
@@ -5506,10 +5512,18 @@ async function renderAdminDashboard(){
       supabaseClient.from('payments').select('id,organization_id,amount,payment_date'),
       supabaseClient.from('inquiries').select('*').order('created_at',{ascending:false})
     ]);
+    const names=['profiles','organizations','clients','contracts','payments','inquiries'];
+    results.forEach(({data,error},i)=>{
+      if(error) console.error(`[Admin] ${names[i]} 조회 실패:`,{code:error.code,message:error.message,details:error.details,hint:error.hint});
+    });
+    const[{data:profiles},{data:orgs},{data:cls},{data:cts},{data:pays},{data:inqs}]=results;
     allProfiles=profiles||[];allOrgs=orgs||[];allClients=cls||[];allContracts=cts||[];allPayments=pays||[];allInquiries=inqs||[];
-  }catch(err){toast('데이터 로드 실패: '+err.message);return;}
-  // 탭 활성화
-  setAdminTab(adminTab,$('adminTab_'+adminTab));
+    _adminStatus(null);
+    setAdminTab(adminTab,$('adminTab_'+adminTab));
+  }catch(err){
+    console.error('[Admin] 대시보드 로드 실패:',err);
+    _adminStatus('error','데이터를 불러올 수 없습니다: '+err.message);
+  }
 }
 
 function setAdminTab(tab,el){
