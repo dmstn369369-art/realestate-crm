@@ -612,6 +612,30 @@ html{overflow-x:hidden}
 @media(max-width:480px){
   .admin-today-grid{grid-template-columns:1fr!important}
 }
+/* ── PROPERTIES (매물관리) ── */
+.prop-badge{display:inline-flex;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;line-height:1.6}
+.prop-type-office,.prop-type-officetel{background:rgba(88,166,255,.15);color:var(--blue);border:1px solid rgba(88,166,255,.2)}
+.prop-type-commercial{background:rgba(227,129,74,.15);color:var(--orange);border:1px solid rgba(227,129,74,.2)}
+.prop-type-oneroom{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.2)}
+.prop-type-apartment{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.prop-type-villa{background:rgba(161,100,220,.15);color:#a164dc;border:1px solid rgba(161,100,220,.2)}
+.prop-tx-monthly{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.2)}
+.prop-tx-jeonse{background:rgba(88,166,255,.15);color:var(--blue);border:1px solid rgba(88,166,255,.2)}
+.prop-tx-sale{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.prop-status-active{background:rgba(212,168,67,.12);color:var(--gold);border:1px solid rgba(212,168,67,.2)}
+.prop-status-pending{background:rgba(227,129,74,.12);color:var(--orange);border:1px solid rgba(227,129,74,.2)}
+.prop-status-completed{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.2)}
+.prop-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.prop-card:hover{border-color:var(--border2)}
+.prop-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.prop-card-title{font-size:13px;font-weight:700;color:var(--text);font-family:'Noto Serif KR',serif;line-height:1.4}
+.prop-card-badges{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
+.prop-card-addr{font-size:11px;color:var(--text3);margin-bottom:6px}
+.prop-card-price{font-size:13px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif;margin-bottom:5px}
+.prop-card-meta{display:flex;gap:10px;font-size:10px;color:var(--text3)}
+@media(max-width:480px){
+  .prop-card-head{flex-direction:column;gap:6px}
+}
 </style>
 </head>
 <body>
@@ -735,6 +759,9 @@ html{overflow-x:hidden}
     </div>
     <div class="ni" onclick="go('settlement',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4M6 12V7M10 12V5M14 12V2"/><path d="M1 14h14"/></svg>정산관리
+    </div>
+    <div class="ni" id="navProperties" onclick="go('properties',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14V7.5L8 2l7 5.5V14a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><path d="M5 15V9h6v6"/></svg>매물관리
     </div>
     <div class="ni" onclick="go('settings',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>설정
@@ -909,6 +936,52 @@ html{overflow-x:hidden}
           </div>
           <div id="yearlyTable"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- PROPERTIES (매물관리) -->
+    <div class="page" id="p-properties">
+      <div style="max-width:900px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">매물관리</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">등록된 매물을 조회하고 관리합니다</div>
+          </div>
+          <button class="btn btn-gold" onclick="openPropertyModal(null)" style="white-space:nowrap">+ 매물 등록</button>
+        </div>
+        <div class="filters" style="margin-bottom:12px">
+          <div class="sbar" style="flex:1;min-width:120px">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+            <input type="text" id="propSearch" placeholder="제목/주소 검색..." oninput="renderProperties()" style="font-size:12px">
+          </div>
+          <select class="btn" id="propFilterType" onchange="renderProperties()" style="font-size:11px">
+            <option value="">종류 전체</option>
+            <option value="office">사무실</option>
+            <option value="commercial">상가</option>
+            <option value="oneroom">원룸</option>
+            <option value="apartment">아파트</option>
+            <option value="villa">빌라</option>
+            <option value="officetel">오피스텔</option>
+          </select>
+          <select class="btn" id="propFilterTx" onchange="renderProperties()" style="font-size:11px">
+            <option value="">거래유형 전체</option>
+            <option value="monthly">월세</option>
+            <option value="jeonse">전세</option>
+            <option value="sale">매매</option>
+          </select>
+          <select class="btn" id="propFilterStatus" onchange="renderProperties()" style="font-size:11px">
+            <option value="">상태 전체</option>
+            <option value="active">거래중</option>
+            <option value="pending">보류</option>
+            <option value="completed">완료</option>
+          </select>
+          <select class="btn" id="propSort" onchange="renderProperties()" style="font-size:11px">
+            <option value="newest">등록일순</option>
+            <option value="price_asc">가격↑</option>
+            <option value="price_desc">가격↓</option>
+          </select>
+        </div>
+        <div id="propListWrap"><div class="empty">로딩 중...</div></div>
       </div>
     </div>
 
@@ -1554,6 +1627,103 @@ html{overflow-x:hidden}
   </div>
 </div>
 
+<!-- PROPERTY MODAL -->
+<div class="modal" id="mProperty">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <div class="modal-title" id="propModalTitle">매물 등록</div>
+      <button type="button" class="modal-close" onclick="closePropertyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>매물 제목 *</label><input type="text" id="p-title" placeholder="강남역 사무실, 역세권 원룸 등"></div>
+      <div class="fr">
+        <div class="fg"><label>매물 종류</label>
+          <select id="p-ptype">
+            <option value="office">사무실</option>
+            <option value="commercial">상가</option>
+            <option value="oneroom">원룸</option>
+            <option value="apartment">아파트</option>
+            <option value="villa">빌라</option>
+            <option value="officetel">오피스텔</option>
+          </select>
+        </div>
+        <div class="fg"><label>거래 유형</label>
+          <select id="p-txtype" onchange="onPropTxChange()">
+            <option value="monthly">월세</option>
+            <option value="jeonse">전세</option>
+            <option value="sale">매매</option>
+          </select>
+        </div>
+      </div>
+      <!-- 가격: 월세 -->
+      <div id="p-price-monthly-wrap">
+        <div class="fr">
+          <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit" placeholder="5000" min="0"></div>
+          <div class="fg"><label>월세 (만원)</label><input type="number" id="p-monthly" placeholder="200" min="0"></div>
+        </div>
+        <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
+      </div>
+      <!-- 가격: 전세 -->
+      <div id="p-price-jeonse-wrap" style="display:none">
+        <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit-j" placeholder="50000" min="0"></div>
+      </div>
+      <!-- 가격: 매매 -->
+      <div id="p-price-sale-wrap" style="display:none">
+        <div class="fg"><label>매매가 (만원)</label><input type="number" id="p-sale" placeholder="125000" min="0"></div>
+      </div>
+      <div class="fg"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
+      <div class="fr">
+        <div class="fg">
+          <label>면적 (평)</label>
+          <input type="number" id="p-area" placeholder="30" min="0" step="0.1" oninput="updateAreaSqm(this.value)">
+          <div id="p-area-sqm" style="font-size:10px;color:var(--text3);margin-top:2px;min-height:14px"></div>
+        </div>
+        <div class="fg">
+          <label>층 (해당층 / 총층)</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="number" id="p-floor-cur" placeholder="2" min="0" style="flex:1">
+            <span style="color:var(--text3);font-size:12px">/</span>
+            <input type="number" id="p-floor-tot" placeholder="10" min="0" style="flex:1">
+          </div>
+        </div>
+      </div>
+      <div class="fr" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
+        <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
+        <div class="fg"><label>방향</label>
+          <select id="p-direction">
+            <option value="">선택 안 함</option>
+            <option value="남">남</option><option value="북">북</option>
+            <option value="동">동</option><option value="서">서</option>
+            <option value="남동">남동</option><option value="남서">남서</option>
+            <option value="북동">북동</option><option value="북서">북서</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>입주 가능일</label><input type="date" id="p-movein"></div>
+        <div class="fg"><label>매물 상태</label>
+          <select id="p-status">
+            <option value="active">거래중</option>
+            <option value="pending">보류</option>
+            <option value="completed">완료</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>특이사항</label><textarea id="p-notes" placeholder="주차 가능, 엘리베이터 있음, 즉시 입주 가능..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <div>
+        <button type="button" class="btn btn-red" id="propDelBtn" style="display:none" onclick="deletePropertyFromModal()">삭제</button>
+      </div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closePropertyModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveProperty()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 내 정보 모달 -->
 <div class="modal" id="mProfile">
   <div class="modal-box" style="width:480px">
@@ -1805,16 +1975,17 @@ html{overflow-x:hidden}
 // ═══════════════════════════════════════════════════════
 // DATA LAYER
 // ═══════════════════════════════════════════════════════
-const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings'};
+const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings',properties:'crm5_properties'};
 function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
 // UUID(문자열)와 로컬 숫자 ID 모두 안전하게 비교
 function idEq(a,b){return a!=null&&b!=null&&String(a)===String(b);}
 
-let clients = ld(KEY.clients) || mkClients();
-let events  = ld(KEY.events)  || mkEvents();
-let fees    = ld(KEY.fees)    || [];
-let uid     = ld(KEY.uid)     || {c:200,e:300,f:400};
+let clients    = ld(KEY.clients)    || mkClients();
+let events     = ld(KEY.events)     || mkEvents();
+let fees       = ld(KEY.fees)       || [];
+let uid        = ld(KEY.uid)        || {c:200,e:300,f:400,p:500};
+let properties = ld(KEY.properties) || [];
 let contractsRaw = ld(KEY.contracts);
 // 마이그레이션: 옛 구조({eventId: data}) → 새 구조([계약, 계약, ...])
 let contracts = migrateContracts(contractsRaw);
@@ -1851,7 +2022,7 @@ function migrateContracts(raw){
   });
   return arr;
 }
-function persist(){sv(KEY.clients,clients);sv(KEY.events,events);sv(KEY.fees,fees);sv(KEY.uid,uid);sv(KEY.contracts,contracts);sv(KEY.settings,settings);}
+function persist(){sv(KEY.clients,clients);sv(KEY.events,events);sv(KEY.fees,fees);sv(KEY.uid,uid);sv(KEY.contracts,contracts);sv(KEY.settings,settings);sv(KEY.properties,properties);}
 
 // ═══════════════════════════════════════════════════════
 // SETTINGS (정산 비율 등)
@@ -1898,11 +2069,12 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
+  else if(id==='properties')renderProperties();
   else if(id==='settings')renderSettingsPage();
   else if(id==='notices')renderNotices();
   else if(id==='inquiries')renderInquiries();
@@ -4532,11 +4704,46 @@ async function loadDataFromSupabase(){
       console.log(`✅ 수수료 ${(cloudPayments||[]).length}건 로드 완료`);
     }
 
+    // 매물 데이터 로드
+    const { data: cloudProperties, error: propErr } = await supabaseClient
+      .from('properties')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .order('created_at', { ascending: false });
+    if(propErr){
+      console.warn('매물 로드 실패 (무시):', propErr.message);
+    } else {
+      properties = (cloudProperties || []).map(p => ({
+        id: p.id,
+        title: p.title || '',
+        property_type: p.property_type || 'office',
+        transaction_type: p.transaction_type || 'monthly',
+        address: p.address || '',
+        price_sale: p.price_sale,
+        price_deposit: p.price_deposit,
+        price_monthly: p.price_monthly,
+        price_management: p.price_management,
+        area_pyeong: p.area_pyeong,
+        floor_current: p.floor_current,
+        floor_total: p.floor_total,
+        rooms: p.rooms,
+        bathrooms: p.bathrooms,
+        direction: p.direction || '',
+        move_in_date: p.move_in_date || '',
+        notes: p.notes || '',
+        status: p.status || 'active',
+        created_at: p.created_at || '',
+        _supabase: true
+      }));
+      console.log(`✅ 매물 ${properties.length}건 로드 완료`);
+    }
+
     // UI 갱신
     persist();
     buildMF();
     renderClients();
     if(typeof drawCal === 'function') drawCal();
+    if(curPage === 'properties') renderProperties();
 
     showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 · 계약 ${contracts.length}건 동기화 완료`);
   } catch(err){
@@ -5290,6 +5497,224 @@ function showSupabaseStatus(type, msg){
     badge.style.opacity = '0';
     setTimeout(()=>{badge.style.display='none';}, 300);
   }, 5000);
+}
+
+// ═══════════════════════════════════════════════════════
+// PROPERTIES (매물관리)
+// ═══════════════════════════════════════════════════════
+
+const PROP_TYPE={office:'사무실',commercial:'상가',oneroom:'원룸',apartment:'아파트',villa:'빌라',officetel:'오피스텔'};
+const PROP_TX={monthly:'월세',jeonse:'전세',sale:'매매'};
+const PROP_STATUS={active:'거래중',pending:'보류',completed:'완료'};
+const PROP_TYPE_CLS={office:'prop-type-office',commercial:'prop-type-commercial',oneroom:'prop-type-oneroom',apartment:'prop-type-apartment',villa:'prop-type-villa',officetel:'prop-type-officetel'};
+const PROP_TX_CLS={monthly:'prop-tx-monthly',jeonse:'prop-tx-jeonse',sale:'prop-tx-sale'};
+const PROP_STATUS_CLS={active:'prop-status-active',pending:'prop-status-pending',completed:'prop-status-completed'};
+
+let editPropertyId=null;
+
+function formatKoreanPrice(manwon){
+  const n=Number(manwon);
+  if(!n||n<=0)return '';
+  const uk=Math.floor(n/10000);
+  const rem=n%10000;
+  if(uk>0&&rem>0)return `${uk}억 ${rem.toLocaleString()}만원`;
+  if(uk>0)return `${uk}억`;
+  return `${n.toLocaleString()}만원`;
+}
+
+function formatPropertyPrice(p){
+  if(p.transaction_type==='monthly'){
+    const d=formatKoreanPrice(p.price_deposit);
+    const m=formatKoreanPrice(p.price_monthly);
+    const mg=p.price_management?` / 관리비 ${formatKoreanPrice(p.price_management)}`:'';
+    return `보증금 ${d||'0'} / 월세 ${m||'0'}${mg}`;
+  }
+  if(p.transaction_type==='jeonse') return `${formatKoreanPrice(p.price_deposit)||'-'} (전세)`;
+  if(p.transaction_type==='sale') return `${formatKoreanPrice(p.price_sale)||'-'} (매매)`;
+  return '-';
+}
+
+function _propSortPrice(p){
+  if(p.transaction_type==='monthly') return (Number(p.price_deposit)||0)+(Number(p.price_monthly)||0)*12;
+  if(p.transaction_type==='jeonse') return Number(p.price_deposit)||0;
+  return Number(p.price_sale)||0;
+}
+
+function renderProperties(){
+  const wrap=$('propListWrap');if(!wrap)return;
+  let list=[...properties];
+  const q=($('propSearch')?.value||'').toLowerCase();
+  const ft=$('propFilterType')?.value||'';
+  const ftx=$('propFilterTx')?.value||'';
+  const fs=$('propFilterStatus')?.value||'';
+  const sort=$('propSort')?.value||'newest';
+  if(q) list=list.filter(p=>(p.title||'').toLowerCase().includes(q)||(p.address||'').toLowerCase().includes(q));
+  if(ft) list=list.filter(p=>p.property_type===ft);
+  if(ftx) list=list.filter(p=>p.transaction_type===ftx);
+  if(fs) list=list.filter(p=>p.status===fs);
+  if(sort==='price_asc') list.sort((a,b)=>_propSortPrice(a)-_propSortPrice(b));
+  else if(sort==='price_desc') list.sort((a,b)=>_propSortPrice(b)-_propSortPrice(a));
+  else list.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+  if(!list.length){
+    wrap.innerHTML='<div class="empty">등록된 매물이 없습니다.<br><span style="font-size:11px">+ 매물 등록 버튼으로 추가하세요.</span></div>';
+    return;
+  }
+  wrap.innerHTML=list.map(p=>{
+    const area=p.area_pyeong?`${Number(p.area_pyeong)}평(${(Number(p.area_pyeong)*3.3058).toFixed(1)}㎡)`:null;
+    const floor=p.floor_current?`${p.floor_current}층`:null;
+    const rooms=p.rooms?`방${p.rooms}`:null;
+    const meta=[area,floor,rooms].filter(Boolean).join(' · ');
+    return `<div class="prop-card" onclick="openPropertyModal('${p.id}')">
+      <div class="prop-card-head">
+        <div class="prop-card-title">${escHtml(p.title)}</div>
+        <div class="prop-card-badges">
+          <span class="prop-badge ${PROP_TYPE_CLS[p.property_type]||''}">${PROP_TYPE[p.property_type]||p.property_type}</span>
+          <span class="prop-badge ${PROP_TX_CLS[p.transaction_type]||''}">${PROP_TX[p.transaction_type]||p.transaction_type}</span>
+          <span class="prop-badge ${PROP_STATUS_CLS[p.status]||''}">${PROP_STATUS[p.status]||p.status}</span>
+        </div>
+      </div>
+      <div class="prop-card-addr">${escHtml(p.address||'')}</div>
+      <div class="prop-card-price">${escHtml(formatPropertyPrice(p))}</div>
+      ${meta?`<div class="prop-card-meta"><span>${escHtml(meta)}</span></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function onPropTxChange(){
+  const tx=$('p-txtype')?.value;
+  if(!tx)return;
+  $('p-price-monthly-wrap').style.display=tx==='monthly'?'':'none';
+  $('p-price-jeonse-wrap').style.display=tx==='jeonse'?'':'none';
+  $('p-price-sale-wrap').style.display=tx==='sale'?'':'none';
+}
+
+function updateAreaSqm(v){
+  const el=$('p-area-sqm');if(!el)return;
+  const n=parseFloat(v);
+  el.textContent=n>0?`≈ ${(n*3.3058).toFixed(2)}㎡`:'';
+}
+
+function openPropertyModal(id){
+  if(id!==null&&id!==undefined&&String(id).indexOf('-')===-1&&!isNaN(id)) id=parseInt(id,10);
+  editPropertyId=id||null;
+  const fields=['p-title','p-address','p-area','p-floor-cur','p-floor-tot','p-rooms','p-baths','p-notes','p-deposit','p-monthly','p-management','p-deposit-j','p-sale'];
+  if(id){
+    const p=properties.find(x=>idEq(x.id,id));
+    if(!p){toast('매물을 찾을 수 없습니다');return;}
+    $('propModalTitle').textContent='매물 수정';
+    $('propDelBtn').style.display='inline-flex';
+    $('p-title').value=p.title||'';
+    $('p-ptype').value=p.property_type||'office';
+    $('p-txtype').value=p.transaction_type||'monthly';
+    $('p-address').value=p.address||'';
+    $('p-area').value=p.area_pyeong||'';
+    updateAreaSqm(p.area_pyeong);
+    $('p-floor-cur').value=p.floor_current||'';
+    $('p-floor-tot').value=p.floor_total||'';
+    $('p-rooms').value=p.rooms||'';
+    $('p-baths').value=p.bathrooms||'';
+    $('p-direction').value=p.direction||'';
+    $('p-movein').value=p.move_in_date||'';
+    $('p-status').value=p.status||'active';
+    $('p-notes').value=p.notes||'';
+    $('p-deposit').value=p.price_deposit||'';
+    $('p-monthly').value=p.price_monthly||'';
+    $('p-management').value=p.price_management||'';
+    $('p-deposit-j').value=p.price_deposit||'';
+    $('p-sale').value=p.price_sale||'';
+  }else{
+    $('propModalTitle').textContent='매물 등록';
+    $('propDelBtn').style.display='none';
+    fields.forEach(f=>{const el=$(f);if(el)el.value='';});
+    $('p-ptype').value='office';$('p-txtype').value='monthly';
+    $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
+    $('p-area-sqm').textContent='';
+  }
+  onPropTxChange();
+  $('mProperty').classList.add('open');
+}
+
+function closePropertyModal(){$('mProperty').classList.remove('open');editPropertyId=null;}
+
+async function saveProperty(){
+  const title=$('p-title').value.trim();
+  const address=$('p-address').value.trim();
+  if(!title){toast('매물 제목을 입력해주세요');$('p-title').focus();return;}
+  if(!address){toast('주소를 입력해주세요');$('p-address').focus();return;}
+  const tx=$('p-txtype').value;
+  const row={
+    title, address,
+    property_type:$('p-ptype').value,
+    transaction_type:tx,
+    price_deposit: tx==='monthly'?Number($('p-deposit').value)||null : tx==='jeonse'?Number($('p-deposit-j').value)||null : null,
+    price_monthly: tx==='monthly'?Number($('p-monthly').value)||null : null,
+    price_management: tx==='monthly'?Number($('p-management').value)||null : null,
+    price_sale: tx==='sale'?Number($('p-sale').value)||null : null,
+    area_pyeong: parseFloat($('p-area').value)||null,
+    floor_current: parseInt($('p-floor-cur').value)||null,
+    floor_total: parseInt($('p-floor-tot').value)||null,
+    rooms: parseInt($('p-rooms').value)||null,
+    bathrooms: parseInt($('p-baths').value)||null,
+    direction: $('p-direction').value||null,
+    move_in_date: $('p-movein').value||null,
+    status: $('p-status').value||'active',
+    notes: $('p-notes').value.trim()||null
+  };
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  try{
+    if(canUseCloud){
+      if(editPropertyId){
+        const{error}=await supabaseClient.from('properties').update({...row,updated_at:new Date().toISOString()}).eq('id',editPropertyId);
+        if(error){console.error('[saveProperty] 수정 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
+        const i=properties.findIndex(x=>idEq(x.id,editPropertyId));
+        if(i!==-1) properties[i]={...properties[i],...row};
+        toast('매물 수정 완료');
+      }else{
+        const{data,error}=await supabaseClient.from('properties').insert({
+          ...row,user_id:currentUser.id,organization_id:currentOrganization.id
+        }).select().single();
+        if(error){console.error('[saveProperty] 추가 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
+        properties.unshift({...row,id:data.id,created_at:data.created_at,_supabase:true});
+        toast('매물 등록 완료');
+      }
+    }else{
+      if(editPropertyId){
+        const i=properties.findIndex(x=>idEq(x.id,editPropertyId));
+        if(i!==-1) properties[i]={...properties[i],...row,updated_at:new Date().toISOString()};
+        toast('매물 수정 완료');
+      }else{
+        uid.p=(uid.p||500)+1;sv(KEY.uid,uid);
+        properties.unshift({...row,id:uid.p,created_at:todayStr()});
+        toast('매물 등록 완료');
+      }
+    }
+  }catch(err){toast('저장 실패: '+err.message);return;}
+  persist();closePropertyModal();renderProperties();
+}
+
+async function deletePropertyFromModal(){
+  if(!editPropertyId)return;
+  const p=properties.find(x=>idEq(x.id,editPropertyId));
+  if(!p)return;
+  if(!confirm(`"${p.title}" 매물을 삭제하시겠습니까?`))return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(canUseCloud&&p._supabase){
+    try{
+      const{error}=await supabaseClient.from('properties').delete().eq('id',editPropertyId);
+      if(error)throw error;
+    }catch(err){toast('삭제 실패: '+err.message);return;}
+  }
+  properties=properties.filter(x=>!idEq(x.id,editPropertyId));
+  persist();closePropertyModal();renderProperties();
+  toast('매물이 삭제되었습니다');
 }
 
 // ═══════════════════════════════════════════════════════
