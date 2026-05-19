@@ -5314,12 +5314,16 @@ async function saveNotice(){
   btn.disabled=true;btn.textContent='저장 중...';
   try{
     if(editingNoticeId){
-      const{error}=await supabaseClient.from('announcements').update({title,body:content,category,is_important,updated_at:new Date().toISOString()}).eq('id',editingNoticeId);
-      if(error)throw error;
+      const row={title,body:content,category,is_important,updated_at:new Date().toISOString()};
+      console.log('[saveNotice] UPDATE 데이터:', row);
+      const{error}=await supabaseClient.from('announcements').update(row).eq('id',editingNoticeId);
+      if(error){console.error('[saveNotice] 수정 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
       toast('공지가 수정되었습니다');
     }else{
-      const{error}=await supabaseClient.from('announcements').insert({title,body:content,category,is_important,author_id:currentUser.id});
-      if(error)throw error;
+      const row={title,body:content,category,is_important,author_id:currentUser.id};
+      console.log('[saveNotice] INSERT 데이터:', row);
+      const{error}=await supabaseClient.from('announcements').insert(row);
+      if(error){console.error('[saveNotice] 작성 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
       toast('공지가 작성되었습니다');
     }
     $('mNoticeEdit').classList.remove('open');
@@ -5372,7 +5376,7 @@ function _renderInquiryList(){
   if(isAdmin()){
     if(inqAdminFilter.status)list=list.filter(i=>i.status===inqAdminFilter.status);
     if(inqAdminFilter.category)list=list.filter(i=>i.category===inqAdminFilter.category);
-    if(inqSearchQ){const q=inqSearchQ.toLowerCase();list=list.filter(i=>(i.title||'').toLowerCase().includes(q)||(i.content||'').toLowerCase().includes(q)||(i.user_email||'').toLowerCase().includes(q));}
+    if(inqSearchQ){const q=inqSearchQ.toLowerCase();list=list.filter(i=>(i.title||'').toLowerCase().includes(q)||(i.body||'').toLowerCase().includes(q));}
   }
   const writeBtn=currentUser?`<div style="margin-bottom:14px;display:flex;justify-content:flex-end"><button class="btn btn-gold" onclick="openInquiryWrite()" style="font-size:12px">+ 새 문의 작성</button></div>`:'';
   const adminBar=isAdmin()?`<div class="filters" style="margin-bottom:12px">
@@ -5407,12 +5411,21 @@ async function submitInquiry(){
   if(!title){toast('제목을 입력해주세요');$('inqWriteTitle').focus();return;}
   if(!content){toast('내용을 입력해주세요');$('inqWriteContent').focus();return;}
   const btn=$('inqSubmitBtn');btn.disabled=true;btn.textContent='등록 중...';
+  const row={
+    user_id:currentUser.id,
+    organization_id:currentOrganization?.id||null,
+    category,
+    title,
+    body:content,
+    status:'pending'
+  };
+  console.log('[submitInquiry] 전송 데이터:', row);
   try{
-    const{error}=await supabaseClient.from('inquiries').insert({
-      user_id:currentUser.id,user_email:currentUser.email,user_name:currentProfile?.name||'',
-      category,title,content,status:'pending'
-    });
-    if(error)throw error;
+    const{error}=await supabaseClient.from('inquiries').insert(row);
+    if(error){
+      console.error('[submitInquiry] 에러:', {code:error.code,message:error.message,details:error.details,hint:error.hint});
+      throw error;
+    }
     toast('문의가 등록되었습니다');
     $('mInquiryWrite').classList.remove('open');
     renderInquiries();
@@ -5431,7 +5444,7 @@ function openInquiryDetail(id){
     `<span class="inq-status ${inq.status}">${INQ_STATUS_LABEL[inq.status]||inq.status}</span>`+
     `<span style="font-size:11px;color:var(--text3)">${dt}</span>`+
     (isAdmin()?`<span style="font-size:11px;color:var(--text3)">${escHtml(inq.user_email||'')}</span>`:'');
-  setTextWithBreaks($('inqDetailBody'),inq.content);
+  setTextWithBreaks($('inqDetailBody'),inq.body);
   const replySection=$('inqDetailReply');
   if(inq.admin_reply){
     replySection.style.display='';
