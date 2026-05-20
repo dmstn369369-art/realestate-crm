@@ -1771,7 +1771,17 @@ html{overflow-x:hidden}
           </div>
           <div class="gr3">
             <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
-            <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
+            <div class="fg">
+              <label>욕실 수</label>
+              <input type="text" id="p-baths" placeholder="1 또는 내부 공용 등">
+              <select id="p-baths-select" onchange="onBathsSelect()" style="margin-top:4px;font-size:11px;color:var(--text2)">
+                <option value="">목록에서 선택...</option>
+                <option value="내부 화장실 공용">내부 화장실 공용</option>
+                <option value="내부 남녀 화장실 분리">내부 남녀 화장실 분리</option>
+                <option value="외부 화장실 공용">외부 화장실 공용</option>
+                <option value="외부 남녀 화장실 분리">외부 남녀 화장실 분리</option>
+              </select>
+            </div>
             <div class="fg"><label>방향</label>
               <select id="p-direction">
                 <option value="">선택 안 함</option>
@@ -1782,9 +1792,28 @@ html{overflow-x:hidden}
               </select>
             </div>
           </div>
-          <!-- 주차여부 -->
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-            <div class="fg" style="flex:1;min-width:120px;margin-bottom:0"><label>주차</label>
+          <!-- 입주가능일 / 거래상태 / 주차 — 3등분 -->
+          <div class="gr3" style="margin-bottom:10px">
+            <div class="fg">
+              <label>입주 가능일</label>
+              <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
+                  <input type="checkbox" id="p-movein-immediate" onchange="onMoveinTypeChange()">즉시입주
+                </label>
+                <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
+                  <input type="checkbox" id="p-movein-negotiable" onchange="onMoveinTypeChange()">협의입주
+                </label>
+              </div>
+              <input type="date" id="p-movein">
+            </div>
+            <div class="fg"><label>거래 상태</label>
+              <select id="p-status">
+                <option value="active">거래중</option>
+                <option value="pending">보류</option>
+                <option value="completed">완료</option>
+              </select>
+            </div>
+            <div class="fg"><label>주차</label>
               <select id="p-parking-type" onchange="onParkingChange()">
                 <option value="">선택 안 함</option>
                 <option value="available">가능</option>
@@ -1792,36 +1821,8 @@ html{overflow-x:hidden}
                 <option value="mechanical">기계식주차</option>
                 <option value="custom">직접입력</option>
               </select>
-            </div>
-            <div class="fg" id="p-parking-count-wrap" style="display:none;flex:1;min-width:100px;margin-bottom:0">
-              <label>주차 대수</label>
-              <input type="number" id="p-parking-count" placeholder="2" min="0">
-            </div>
-            <div class="fg" id="p-parking-custom-wrap" style="display:none;flex:2;min-width:150px;margin-bottom:0">
-              <label>주차 상세</label>
-              <input type="text" id="p-parking-custom" placeholder="주차 상황 직접입력">
-            </div>
-          </div>
-          <!-- 입주가능일 + 매물상태 -->
-          <div class="fr" style="margin-bottom:10px">
-            <div class="fg">
-              <label>입주 가능일</label>
-              <div style="display:flex;gap:12px;margin-bottom:5px">
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
-                  <input type="checkbox" id="p-movein-immediate" onchange="onMoveinTypeChange('immediate')">즉시입주
-                </label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
-                  <input type="checkbox" id="p-movein-negotiable" onchange="onMoveinTypeChange('negotiable')">협의입주
-                </label>
-              </div>
-              <input type="date" id="p-movein">
-            </div>
-            <div class="fg"><label>매물 상태</label>
-              <select id="p-status">
-                <option value="active">거래중</option>
-                <option value="pending">보류</option>
-                <option value="completed">완료</option>
-              </select>
+              <input type="number" id="p-parking-count" placeholder="주차 대수" min="0" style="display:none;margin-top:4px">
+              <input type="text" id="p-parking-custom" placeholder="직접입력" style="display:none;margin-top:4px">
             </div>
           </div>
         </div>
@@ -5787,19 +5788,24 @@ function initPhotoDrop(){
   };
 }
 
-function onParkingChange(){
-  const v=$('p-parking-type')?.value||'';
-  const countWrap=$('p-parking-count-wrap');
-  const customWrap=$('p-parking-custom-wrap');
-  if(countWrap)countWrap.style.display=v==='available'?'':'none';
-  if(customWrap)customWrap.style.display=v==='custom'?'':'none';
+function onBathsSelect(){
+  const sel=$('p-baths-select');
+  if(!sel||!sel.value)return;
+  const inp=$('p-baths');
+  if(inp)inp.value=sel.value;
+  sel.value='';
 }
 
-function onMoveinTypeChange(type){
+function onParkingChange(){
+  const v=$('p-parking-type')?.value||'';
+  const cnt=$('p-parking-count'),cst=$('p-parking-custom');
+  if(cnt)cnt.style.display=v==='available'?'':'none';
+  if(cst)cst.style.display=v==='custom'?'':'none';
+}
+
+function onMoveinTypeChange(){
   const imm=$('p-movein-immediate'),neg=$('p-movein-negotiable'),date=$('p-movein');
   if(!imm||!neg||!date)return;
-  if(type==='immediate'){if(neg.checked)neg.checked=false;}
-  else{if(imm.checked)imm.checked=false;}
   const locked=imm.checked||neg.checked;
   date.disabled=locked;
   if(locked)date.value='';
@@ -6102,7 +6108,7 @@ async function openPropertyModal(id){
     $('p-floor-cur').value=p.floor_current||'';
     $('p-floor-tot').value=p.floor_total||'';
     $('p-rooms').value=p.rooms||'';
-    $('p-baths').value=p.bathrooms||'';
+    $('p-baths').value=p.bathrooms!=null?String(p.bathrooms):'';
     $('p-direction').value=p.direction||'';
     $('p-status').value=p.status||'active';
     $('p-notes').value=p.notes||'';
@@ -6121,10 +6127,11 @@ async function openPropertyModal(id){
     onParkingChange();
     // 입주가능일
     const mit=p.move_in_type||'';
-    $('p-movein-immediate').checked=mit==='immediate';
-    $('p-movein-negotiable').checked=mit==='negotiable';
-    $('p-movein').value=mit?'':(p.move_in_date||'');
-    $('p-movein').disabled=!!mit;
+    $('p-movein-immediate').checked=mit==='immediate'||mit==='immediate_and_negotiable';
+    $('p-movein-negotiable').checked=mit==='negotiable'||mit==='immediate_and_negotiable';
+    const mitLocked=!!mit;
+    $('p-movein').value=mitLocked?'':(p.move_in_date||'');
+    $('p-movein').disabled=mitLocked;
   }else{
     $('propModalTitle').textContent='매물 등록';
     $('propDelBtn').style.display='none';
@@ -6133,6 +6140,7 @@ async function openPropertyModal(id){
     $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
     $('p-area-sqm').textContent='';
     $('p-parking-type').value='';$('p-parking-count').value='';$('p-parking-custom').value='';
+    if($('p-baths-select'))$('p-baths-select').value='';
     if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
     if($('p-movein-negotiable'))$('p-movein-negotiable').checked=false;
     if($('p-movein'))$('p-movein').disabled=false;
@@ -6175,13 +6183,13 @@ async function saveProperty(){
     floor_current: parseInt($('p-floor-cur').value)||null,
     floor_total: parseInt($('p-floor-tot').value)||null,
     rooms: parseInt($('p-rooms').value)||null,
-    bathrooms: parseInt($('p-baths').value)||null,
+    bathrooms: $('p-baths').value.trim()||null,
     direction: $('p-direction').value||null,
     status: $('p-status').value||'active',
     notes: $('p-notes').value.trim()||null,
     parking_type: (()=>{const v=$('p-parking-type').value;return v==='custom'?($('p-parking-custom').value.trim()||null):v||null;})(),
     parking_count: $('p-parking-type').value==='available'?parseInt($('p-parking-count').value)||null:null,
-    move_in_type: $('p-movein-immediate')?.checked?'immediate':$('p-movein-negotiable')?.checked?'negotiable':null,
+    move_in_type: (()=>{const i=$('p-movein-immediate')?.checked,n=$('p-movein-negotiable')?.checked;return i&&n?'immediate_and_negotiable':i?'immediate':n?'negotiable':null;})(),
     move_in_date: ($('p-movein-immediate')?.checked||$('p-movein-negotiable')?.checked)?null:($('p-movein').value||null)
   };
   const canUseCloud=(
