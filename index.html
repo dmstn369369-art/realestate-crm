@@ -675,6 +675,45 @@ html{overflow-x:hidden}
 .storage-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:6px 0}
 .storage-fill{height:100%;border-radius:3px;transition:width .3s}
 @media(max-width:600px){.photo-grid{grid-template-columns:repeat(2,1fr)}}
+/* ── 공유 링크 URL 박스 ── */
+.share-url-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:11px;color:var(--text2);word-break:break-all;line-height:1.5;user-select:all;cursor:text}
+/* ── 공개 소개서 뷰 ── */
+#sharedView{position:fixed;inset:0;z-index:9999;overflow-y:auto;background:var(--bg);display:none}
+.sv-hd{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2}
+.sv-logo{font-family:'Noto Serif KR',serif;font-size:17px;font-weight:700;color:var(--gold);letter-spacing:1px}
+.sv-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold3)}
+.sv-slide-wrap{position:relative;background:#000;overflow:hidden;aspect-ratio:16/9;max-height:55vh}
+.sv-slides{display:flex;transition:transform .35s ease;height:100%;will-change:transform}
+.sv-slide{min-width:100%;display:flex;align-items:center;justify-content:center;height:100%}
+.sv-slide img{max-width:100%;max-height:100%;object-fit:contain}
+.sv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;background:rgba(0,0,0,.55);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:2;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s;line-height:1}
+.sv-arrow:hover{background:rgba(212,168,67,.7)}
+.sv-arrow.prev{left:8px}.sv-arrow.next{right:8px}
+.sv-dots{display:flex;justify-content:center;gap:6px;padding:8px 4px}
+.sv-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);cursor:pointer;transition:background .2s;flex-shrink:0}
+.sv-dot.active{background:var(--gold)}
+.sv-thumbs{display:flex;gap:6px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none}
+.sv-thumbs::-webkit-scrollbar{display:none}
+.sv-thumb{width:58px;height:42px;object-fit:cover;border-radius:4px;cursor:pointer;opacity:.5;border:2px solid transparent;flex-shrink:0;transition:opacity .2s,border-color .2s}
+.sv-thumb.active{opacity:1;border-color:var(--gold)}
+.sv-body{max-width:680px;margin:0 auto;padding:18px 16px 110px}
+.sv-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.35}
+.sv-address{font-size:12px;color:var(--text2);margin-bottom:14px}
+.sv-price-box{background:var(--gold-dim);border:1px solid var(--gold3);border-radius:var(--radius2);padding:14px 18px;margin-bottom:14px}
+.sv-price-label{font-size:10px;color:var(--gold);letter-spacing:.5px;margin-bottom:3px}
+.sv-price-val{font-size:22px;font-weight:700;color:var(--gold2)}
+.sv-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sv-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.sv-info-label{font-size:10px;color:var(--text3);margin-bottom:3px}
+.sv-info-val{font-size:13px;font-weight:600;color:var(--text)}
+.sv-sec-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+.sv-notes{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:13px 15px;margin-bottom:16px;white-space:pre-wrap;font-size:13px;color:var(--text2);line-height:1.65}
+.sv-foot{font-size:10px;color:var(--text3);text-align:center;padding-top:8px}
+.sv-bar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:10px;z-index:10}
+.sv-btn-call{flex:1;background:var(--gold);color:#000;font-weight:700;font-size:15px;border:none;border-radius:var(--radius);padding:13px;cursor:pointer;letter-spacing:.3px}
+.sv-btn-copy{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;cursor:pointer;font-size:13px;white-space:nowrap}
+@media(max-width:400px){.sv-info-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.sv-slide-wrap{aspect-ratio:4/3;max-height:70vw}}
 </style>
 </head>
 <body>
@@ -1855,8 +1894,10 @@ html{overflow-x:hidden}
       </div>
     </div>
     <div class="modal-foot">
-      <div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button type="button" class="btn btn-red" id="propDelBtn" style="display:none" onclick="deletePropertyFromModal()">삭제</button>
+        <button type="button" class="btn" id="propPdfBtn" style="display:none" onclick="generatePropertyPDF()">📥 PDF</button>
+        <button type="button" class="btn" id="propShareBtn" style="display:none" onclick="sharePropertyLink()">🌐 공유</button>
       </div>
       <div class="modal-foot-right">
         <button type="button" class="btn" onclick="closePropertyModal()">취소</button>
@@ -2107,6 +2148,47 @@ html{overflow-x:hidden}
       <div class="modal-foot-right">
         <button type="button" class="btn" onclick="closeClientDelChoice()">취소</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 공개 소개서 뷰 (비로그인 공유) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="sharedView">
+  <div class="sv-hd">
+    <span class="sv-logo">BROKID</span>
+    <span class="sv-badge" id="svBadge"></span>
+  </div>
+  <div id="svSlideArea"></div>
+  <div class="sv-body">
+    <div class="sv-title" id="svTitle"></div>
+    <div class="sv-address" id="svAddress"></div>
+    <div id="svPriceBox" class="sv-price-box"></div>
+    <div class="sv-info-grid" id="svInfoGrid"></div>
+    <div id="svNotesWrap" style="display:none">
+      <div class="sv-sec-title">특이사항</div>
+      <div class="sv-notes" id="svNotes"></div>
+    </div>
+    <div class="sv-foot">Brokid에서 제작 · brokid.kr</div>
+  </div>
+  <div class="sv-bar">
+    <button class="sv-btn-call" id="svBtnCall">📞 문의하기</button>
+    <button class="sv-btn-copy" onclick="svCopyLink()">🔗 링크 복사</button>
+  </div>
+</div>
+
+<!-- 공유 링크 모달 -->
+<div class="modal" id="mShare">
+  <div class="modal-box" style="width:400px;max-width:calc(100vw - 32px)">
+    <div class="modal-head">
+      <div class="modal-title">🌐 링크 공유</div>
+      <button class="modal-close" onclick="$('mShare').classList.remove('open')">✕</button>
+    </div>
+    <div style="padding:18px 20px 20px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">아래 링크를 복사해서 손님에게 공유하세요. 로그인 없이 바로 확인 가능합니다.</div>
+      <div id="shareUrlBox" class="share-url-box"></div>
+      <button class="btn btn-gold" style="width:100%;margin-top:10px" onclick="copyShareLink()">📋 링크 복사</button>
     </div>
   </div>
 </div>
@@ -6089,6 +6171,8 @@ async function openPropertyModal(id){
     if(!p){toast('매물을 찾을 수 없습니다');return;}
     $('propModalTitle').textContent='매물 수정';
     $('propDelBtn').style.display='inline-flex';
+    if($('propPdfBtn'))$('propPdfBtn').style.display='inline-flex';
+    if($('propShareBtn'))$('propShareBtn').style.display='inline-flex';
     $('p-title').value=p.title||'';
     $('p-ptype').value=p.property_type||'office';
     $('p-txtype').value=p.transaction_type||'monthly';
@@ -6125,6 +6209,8 @@ async function openPropertyModal(id){
   }else{
     $('propModalTitle').textContent='매물 등록';
     $('propDelBtn').style.display='none';
+    if($('propPdfBtn'))$('propPdfBtn').style.display='none';
+    if($('propShareBtn'))$('propShareBtn').style.display='none';
     fields.forEach(f=>{const el=$(f);if(el)el.value='';});
     $('p-ptype').value='office';$('p-txtype').value='monthly';
     $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
@@ -6728,11 +6814,322 @@ function drawMonthlyFeeChart(){
   }
 })();
 
+// ═══════════════════════════════════════════════════════
+// 매물 소개서 PDF + 웹 링크 공유
+// ═══════════════════════════════════════════════════════
+
+/* 가격 텍스트 생성 */
+function _buildPriceTxt(p){
+  const fmt=v=>{
+    if(!v||isNaN(v))return '';
+    const n=Number(v);
+    return n>=10000?`${Math.floor(n/10000)}억${n%10000?` ${n%10000}만`:''}`:n>=1000?`${n}만`:String(n);
+  };
+  if(p.transaction_type==='monthly'){
+    const d=fmt(p.price_deposit),m=fmt(p.price_monthly),mg=fmt(p.price_management);
+    return [d?`보증금 ${d}`:'',m?`월세 ${m}`:'',mg?`(관리비 ${mg})`:''].filter(Boolean).join(' / ')||'가격 미입력';
+  }
+  if(p.transaction_type==='yearly')return fmt(p.price_deposit)?`전세 ${fmt(p.price_deposit)}`:'가격 미입력';
+  if(p.transaction_type==='sale')return fmt(p.price_sale)?`매매 ${fmt(p.price_sale)}`:'가격 미입력';
+  return '가격 미입력';
+}
+
+/* PDF — 새 탭 열고 인쇄 */
+async function generatePropertyPDF(){
+  const p=properties.find(x=>idEq(x.id,editPropertyId));
+  if(!p){toast('매물 정보를 찾을 수 없습니다');return;}
+  toast('소개서 준비 중...');
+
+  // 사진 수집 (propPhotos 우선, 없으면 DB 조회)
+  let photos=propPhotos.filter(ph=>ph.url).map(ph=>ph.url);
+  if(!photos.length&&typeof supabaseClient!=='undefined'&&supabaseClient&&editPropertyId){
+    try{
+      const{data}=await supabaseClient.from('property_photos')
+        .select('photo_url,display_order').eq('property_id',editPropertyId).order('display_order');
+      if(data)photos=data.map(r=>r.photo_url).filter(Boolean);
+    }catch(e){}
+  }
+
+  const txL={monthly:'월세',yearly:'전세',sale:'매매'};
+  const ptL={office:'사무실',store:'상가',warehouse:'창고',factory:'공장',land:'토지',building:'건물',other:'기타'};
+  const dateStr=new Date().toLocaleDateString('ko-KR');
+  const priceText=_buildPriceTxt(p);
+
+  const infoRows=[];
+  if(p.area_pyeong)infoRows.push(['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
+  if(p.floor_current||p.floor_total)infoRows.push(['층',`${p.floor_current||'-'}층 / ${p.floor_total||'-'}층`]);
+  if(p.rooms)infoRows.push(['방 수',`${p.rooms}개`]);
+  if(p.bathrooms)infoRows.push(['욕실',String(p.bathrooms)]);
+  if(p.direction)infoRows.push(['방향',p.direction]);
+  if(p.parking_type&&p.parking_type!=='unavailable'){
+    const pl={available:'가능',mechanical:'기계식'};
+    infoRows.push(['주차',pl[p.parking_type]||p.parking_type]);
+  }
+  if(p.move_in_type==='immediate')infoRows.push(['입주','즉시입주']);
+  else if(p.move_in_type==='negotiable')infoRows.push(['입주','협의가능']);
+  else if(p.move_in_type==='immediate_and_negotiable')infoRows.push(['입주','즉시/협의']);
+  else if(p.move_in_date)infoRows.push(['입주',p.move_in_date]);
+
+  const infoCardsHtml=infoRows.map(([l,v])=>`
+    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px">
+      <div style="font-size:10px;color:#9ca3af;margin-bottom:3px">${l}</div>
+      <div style="font-size:13px;font-weight:600;color:#111">${v}</div>
+    </div>`).join('');
+
+  const mainPhotoHtml=photos[0]?`<div style="width:100%;max-height:340px;overflow:hidden;margin-bottom:0"><img src="${photos[0]}" alt="" style="width:100%;max-height:340px;object-fit:cover;display:block" crossorigin="anonymous"></div>`:'';
+  const extraPhotosHtml=photos.length>1?`
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">사진</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${photos.slice(1,5).map(u=>`<img src="${u}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px" crossorigin="anonymous">`).join('')}
+      </div>
+    </div>`:'';
+
+  const html=`<!DOCTYPE html><html lang="ko"><head>
+<meta charset="UTF-8">
+<title>${(p.title||'매물').replace(/</g,'&lt;')} - 매물 소개서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{margin:0;size:A4}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head><body>
+<div style="background:#0d1117;color:#d4a843;padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
+  <span style="font-size:22px;font-weight:700;letter-spacing:2px">BROKID</span>
+  <span style="font-size:11px;border:1px solid #d4a843;padding:4px 12px;border-radius:20px">${ptL[p.property_type]||p.property_type||''} · ${txL[p.transaction_type]||''}</span>
+  <span style="font-size:11px;color:#8b949e">${dateStr}</span>
+</div>
+${mainPhotoHtml}
+<div style="padding:24px 28px">
+  <div style="font-size:20px;font-weight:700;margin-bottom:4px">${(p.title||'제목 없음').replace(/</g,'&lt;')}</div>
+  <div style="font-size:13px;color:#666;margin-bottom:18px">📍 ${(p.address||'주소 미입력').replace(/</g,'&lt;')}</div>
+  <div style="background:#fffbf0;border:1.5px solid #d4a843;border-radius:10px;padding:14px 18px;margin-bottom:18px">
+    <div style="font-size:10px;color:#8a6820;letter-spacing:.5px;margin-bottom:4px">거래 가격</div>
+    <div style="font-size:22px;font-weight:700;color:#8a6820">${priceText.replace(/</g,'&lt;')}</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">${infoCardsHtml}</div>
+  ${p.notes?`<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">특이사항</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:13px 15px;white-space:pre-wrap;font-size:13px;color:#444;line-height:1.65">${(p.notes).replace(/</g,'&lt;')}</div></div>`:''}
+  ${extraPhotosHtml}
+</div>
+<div style="background:#0d1117;color:#8b949e;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;font-size:11px">
+  <span style="color:#d4a843;font-weight:700">BROKID</span>
+  <span>Brokid에서 제작 · brokid.kr</span>
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},600);}<\/script>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  if(!w){toast('팝업이 차단되어 있습니다. 팝업을 허용해주세요');return;}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+/* 웹 링크 공유 */
+let _shareUrl='';
+function sharePropertyLink(){
+  const p=properties.find(x=>idEq(x.id,editPropertyId));
+  if(!p){toast('매물 정보를 찾을 수 없습니다');return;}
+  const d={
+    title:p.title||'',address:p.address||'',property_type:p.property_type||'',
+    transaction_type:p.transaction_type||'',price_sale:p.price_sale||null,
+    price_deposit:p.price_deposit||null,price_monthly:p.price_monthly||null,
+    price_management:p.price_management||null,area_pyeong:p.area_pyeong||null,
+    floor_current:p.floor_current||null,floor_total:p.floor_total||null,
+    rooms:p.rooms||null,bathrooms:p.bathrooms||null,direction:p.direction||'',
+    move_in_date:p.move_in_date||'',move_in_type:p.move_in_type||null,
+    parking_type:p.parking_type||null,parking_count:p.parking_count||null,
+    notes:p.notes||''
+  };
+  try{
+    const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+    _shareUrl=`${location.origin}${location.pathname}?p=${editPropertyId}&d=${encoded}`;
+  }catch(e){
+    _shareUrl=`${location.origin}${location.pathname}?p=${editPropertyId}`;
+  }
+  $('shareUrlBox').textContent=_shareUrl;
+  $('mShare').classList.add('open');
+}
+
+function copyShareLink(){
+  if(!_shareUrl)return;
+  navigator.clipboard.writeText(_shareUrl).then(()=>{
+    toast('링크가 복사되었습니다!');
+    $('mShare').classList.remove('open');
+  }).catch(()=>{
+    const el=$('shareUrlBox');
+    const r=document.createRange();r.selectNodeContents(el);
+    const s=window.getSelection();s.removeAllRanges();s.addRange(r);
+    toast('링크를 선택했습니다. Ctrl+C 로 복사해주세요');
+  });
+}
+
+/* ── 공개 소개서 뷰 ── */
+let _svPhotos=[],_svIdx=0,_svTouchX=0;
+
+async function initSharedView(){
+  const urlp=new URLSearchParams(location.search);
+  const pid=urlp.get('p');
+  if(!pid)return;
+
+  // 앱 숨기기
+  document.querySelectorAll('body>*').forEach(el=>{
+    if(el.id!=='sharedView'&&el.tagName!=='SCRIPT')el.style.display='none';
+  });
+  $('sharedView').style.display='block';
+
+  // URL 인코딩 데이터 디코딩
+  let propData=null;
+  const encoded=urlp.get('d');
+  if(encoded){
+    try{propData=JSON.parse(decodeURIComponent(escape(atob(encoded))));}
+    catch(e){console.warn('[share decode]',e);}
+  }
+
+  // Supabase 공개 조회 시도 (RLS 공개 설정 시 동작)
+  if(!propData&&typeof supabaseClient!=='undefined'&&supabaseClient){
+    try{
+      const{data}=await supabaseClient.from('properties').select('*').eq('id',pid).maybeSingle();
+      if(data)propData=data;
+    }catch(e){}
+  }
+
+  if(!propData){
+    $('sharedView').innerHTML=`
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;text-align:center;padding:24px">
+        <div style="font-size:40px">🏢</div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">매물 정보를 불러올 수 없습니다</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">링크가 만료되었거나 잘못된 링크입니다.<br>공유해준 중개사에게 다시 문의해주세요.</div>
+        <a href="${location.origin}${location.pathname}" style="font-size:13px;color:var(--gold);margin-top:8px">← Brokid 바로가기</a>
+      </div>`;
+    return;
+  }
+
+  // 사진 조회 (bucket 공개인 경우 동작)
+  let photos=[];
+  if(typeof supabaseClient!=='undefined'&&supabaseClient){
+    try{
+      const{data}=await supabaseClient.from('property_photos')
+        .select('photo_url,display_order').eq('property_id',pid).order('display_order');
+      if(data)photos=data.map(r=>r.photo_url).filter(Boolean);
+    }catch(e){}
+  }
+
+  renderSharedProperty(propData,photos);
+  // 키보드 화살표 지원
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft')svPrev();
+    else if(e.key==='ArrowRight')svNext();
+  });
+}
+
+function renderSharedProperty(p,photos){
+  const txL={monthly:'월세',yearly:'전세',sale:'매매'};
+  const ptL={office:'사무실',store:'상가',warehouse:'창고',factory:'공장',land:'토지',building:'건물',other:'기타'};
+
+  const badge=`${ptL[p.property_type]||''} · ${txL[p.transaction_type]||''}`.replace(/^ · | · $/,'');
+  $('svBadge').textContent=badge;
+  $('svTitle').textContent=p.title||'제목 없음';
+  $('svAddress').textContent=`📍 ${p.address||'주소 미입력'}`;
+
+  const priceText=_buildPriceTxt(p);
+  $('svPriceBox').innerHTML=`<div class="sv-price-label">거래 가격</div><div class="sv-price-val">${escHtml(priceText)}</div>`;
+
+  const infoItems=[];
+  if(p.area_pyeong)infoItems.push(['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
+  if(p.floor_current||p.floor_total)infoItems.push(['층',`${p.floor_current||'-'}층 / ${p.floor_total||'-'}층`]);
+  if(p.rooms)infoItems.push(['방 수',`${p.rooms}개`]);
+  if(p.bathrooms)infoItems.push(['욕실',String(p.bathrooms)]);
+  if(p.direction)infoItems.push(['방향',p.direction]);
+  if(p.parking_type&&p.parking_type!=='unavailable'){
+    const pl={available:'가능',mechanical:'기계식'};
+    infoItems.push(['주차',pl[p.parking_type]||p.parking_type]);
+  }
+  if(p.move_in_type==='immediate')infoItems.push(['입주','즉시입주']);
+  else if(p.move_in_type==='negotiable')infoItems.push(['입주','협의가능']);
+  else if(p.move_in_type==='immediate_and_negotiable')infoItems.push(['입주','즉시/협의']);
+  else if(p.move_in_date)infoItems.push(['입주',p.move_in_date]);
+  const stL={active:'거래중',pending:'보류',completed:'거래완료'};
+  if(p.status&&p.status!=='active')infoItems.push(['상태',stL[p.status]||p.status]);
+
+  $('svInfoGrid').innerHTML=infoItems.map(([l,v])=>
+    `<div class="sv-info-card"><div class="sv-info-label">${escHtml(l)}</div><div class="sv-info-val">${escHtml(v)}</div></div>`
+  ).join('');
+
+  if(p.notes){
+    $('svNotesWrap').style.display='';
+    $('svNotes').textContent=p.notes;
+  }
+
+  document.title=`${p.title||'매물 소개서'} - Brokid`;
+
+  _svPhotos=photos;_svIdx=0;
+  _renderSvSlide();
+}
+
+function _renderSvSlide(){
+  const area=$('svSlideArea');if(!area)return;
+  if(!_svPhotos.length){area.innerHTML='';return;}
+  const slides=_svPhotos.map((url,i)=>
+    `<div class="sv-slide"><img src="${escHtml(url)}" alt="사진 ${i+1}" loading="${i===0?'eager':'lazy'}" onerror="this.closest('.sv-slide').style.display='none'"></div>`
+  ).join('');
+  const dots=_svPhotos.length>1?_svPhotos.map((_,i)=>
+    `<span class="sv-dot${i===0?' active':''}" onclick="svSlideTo(${i})"></span>`
+  ).join(''):'';
+  const thumbs=_svPhotos.length>1?_svPhotos.map((url,i)=>
+    `<img class="sv-thumb${i===0?' active':''}" src="${escHtml(url)}" alt="" onclick="svSlideTo(${i})" loading="lazy" onerror="this.style.display='none'">`
+  ).join(''):'';
+  area.innerHTML=`
+    <div class="sv-slide-wrap" ontouchstart="svTouchStart(event)" ontouchend="svTouchEnd(event)">
+      <div class="sv-slides" id="svSlides">${slides}</div>
+      ${_svPhotos.length>1?'<button class="sv-arrow prev" onclick="svPrev()">&#8249;</button><button class="sv-arrow next" onclick="svNext()">&#8250;</button>':''}
+    </div>
+    ${dots?`<div class="sv-dots">${dots}</div>`:''}
+    ${thumbs?`<div class="sv-thumbs">${thumbs}</div>`:''}`;
+}
+
+function svSlideTo(idx){
+  if(!_svPhotos.length)return;
+  if(idx<0)idx=_svPhotos.length-1;
+  if(idx>=_svPhotos.length)idx=0;
+  _svIdx=idx;
+  const slides=$('svSlides');
+  if(slides)slides.style.transform=`translateX(-${idx*100}%)`;
+  document.querySelectorAll('.sv-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
+  const thumbEls=document.querySelectorAll('.sv-thumb');
+  thumbEls.forEach((t,i)=>t.classList.toggle('active',i===idx));
+  if(thumbEls[idx])thumbEls[idx].scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+function svPrev(){svSlideTo(_svIdx-1);}
+function svNext(){svSlideTo(_svIdx+1);}
+function svTouchStart(e){_svTouchX=e.touches[0].clientX;}
+function svTouchEnd(e){const dx=e.changedTouches[0].clientX-_svTouchX;if(Math.abs(dx)>40)dx<0?svNext():svPrev();}
+function svCopyLink(){
+  navigator.clipboard.writeText(location.href)
+    .then(()=>_svToast('링크 복사됨!'))
+    .catch(()=>_svToast('복사 실패 — 주소창 URL을 직접 복사해주세요'));
+}
+function _svToast(msg){
+  let el=document.getElementById('_svToastEl');
+  if(!el){
+    el=document.createElement('div');el.id='_svToastEl';
+    Object.assign(el.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',
+      background:'rgba(30,30,30,.95)',border:'1px solid var(--border)',color:'var(--text)',
+      padding:'8px 18px',borderRadius:'20px',fontSize:'13px',zIndex:'10001',transition:'opacity .3s',opacity:'0'});
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2200);
+}
+
 drawCal();
 buildMF();
 renderClients();
 updateRatioBadges();
 initSupabase(); // Supabase 연결 시도
+initSharedView(); // 공유 링크 감지
 </script>
 </body>
 </html>
