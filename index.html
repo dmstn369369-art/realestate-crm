@@ -652,8 +652,9 @@ html{overflow-x:hidden}
 .photo-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
 .photo-drop:hover,.photo-drop.dragover{border-color:var(--gold);background:var(--bg3)}
 .photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
-.photo-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius);overflow:hidden;background:var(--bg3);border:1px solid var(--border)}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius);overflow:hidden;background:var(--bg3);border:1px solid var(--border);cursor:grab}
 .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb.drag-over{border-color:var(--gold);opacity:.65;transform:scale(.97)}
 .photo-del-btn{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,.75);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer}
 .photo-del-btn:hover{background:var(--red)}
 .photo-rep-badge{position:absolute;bottom:3px;left:3px;background:var(--gold);color:var(--bg);font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px}
@@ -1781,8 +1782,40 @@ html{overflow-x:hidden}
               </select>
             </div>
           </div>
+          <!-- 주차여부 -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+            <div class="fg" style="flex:1;min-width:120px;margin-bottom:0"><label>주차</label>
+              <select id="p-parking-type" onchange="onParkingChange()">
+                <option value="">선택 안 함</option>
+                <option value="available">가능</option>
+                <option value="unavailable">불가능</option>
+                <option value="mechanical">기계식주차</option>
+                <option value="custom">직접입력</option>
+              </select>
+            </div>
+            <div class="fg" id="p-parking-count-wrap" style="display:none;flex:1;min-width:100px;margin-bottom:0">
+              <label>주차 대수</label>
+              <input type="number" id="p-parking-count" placeholder="2" min="0">
+            </div>
+            <div class="fg" id="p-parking-custom-wrap" style="display:none;flex:2;min-width:150px;margin-bottom:0">
+              <label>주차 상세</label>
+              <input type="text" id="p-parking-custom" placeholder="주차 상황 직접입력">
+            </div>
+          </div>
+          <!-- 입주가능일 + 매물상태 -->
           <div class="fr" style="margin-bottom:10px">
-            <div class="fg"><label>입주 가능일</label><input type="date" id="p-movein"></div>
+            <div class="fg">
+              <label>입주 가능일</label>
+              <div style="display:flex;gap:12px;margin-bottom:5px">
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
+                  <input type="checkbox" id="p-movein-immediate" onchange="onMoveinTypeChange('immediate')">즉시입주
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
+                  <input type="checkbox" id="p-movein-negotiable" onchange="onMoveinTypeChange('negotiable')">협의입주
+                </label>
+              </div>
+              <input type="date" id="p-movein">
+            </div>
             <div class="fg"><label>매물 상태</label>
               <select id="p-status">
                 <option value="active">거래중</option>
@@ -4843,6 +4876,9 @@ async function loadDataFromSupabase(){
         bathrooms: p.bathrooms,
         direction: p.direction || '',
         move_in_date: p.move_in_date || '',
+        move_in_type: p.move_in_type || null,
+        parking_type: p.parking_type || null,
+        parking_count: p.parking_count || null,
         notes: p.notes || '',
         status: p.status || 'active',
         created_at: p.created_at || '',
@@ -5627,6 +5663,7 @@ let editPropertyId=null;
 let propPhotos=[];
 let _deletedPhotoIds=[];
 let _galIdx=0;
+let _dragSrcIdx=-1;
 let _storageUsedBytes=0;
 const _propThumbs={};
 const STORAGE_LIMIT=1024*1024*1024;
@@ -5690,13 +5727,43 @@ function renderPhotoGrid(){
   const grid=$('photoGrid');
   if(!grid)return;
   grid.innerHTML=propPhotos.map((p,i)=>`
-    <div class="photo-thumb">
+    <div class="photo-thumb" draggable="true"
+      ondragstart="photoDragStart(event,${i})"
+      ondragover="photoDragOver(event,${i})"
+      ondrop="photoDrop(event,${i})"
+      ondragend="photoDragEnd()">
       <img src="${escHtml(p.url)}" alt="">
       ${i===0?'<div class="photo-rep-badge">대표</div>':''}
       <button type="button" class="photo-del-btn" onclick="removePhoto(${i})">✕</button>
     </div>`).join('');
   const cnt=$('photoCount');
   if(cnt)cnt.textContent=`${propPhotos.length}/15`;
+}
+
+function photoDragStart(e,idx){
+  _dragSrcIdx=idx;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(idx));
+}
+function photoDragOver(e,idx){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.photo-thumb').forEach((t,i)=>t.classList.toggle('drag-over',i===idx&&i!==_dragSrcIdx));
+}
+function photoDrop(e,idx){
+  e.preventDefault();
+  document.querySelectorAll('.photo-thumb').forEach(t=>t.classList.remove('drag-over'));
+  if(_dragSrcIdx<0||_dragSrcIdx===idx)return;
+  const moved=propPhotos.splice(_dragSrcIdx,1)[0];
+  propPhotos.splice(idx,0,moved);
+  propPhotos.forEach((p,i)=>{p.order=i;});
+  _dragSrcIdx=-1;
+  renderPhotoGrid();
+  renderGallery();
+}
+function photoDragEnd(){
+  _dragSrcIdx=-1;
+  document.querySelectorAll('.photo-thumb').forEach(t=>t.classList.remove('drag-over'));
 }
 
 function removePhoto(idx){
@@ -5718,6 +5785,24 @@ function initPhotoDrop(){
     e.preventDefault();drop.classList.remove('dragover');
     if(e.dataTransfer.files.length)addPhotos(e.dataTransfer.files);
   };
+}
+
+function onParkingChange(){
+  const v=$('p-parking-type')?.value||'';
+  const countWrap=$('p-parking-count-wrap');
+  const customWrap=$('p-parking-custom-wrap');
+  if(countWrap)countWrap.style.display=v==='available'?'':'none';
+  if(customWrap)customWrap.style.display=v==='custom'?'':'none';
+}
+
+function onMoveinTypeChange(type){
+  const imm=$('p-movein-immediate'),neg=$('p-movein-negotiable'),date=$('p-movein');
+  if(!imm||!neg||!date)return;
+  if(type==='immediate'){if(neg.checked)neg.checked=false;}
+  else{if(imm.checked)imm.checked=false;}
+  const locked=imm.checked||neg.checked;
+  date.disabled=locked;
+  if(locked)date.value='';
 }
 
 async function loadPropertyPhotos(propertyId){
@@ -5776,6 +5861,7 @@ async function uploadAllPhotos(propertyId){
   const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
     typeof currentUser!=='undefined'&&currentUser!==null;
   if(!canUseCloud)return;
+  // 1. 삭제 처리
   for(const {id,path} of _deletedPhotoIds){
     try{
       if(path)await supabaseClient.storage.from('property-photos').remove([path]);
@@ -5783,11 +5869,15 @@ async function uploadAllPhotos(propertyId){
     }catch(e){console.error('[photo del]',e);}
   }
   _deletedPhotoIds=[];
+  // 2. 기존 사진 순서 동기화
+  for(const p of propPhotos.filter(x=>!x.isNew&&x.id)){
+    try{await supabaseClient.from('property_photos').update({display_order:p.order}).eq('id',p.id);}
+    catch(e){console.error('[photo order]',e);}
+  }
+  // 3. 새 사진 업로드
   const newPhotos=propPhotos.filter(p=>p.isNew&&p.file);
-  if(!newPhotos.length)return;
   const pw=$('photoProgWrap'),pb=$('photoProgBar');
-  if(pw)pw.style.display='block';
-  let uploaded=0;
+  if(newPhotos.length&&pw)pw.style.display='block';
   for(let i=0;i<newPhotos.length;i++){
     const p=newPhotos[i];
     const ts=Date.now();
@@ -5799,22 +5889,19 @@ async function uploadAllPhotos(propertyId){
         .upload(path,p.file,{contentType:p.file.type||'image/jpeg',upsert:false});
       if(upErr){console.error('[photo upload]',{code:upErr.code,message:upErr.message});continue;}
       const{data:{publicUrl}}=supabaseClient.storage.from('property-photos').getPublicUrl(path);
-      const existingCnt=propPhotos.filter(x=>!x.isNew).length;
       const{error:dbErr}=await supabaseClient.from('property_photos').insert({
         property_id:propertyId,user_id:currentUser.id,
         photo_url:publicUrl,storage_path:path,
-        file_size:p.file.size,display_order:existingCnt+i
+        file_size:p.file.size,display_order:p.order
       });
       if(dbErr){console.error('[photo db]',{code:dbErr.code,message:dbErr.message});}
-      else{p.url=publicUrl;p.path=path;p.isNew=false;uploaded++;}
+      else{p.url=publicUrl;p.path=path;p.isNew=false;}
     }catch(e){console.error('[photo upload 예외]',e);}
   }
   if(pb)pb.style.width='100%';
   setTimeout(()=>{if(pw)pw.style.display='none';if(pb)pb.style.width='0';},600);
-  if(uploaded){
-    const firstUrl=propPhotos.find(p=>!p.isNew||true)?.url;
-    if(firstUrl)_propThumbs[String(propertyId)]=firstUrl;
-  }
+  // 4. 항상 썸네일 갱신 (삭제/재정렬 후에도 반영)
+  _propThumbs[String(propertyId)]=propPhotos[0]?.url||'';
 }
 
 async function deletePropertyPhotos(propertyId){
@@ -6017,7 +6104,6 @@ async function openPropertyModal(id){
     $('p-rooms').value=p.rooms||'';
     $('p-baths').value=p.bathrooms||'';
     $('p-direction').value=p.direction||'';
-    $('p-movein').value=p.move_in_date||'';
     $('p-status').value=p.status||'active';
     $('p-notes').value=p.notes||'';
     $('p-deposit').value=p.price_deposit||'';
@@ -6025,6 +6111,20 @@ async function openPropertyModal(id){
     $('p-management').value=p.price_management||'';
     $('p-deposit-j').value=p.price_deposit||'';
     $('p-sale').value=p.price_sale||'';
+    // 주차
+    const knownPt=['available','unavailable','mechanical'];
+    const pt=p.parking_type||'';
+    if(knownPt.includes(pt)){$('p-parking-type').value=pt;$('p-parking-custom').value='';}
+    else if(pt){$('p-parking-type').value='custom';$('p-parking-custom').value=pt;}
+    else{$('p-parking-type').value='';}
+    $('p-parking-count').value=p.parking_count||'';
+    onParkingChange();
+    // 입주가능일
+    const mit=p.move_in_type||'';
+    $('p-movein-immediate').checked=mit==='immediate';
+    $('p-movein-negotiable').checked=mit==='negotiable';
+    $('p-movein').value=mit?'':(p.move_in_date||'');
+    $('p-movein').disabled=!!mit;
   }else{
     $('propModalTitle').textContent='매물 등록';
     $('propDelBtn').style.display='none';
@@ -6032,6 +6132,11 @@ async function openPropertyModal(id){
     $('p-ptype').value='office';$('p-txtype').value='monthly';
     $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
     $('p-area-sqm').textContent='';
+    $('p-parking-type').value='';$('p-parking-count').value='';$('p-parking-custom').value='';
+    if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
+    if($('p-movein-negotiable'))$('p-movein-negotiable').checked=false;
+    if($('p-movein'))$('p-movein').disabled=false;
+    onParkingChange();
   }
   onPropTxChange();
   $('mProperty').classList.add('open');
@@ -6072,9 +6177,12 @@ async function saveProperty(){
     rooms: parseInt($('p-rooms').value)||null,
     bathrooms: parseInt($('p-baths').value)||null,
     direction: $('p-direction').value||null,
-    move_in_date: $('p-movein').value||null,
     status: $('p-status').value||'active',
-    notes: $('p-notes').value.trim()||null
+    notes: $('p-notes').value.trim()||null,
+    parking_type: (()=>{const v=$('p-parking-type').value;return v==='custom'?($('p-parking-custom').value.trim()||null):v||null;})(),
+    parking_count: $('p-parking-type').value==='available'?parseInt($('p-parking-count').value)||null:null,
+    move_in_type: $('p-movein-immediate')?.checked?'immediate':$('p-movein-negotiable')?.checked?'negotiable':null,
+    move_in_date: ($('p-movein-immediate')?.checked||$('p-movein-negotiable')?.checked)?null:($('p-movein').value||null)
   };
   const canUseCloud=(
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
