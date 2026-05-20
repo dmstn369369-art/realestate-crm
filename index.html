@@ -235,22 +235,15 @@ input[type="date"],input[type="time"]{
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator{
-  filter:invert(1) brightness(3) contrast(1.2);
+  filter:invert(1) !important;
+  opacity:1 !important;
   cursor:pointer;
-  opacity:1;
-  padding:3px;
-  margin-left:6px;
-  border-radius:4px;
-  transition:all .15s;
-  width:18px;
-  height:18px;
 }
 input[type="date"]::-webkit-calendar-picker-indicator:hover,
 input[type="time"]::-webkit-calendar-picker-indicator:hover,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover{
-  opacity:1;
-  background:var(--gold-dim);
-  filter:invert(70%) sepia(80%) saturate(500%) hue-rotate(10deg) brightness(1.2);
+  filter:invert(70%) sepia(80%) saturate(500%) hue-rotate(10deg) brightness(1.2) !important;
+  opacity:1 !important;
 }
 /* date/time input 다크 테마 - 일부 브라우저 */
 input[type="date"]::-webkit-datetime-edit,
