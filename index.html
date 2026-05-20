@@ -639,6 +639,44 @@ html{overflow-x:hidden}
   .prop-card-head{flex-direction:column;gap:6px}
   .gr3{grid-template-columns:1fr!important}
 }
+/* PROPERTY FORM CARDS */
+.pcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);margin-bottom:10px;overflow:hidden}
+.pcard-head{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;cursor:pointer;user-select:none}
+.pcard-head:hover{background:var(--bg3)}
+.pcard-title{font-size:12px;font-weight:600;color:var(--text)}
+.pcard-arrow{font-size:10px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.pcard-arrow.open{transform:rotate(90deg)}
+.pcard-body{padding:12px 15px 4px}
+.pcard-body.collapsed{display:none}
+/* PHOTO UPLOAD */
+.photo-drop{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.photo-drop:hover,.photo-drop.dragover{border-color:var(--gold);background:var(--bg3)}
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:var(--radius);overflow:hidden;background:var(--bg3);border:1px solid var(--border)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del-btn{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,.75);border:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;cursor:pointer}
+.photo-del-btn:hover{background:var(--red)}
+.photo-rep-badge{position:absolute;bottom:3px;left:3px;background:var(--gold);color:var(--bg);font-size:8px;font-weight:700;padding:1px 4px;border-radius:2px}
+.photo-prog-wrap{height:3px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden;display:none}
+.photo-prog-bar{height:100%;background:var(--gold);transition:width .3s;width:0}
+/* GALLERY */
+.gal-main{position:relative;aspect-ratio:16/9;border-radius:var(--radius2);overflow:hidden;background:var(--bg3);margin-bottom:8px}
+.gal-main img{width:100%;height:100%;object-fit:cover;display:block}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:30px;background:rgba(0,0,0,.6);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.gal-nav:hover{background:rgba(0,0,0,.85)}
+.gal-prev{left:7px}.gal-next{right:7px}
+.gal-thumbs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;-webkit-overflow-scrolling:touch}
+.gal-thumb{width:48px;height:48px;flex-shrink:0;border-radius:var(--radius);overflow:hidden;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.gal-thumb.active{border-color:var(--gold)}
+.gal-thumb img{width:100%;height:100%;object-fit:cover}
+.gal-empty{aspect-ratio:16/9;border-radius:var(--radius2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--text3);margin-bottom:12px}
+/* LIST CARD THUMBNAIL */
+.prop-thumb{width:60px;height:60px;flex-shrink:0;border-radius:var(--radius);overflow:hidden;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text3)}
+.prop-thumb img{width:100%;height:100%;object-fit:cover}
+/* STORAGE */
+.storage-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin:6px 0}
+.storage-fill{height:100%;border-radius:3px;transition:width .3s}
+@media(max-width:600px){.photo-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -1053,6 +1091,22 @@ html{overflow-x:hidden}
                 <button class="btn" onclick="toggleChangePasswordSection()" style="font-size:12px;padding:6px 14px">취소</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- 저장 공간 -->
+        <div class="panel" style="margin-top:12px" id="storagePanel">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">💾</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">저장 공간</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">매물 사진 저장 공간 (최대 1GB)</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:4px 16px 14px" id="storageSection">
+            <div style="font-size:11px;color:var(--text3)">로그인 후 확인 가능합니다</div>
           </div>
         </div>
 
@@ -1638,78 +1692,137 @@ html{overflow-x:hidden}
       <button type="button" class="modal-close" onclick="closePropertyModal()">✕</button>
     </div>
     <div class="modal-body" style="overflow-x:hidden">
-      <div class="fg"><label>매물 제목 *</label><input type="text" id="p-title" placeholder="강남역 사무실, 역세권 원룸 등"></div>
-      <div class="fr">
-        <div class="fg"><label>매물 종류</label>
-          <select id="p-ptype">
-            <option value="office">사무실</option>
-            <option value="commercial">상가</option>
-            <option value="oneroom">원룸</option>
-            <option value="apartment">아파트</option>
-            <option value="villa">빌라</option>
-            <option value="officetel">오피스텔</option>
-          </select>
+      <!-- 갤러리 (수정 시 사진 있을 때) -->
+      <div id="propGallery" style="display:none">
+        <div class="gal-main" id="galMain">
+          <img id="galMainImg" src="" alt="">
+          <button type="button" class="gal-nav gal-prev" onclick="galNav(-1)">‹</button>
+          <button type="button" class="gal-nav gal-next" onclick="galNav(1)">›</button>
         </div>
-        <div class="fg"><label>거래 유형</label>
-          <select id="p-txtype" onchange="onPropTxChange()">
-            <option value="monthly">월세</option>
-            <option value="jeonse">전세</option>
-            <option value="sale">매매</option>
-          </select>
+        <div class="gal-thumbs" id="galThumbs"></div>
+      </div>
+      <div id="galEmpty" class="gal-empty" style="display:none">🏠</div>
+
+      <!-- 카드 1: 기본 정보 -->
+      <div class="pcard">
+        <div class="pcard-head" onclick="togglePCard('pc1')">
+          <span class="pcard-title">📝 기본 정보 <span style="color:var(--red)">*</span></span>
+          <span class="pcard-arrow open" id="pc1-arrow">▶</span>
         </div>
-      </div>
-      <!-- 가격: 월세 — 보증금/월세/관리비 3열 동일 크기 -->
-      <div id="p-price-monthly-wrap">
-        <div class="gr3">
-          <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit" placeholder="5000" min="0"></div>
-          <div class="fg"><label>월세 (만원)</label><input type="number" id="p-monthly" placeholder="200" min="0"></div>
-          <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
-        </div>
-      </div>
-      <!-- 가격: 전세 -->
-      <div id="p-price-jeonse-wrap" style="display:none">
-        <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit-j" placeholder="50000" min="0"></div>
-      </div>
-      <!-- 가격: 매매 -->
-      <div id="p-price-sale-wrap" style="display:none">
-        <div class="fg"><label>매매가 (만원)</label><input type="number" id="p-sale" placeholder="125000" min="0"></div>
-      </div>
-      <div class="fg"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
-      <!-- 면적/해당층/총층 3열 -->
-      <div class="gr3">
-        <div class="fg">
-          <label>면적 (평)</label>
-          <input type="number" id="p-area" placeholder="30" min="0" step="0.1" oninput="updateAreaSqm(this.value)">
-          <div id="p-area-sqm" style="font-size:10px;color:var(--text3);margin-top:2px;min-height:14px"></div>
-        </div>
-        <div class="fg"><label>해당 층</label><input type="number" id="p-floor-cur" placeholder="2" min="0"></div>
-        <div class="fg"><label>총 층</label><input type="number" id="p-floor-tot" placeholder="10" min="0"></div>
-      </div>
-      <!-- 방/욕실/방향 3열 -->
-      <div class="gr3">
-        <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
-        <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
-        <div class="fg"><label>방향</label>
-          <select id="p-direction">
-            <option value="">선택 안 함</option>
-            <option value="남">남</option><option value="북">북</option>
-            <option value="동">동</option><option value="서">서</option>
-            <option value="남동">남동</option><option value="남서">남서</option>
-            <option value="북동">북동</option><option value="북서">북서</option>
-          </select>
+        <div class="pcard-body" id="pc1-body">
+          <div class="fg"><label>매물 제목 *</label><input type="text" id="p-title" placeholder="강남역 사무실, 역세권 원룸 등"></div>
+          <div class="fr">
+            <div class="fg"><label>매물 종류</label>
+              <select id="p-ptype">
+                <option value="office">사무실</option><option value="commercial">상가</option>
+                <option value="oneroom">원룸</option><option value="apartment">아파트</option>
+                <option value="villa">빌라</option><option value="officetel">오피스텔</option>
+              </select>
+            </div>
+            <div class="fg"><label>거래 유형</label>
+              <select id="p-txtype" onchange="onPropTxChange()">
+                <option value="monthly">월세</option><option value="jeonse">전세</option><option value="sale">매매</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
         </div>
       </div>
-      <div class="fr">
-        <div class="fg"><label>입주 가능일</label><input type="date" id="p-movein"></div>
-        <div class="fg"><label>매물 상태</label>
-          <select id="p-status">
-            <option value="active">거래중</option>
-            <option value="pending">보류</option>
-            <option value="completed">완료</option>
-          </select>
+
+      <!-- 카드 2: 가격 정보 -->
+      <div class="pcard">
+        <div class="pcard-head" onclick="togglePCard('pc2')">
+          <span class="pcard-title">💰 가격 정보</span>
+          <span class="pcard-arrow open" id="pc2-arrow">▶</span>
+        </div>
+        <div class="pcard-body" id="pc2-body">
+          <div id="p-price-monthly-wrap">
+            <div class="gr3">
+              <div class="fg"><label>보증금 (만원)</label><input type="number" id="p-deposit" placeholder="5000" min="0"></div>
+              <div class="fg"><label>월세 (만원)</label><input type="number" id="p-monthly" placeholder="200" min="0"></div>
+              <div class="fg"><label>관리비 (만원)</label><input type="number" id="p-management" placeholder="15" min="0"></div>
+            </div>
+          </div>
+          <div id="p-price-jeonse-wrap" style="display:none">
+            <div class="fg" style="margin-bottom:10px"><label>보증금 (만원)</label><input type="number" id="p-deposit-j" placeholder="50000" min="0"></div>
+          </div>
+          <div id="p-price-sale-wrap" style="display:none">
+            <div class="fg" style="margin-bottom:10px"><label>매매가 (만원)</label><input type="number" id="p-sale" placeholder="125000" min="0"></div>
+          </div>
         </div>
       </div>
-      <div class="fg"><label>특이사항</label><textarea id="p-notes" placeholder="주차 가능, 엘리베이터 있음, 즉시 입주 가능..."></textarea></div>
+
+      <!-- 카드 3: 매물 정보 -->
+      <div class="pcard">
+        <div class="pcard-head" onclick="togglePCard('pc3')">
+          <span class="pcard-title">📐 매물 정보</span>
+          <span class="pcard-arrow open" id="pc3-arrow">▶</span>
+        </div>
+        <div class="pcard-body" id="pc3-body">
+          <div class="gr3">
+            <div class="fg">
+              <label>면적 (평)</label>
+              <input type="number" id="p-area" placeholder="30" min="0" step="0.1" oninput="updateAreaSqm(this.value)">
+              <div id="p-area-sqm" style="font-size:10px;color:var(--text3);margin-top:2px;min-height:14px"></div>
+            </div>
+            <div class="fg"><label>해당 층</label><input type="number" id="p-floor-cur" placeholder="2" min="0"></div>
+            <div class="fg"><label>총 층</label><input type="number" id="p-floor-tot" placeholder="10" min="0"></div>
+          </div>
+          <div class="gr3">
+            <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
+            <div class="fg"><label>욕실 수</label><input type="number" id="p-baths" placeholder="1" min="0"></div>
+            <div class="fg"><label>방향</label>
+              <select id="p-direction">
+                <option value="">선택 안 함</option>
+                <option value="남">남</option><option value="북">북</option>
+                <option value="동">동</option><option value="서">서</option>
+                <option value="남동">남동</option><option value="남서">남서</option>
+                <option value="북동">북동</option><option value="북서">북서</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr" style="margin-bottom:10px">
+            <div class="fg"><label>입주 가능일</label><input type="date" id="p-movein"></div>
+            <div class="fg"><label>매물 상태</label>
+              <select id="p-status">
+                <option value="active">거래중</option>
+                <option value="pending">보류</option>
+                <option value="completed">완료</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 카드 4: 상세 설명 -->
+      <div class="pcard">
+        <div class="pcard-head" onclick="togglePCard('pc4')">
+          <span class="pcard-title">📝 상세 설명</span>
+          <span class="pcard-arrow open" id="pc4-arrow">▶</span>
+        </div>
+        <div class="pcard-body" id="pc4-body">
+          <div class="fg" style="margin-bottom:10px"><label>특이사항</label><textarea id="p-notes" placeholder="주차 가능, 엘리베이터 있음, 즉시 입주 가능..."></textarea></div>
+        </div>
+      </div>
+
+      <!-- 카드 5: 사진 -->
+      <div class="pcard">
+        <div class="pcard-head" onclick="togglePCard('pc5')">
+          <span class="pcard-title">📸 매물 사진 <span id="photoCount" style="font-size:10px;color:var(--text3);font-weight:400">0/15</span></span>
+          <span class="pcard-arrow open" id="pc5-arrow">▶</span>
+        </div>
+        <div class="pcard-body" id="pc5-body">
+          <input type="file" id="photoInput" multiple accept="image/*" style="display:none" onchange="addPhotos(this.files)">
+          <div class="photo-drop" id="photoDrop" onclick="$('photoInput').click()">
+            <div style="font-size:24px;margin-bottom:5px">📷</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:3px">클릭하거나 사진을 여기에 끌어다 놓으세요</div>
+            <div style="font-size:10px;color:var(--text3)">최대 15장 · 자동 압축 적용</div>
+          </div>
+          <div class="photo-grid" id="photoGrid"></div>
+          <div class="photo-prog-wrap" id="photoProgWrap"><div class="photo-prog-bar" id="photoProgBar"></div></div>
+          <div style="margin-bottom:10px"></div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <div>
@@ -2117,11 +2230,12 @@ function renderSettingsPage(){
   const cpf=$('changePwForm');
   const arr=$('changePwArrow');
   if(nlg)nlg.style.display=isLoggedIn?'none':'';
-  // always start collapsed when logging in or re-entering settings
   if(cpf)cpf.style.display='none';
   if(arr)arr.textContent='▶';
   const dab=$('deleteAccountBtn');
   if(dab)dab.style.display=isLoggedIn?'':'none';
+  renderStorageSection();
+  if(isLoggedIn)loadStorageUsage();
 }
 
 function toggleChangePasswordSection(){
@@ -5510,6 +5624,287 @@ const PROP_TX_CLS={monthly:'prop-tx-monthly',jeonse:'prop-tx-jeonse',sale:'prop-
 const PROP_STATUS_CLS={active:'prop-status-active',pending:'prop-status-pending',completed:'prop-status-completed'};
 
 let editPropertyId=null;
+let propPhotos=[];
+let _deletedPhotoIds=[];
+let _galIdx=0;
+let _storageUsedBytes=0;
+const _propThumbs={};
+const STORAGE_LIMIT=1024*1024*1024;
+
+function togglePCard(id){
+  const body=$(id+'-body'),arrow=$(id+'-arrow');
+  if(!body)return;
+  const collapsed=body.classList.toggle('collapsed');
+  if(arrow)arrow.classList.toggle('open',!collapsed);
+}
+
+async function compressImage(file,maxW=1920,quality=0.9,maxKB=500){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const tryQ=(q)=>{
+          canvas.toBlob(blob=>{
+            if(!blob){resolve(file);return;}
+            const kb=blob.size/1024;
+            console.log(`[compress] ${file.name}: ${(file.size/1024).toFixed(0)}KB → ${kb.toFixed(0)}KB (q=${q})`);
+            if(kb>maxKB&&q>0.5)tryQ(Math.round((q-0.1)*10)/10);
+            else resolve(new File([blob],file.name.replace(/\.[^.]+$/,'.jpg'),{type:'image/jpeg'}));
+          },'image/jpeg',q);
+        };
+        tryQ(quality);
+      };
+      img.onerror=()=>resolve(file);
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function addPhotos(files){
+  const remaining=15-propPhotos.length;
+  if(remaining<=0){toast('사진은 최대 15장까지 등록할 수 있습니다');return;}
+  const toAdd=Array.from(files).slice(0,remaining);
+  if(files.length>remaining)toast(`${files.length-remaining}장은 한도 초과로 추가되지 않았습니다`);
+  const newBytes=toAdd.reduce((s,f)=>s+f.size,0);
+  const chk=checkStorageBeforeUpload(newBytes);
+  if(!chk.ok){toast(chk.msg);return;}
+  if(chk.warn)toast(chk.warn);
+  for(const file of toAdd){
+    if(!file.type.startsWith('image/')){toast(`${file.name}은 이미지 파일이 아닙니다`);continue;}
+    const compressed=await compressImage(file);
+    const url=URL.createObjectURL(compressed);
+    propPhotos.push({url,file:compressed,size:compressed.size,order:propPhotos.length,isNew:true});
+  }
+  renderPhotoGrid();
+  if($('photoInput'))$('photoInput').value='';
+}
+
+function renderPhotoGrid(){
+  const grid=$('photoGrid');
+  if(!grid)return;
+  grid.innerHTML=propPhotos.map((p,i)=>`
+    <div class="photo-thumb">
+      <img src="${escHtml(p.url)}" alt="">
+      ${i===0?'<div class="photo-rep-badge">대표</div>':''}
+      <button type="button" class="photo-del-btn" onclick="removePhoto(${i})">✕</button>
+    </div>`).join('');
+  const cnt=$('photoCount');
+  if(cnt)cnt.textContent=`${propPhotos.length}/15`;
+}
+
+function removePhoto(idx){
+  const p=propPhotos[idx];
+  if(p.isNew&&p.url)URL.revokeObjectURL(p.url);
+  if(p.id)_deletedPhotoIds.push({id:p.id,path:p.path});
+  propPhotos.splice(idx,1);
+  propPhotos.forEach((x,i)=>{x.order=i;});
+  renderPhotoGrid();
+  renderGallery();
+}
+
+function initPhotoDrop(){
+  const drop=$('photoDrop');
+  if(!drop)return;
+  drop.ondragover=e=>{e.preventDefault();drop.classList.add('dragover');};
+  drop.ondragleave=()=>drop.classList.remove('dragover');
+  drop.ondrop=e=>{
+    e.preventDefault();drop.classList.remove('dragover');
+    if(e.dataTransfer.files.length)addPhotos(e.dataTransfer.files);
+  };
+}
+
+async function loadPropertyPhotos(propertyId){
+  propPhotos=[];
+  if(!propertyId)return;
+  const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null;
+  if(!canUseCloud)return;
+  try{
+    const{data,error}=await supabaseClient.from('property_photos')
+      .select('*').eq('property_id',propertyId).order('display_order');
+    if(error){console.error('[loadPhotos]',{code:error.code,message:error.message});return;}
+    propPhotos=(data||[]).map(r=>({
+      id:r.id,url:r.photo_url,path:r.storage_path,
+      size:r.file_size,order:r.display_order,isNew:false
+    }));
+  }catch(e){console.error('[loadPhotos] 예외:',e);}
+}
+
+function renderGallery(){
+  const galEl=$('propGallery'),emptyEl=$('galEmpty');
+  if(!galEl||!emptyEl)return;
+  const photos=propPhotos;
+  if(!photos.length){
+    galEl.style.display='none';
+    emptyEl.style.display=editPropertyId?'flex':'none';
+    return;
+  }
+  galEl.style.display='';emptyEl.style.display='none';
+  _galIdx=Math.min(_galIdx,photos.length-1);
+  const mainImg=$('galMainImg');
+  if(mainImg)mainImg.src=photos[_galIdx].url;
+  const thumbsEl=$('galThumbs');
+  if(thumbsEl){
+    thumbsEl.innerHTML=photos.map((p,i)=>
+      `<div class="gal-thumb${i===_galIdx?' active':''}" onclick="galThumb(${i})"><img src="${escHtml(p.url)}" alt=""></div>`
+    ).join('');
+  }
+  const prevBtn=galEl.querySelector('.gal-prev'),nextBtn=galEl.querySelector('.gal-next');
+  if(prevBtn)prevBtn.style.display=photos.length>1?'flex':'none';
+  if(nextBtn)nextBtn.style.display=photos.length>1?'flex':'none';
+}
+
+function galNav(dir){
+  if(!propPhotos.length)return;
+  _galIdx=(_galIdx+dir+propPhotos.length)%propPhotos.length;
+  renderGallery();
+}
+
+function galThumb(idx){
+  _galIdx=idx;renderGallery();
+}
+
+async function uploadAllPhotos(propertyId){
+  if(!propertyId)return;
+  const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null;
+  if(!canUseCloud)return;
+  for(const {id,path} of _deletedPhotoIds){
+    try{
+      if(path)await supabaseClient.storage.from('property-photos').remove([path]);
+      if(id)await supabaseClient.from('property_photos').delete().eq('id',id);
+    }catch(e){console.error('[photo del]',e);}
+  }
+  _deletedPhotoIds=[];
+  const newPhotos=propPhotos.filter(p=>p.isNew&&p.file);
+  if(!newPhotos.length)return;
+  const pw=$('photoProgWrap'),pb=$('photoProgBar');
+  if(pw)pw.style.display='block';
+  let uploaded=0;
+  for(let i=0;i<newPhotos.length;i++){
+    const p=newPhotos[i];
+    const ts=Date.now();
+    const ext=p.file.name.split('.').pop().toLowerCase()||'jpg';
+    const path=`${currentUser.id}/${propertyId}/${ts}_${i}.${ext}`;
+    if(pb)pb.style.width=Math.round((i/newPhotos.length)*100)+'%';
+    try{
+      const{error:upErr}=await supabaseClient.storage.from('property-photos')
+        .upload(path,p.file,{contentType:p.file.type||'image/jpeg',upsert:false});
+      if(upErr){console.error('[photo upload]',{code:upErr.code,message:upErr.message});continue;}
+      const{data:{publicUrl}}=supabaseClient.storage.from('property-photos').getPublicUrl(path);
+      const existingCnt=propPhotos.filter(x=>!x.isNew).length;
+      const{error:dbErr}=await supabaseClient.from('property_photos').insert({
+        property_id:propertyId,user_id:currentUser.id,
+        photo_url:publicUrl,storage_path:path,
+        file_size:p.file.size,display_order:existingCnt+i
+      });
+      if(dbErr){console.error('[photo db]',{code:dbErr.code,message:dbErr.message});}
+      else{p.url=publicUrl;p.path=path;p.isNew=false;uploaded++;}
+    }catch(e){console.error('[photo upload 예외]',e);}
+  }
+  if(pb)pb.style.width='100%';
+  setTimeout(()=>{if(pw)pw.style.display='none';if(pb)pb.style.width='0';},600);
+  if(uploaded){
+    const firstUrl=propPhotos.find(p=>!p.isNew||true)?.url;
+    if(firstUrl)_propThumbs[String(propertyId)]=firstUrl;
+  }
+}
+
+async function deletePropertyPhotos(propertyId){
+  const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null;
+  if(!canUseCloud)return;
+  try{
+    const{data}=await supabaseClient.from('property_photos')
+      .select('storage_path').eq('property_id',propertyId);
+    if(data&&data.length){
+      const paths=data.map(r=>r.storage_path).filter(Boolean);
+      if(paths.length)await supabaseClient.storage.from('property-photos').remove(paths);
+    }
+  }catch(e){console.error('[photo deleteAll]',e);}
+}
+
+function checkStorageBeforeUpload(newBytes){
+  const total=_storageUsedBytes+newBytes;
+  const pct=total/STORAGE_LIMIT*100;
+  if(pct>=100)return{ok:false,msg:'저장 공간이 가득 찼습니다. 기존 사진을 삭제 후 다시 시도해주세요'};
+  if(pct>=90)return{ok:true,warn:`업로드 후 저장 공간이 ${pct.toFixed(0)}%가 됩니다. 곧 업로드 불가합니다`};
+  return{ok:true};
+}
+
+async function loadStorageUsage(){
+  const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null;
+  if(!canUseCloud)return 0;
+  try{
+    const{data,error}=await supabaseClient.from('property_photos')
+      .select('file_size,property_id').eq('user_id',currentUser.id);
+    if(error)return 0;
+    _storageUsedBytes=(data||[]).reduce((s,r)=>s+(r.file_size||0),0);
+    const propSet=new Set((data||[]).map(r=>String(r.property_id)));
+    renderStorageSection(data?.length||0,propSet.size);
+    return _storageUsedBytes;
+  }catch(e){return 0;}
+}
+
+function renderStorageSection(photoCount=0,propCount=0){
+  const wrap=$('storageSection');if(!wrap)return;
+  if(!currentUser){wrap.innerHTML='<div style="font-size:11px;color:var(--text3)">로그인 후 확인 가능합니다</div>';return;}
+  const used=_storageUsedBytes,limit=STORAGE_LIMIT;
+  const pct=Math.min(100,Math.round(used/limit*100));
+  const usedMB=(used/1024/1024).toFixed(1);
+  let fillColor='var(--green)';
+  let statusHtml='';
+  if(pct>=100){
+    fillColor='var(--red)';
+    statusHtml=`<div style="font-size:11px;color:var(--red);margin-top:6px">저장 공간이 가득 찼습니다. 사진을 삭제하거나 매물을 정리해주세요</div>`;
+  }else if(pct>=90){
+    fillColor='var(--orange)';
+    statusHtml=`<div style="font-size:11px;color:var(--orange);margin-top:6px">저장 공간 ${pct}% 사용 중 · 곧 업로드 불가합니다</div>`;
+  }else if(pct>=70){
+    fillColor='var(--gold)';
+    statusHtml=`<div style="font-size:11px;color:var(--gold);margin-top:6px">저장 공간 ${pct}% 사용 중</div>`;
+  }
+  const avg=propCount?Math.round(photoCount/propCount*10)/10:0;
+  wrap.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:12px;color:var(--text2)">${usedMB}MB / 1,024MB</span>
+      <span style="font-size:12px;font-weight:700;color:${fillColor}">${pct}%</span>
+    </div>
+    <div class="storage-bar"><div class="storage-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+    <div style="display:flex;gap:16px;font-size:10px;color:var(--text3);margin-top:4px">
+      <span>매물 ${propCount}건</span><span>사진 ${photoCount}장</span>${propCount?`<span>평균 ${avg}장/매물</span>`:''}
+    </div>
+    ${statusHtml}`;
+}
+
+async function loadPropertyThumbs(){
+  const canUseCloud=typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null;
+  if(!canUseCloud)return;
+  const ids=properties.filter(p=>p._supabase).map(p=>p.id);
+  if(!ids.length)return;
+  try{
+    const{data,error}=await supabaseClient.from('property_photos')
+      .select('property_id,photo_url,display_order')
+      .in('property_id',ids).eq('display_order',0);
+    if(error||!data)return;
+    data.forEach(r=>{_propThumbs[String(r.property_id)]=r.photo_url;});
+    if(curPage==='properties'){
+      data.forEach(r=>{
+        const el=document.getElementById('pthumb-'+r.property_id);
+        if(el)el.innerHTML=`<img src="${escHtml(r.photo_url)}" alt="">`;
+      });
+    }
+  }catch(e){console.error('[loadThumbs]',e);}
+}
 
 function formatKoreanPrice(manwon){
   const n=Number(manwon);
@@ -5563,20 +5958,28 @@ function renderProperties(){
     const floor=p.floor_current?`${p.floor_current}층`:null;
     const rooms=p.rooms?`방${p.rooms}`:null;
     const meta=[area,floor,rooms].filter(Boolean).join(' · ');
+    const thumbUrl=_propThumbs[String(p.id)]||'';
+    const thumbInner=thumbUrl?`<img src="${escHtml(thumbUrl)}" alt="">`:'🏠';
     return `<div class="prop-card" onclick="openPropertyModal('${p.id}')">
-      <div class="prop-card-head">
-        <div class="prop-card-title">${escHtml(p.title)}</div>
-        <div class="prop-card-badges">
-          <span class="prop-badge ${PROP_TYPE_CLS[p.property_type]||''}">${PROP_TYPE[p.property_type]||p.property_type}</span>
-          <span class="prop-badge ${PROP_TX_CLS[p.transaction_type]||''}">${PROP_TX[p.transaction_type]||p.transaction_type}</span>
-          <span class="prop-badge ${PROP_STATUS_CLS[p.status]||''}">${PROP_STATUS[p.status]||p.status}</span>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div class="prop-thumb" id="pthumb-${p.id}">${thumbInner}</div>
+        <div style="flex:1;min-width:0">
+          <div class="prop-card-head">
+            <div class="prop-card-title">${escHtml(p.title)}</div>
+            <div class="prop-card-badges">
+              <span class="prop-badge ${PROP_TYPE_CLS[p.property_type]||''}">${PROP_TYPE[p.property_type]||p.property_type}</span>
+              <span class="prop-badge ${PROP_TX_CLS[p.transaction_type]||''}">${PROP_TX[p.transaction_type]||p.transaction_type}</span>
+              <span class="prop-badge ${PROP_STATUS_CLS[p.status]||''}">${PROP_STATUS[p.status]||p.status}</span>
+            </div>
+          </div>
+          <div class="prop-card-addr">${escHtml(p.address||'')}</div>
+          <div class="prop-card-price">${escHtml(formatPropertyPrice(p))}</div>
+          ${meta?`<div class="prop-card-meta"><span>${escHtml(meta)}</span></div>`:''}
         </div>
       </div>
-      <div class="prop-card-addr">${escHtml(p.address||'')}</div>
-      <div class="prop-card-price">${escHtml(formatPropertyPrice(p))}</div>
-      ${meta?`<div class="prop-card-meta"><span>${escHtml(meta)}</span></div>`:''}
     </div>`;
   }).join('');
+  loadPropertyThumbs();
 }
 
 function onPropTxChange(){
@@ -5593,9 +5996,10 @@ function updateAreaSqm(v){
   el.textContent=n>0?`≈ ${(n*3.3058).toFixed(2)}㎡`:'';
 }
 
-function openPropertyModal(id){
+async function openPropertyModal(id){
   if(id!==null&&id!==undefined&&String(id).indexOf('-')===-1&&!isNaN(id)) id=parseInt(id,10);
   editPropertyId=id||null;
+  propPhotos=[];_deletedPhotoIds=[];_galIdx=0;
   const fields=['p-title','p-address','p-area','p-floor-cur','p-floor-tot','p-rooms','p-baths','p-notes','p-deposit','p-monthly','p-management','p-deposit-j','p-sale'];
   if(id){
     const p=properties.find(x=>idEq(x.id,id));
@@ -5631,9 +6035,22 @@ function openPropertyModal(id){
   }
   onPropTxChange();
   $('mProperty').classList.add('open');
+  renderPhotoGrid();
+  renderGallery();
+  initPhotoDrop();
+  if(id){
+    await loadPropertyPhotos(id);
+    renderPhotoGrid();
+    renderGallery();
+  }
 }
 
-function closePropertyModal(){$('mProperty').classList.remove('open');editPropertyId=null;}
+function closePropertyModal(){
+  $('mProperty').classList.remove('open');
+  editPropertyId=null;
+  propPhotos.forEach(p=>{if(p.isNew&&p.url)URL.revokeObjectURL(p.url);});
+  propPhotos=[];_deletedPhotoIds=[];
+}
 
 async function saveProperty(){
   const title=$('p-title').value.trim();
@@ -5671,6 +6088,7 @@ async function saveProperty(){
         if(error){console.error('[saveProperty] 수정 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
         const i=properties.findIndex(x=>idEq(x.id,editPropertyId));
         if(i!==-1) properties[i]={...properties[i],...row};
+        await uploadAllPhotos(editPropertyId);
         toast('매물 수정 완료');
       }else{
         const{data,error}=await supabaseClient.from('properties').insert({
@@ -5678,6 +6096,7 @@ async function saveProperty(){
         }).select().single();
         if(error){console.error('[saveProperty] 추가 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
         properties.unshift({...row,id:data.id,created_at:data.created_at,_supabase:true});
+        await uploadAllPhotos(data.id);
         toast('매물 등록 완료');
       }
     }else{
@@ -5707,10 +6126,12 @@ async function deletePropertyFromModal(){
   );
   if(canUseCloud&&p._supabase){
     try{
+      await deletePropertyPhotos(editPropertyId);
       const{error}=await supabaseClient.from('properties').delete().eq('id',editPropertyId);
       if(error)throw error;
     }catch(err){toast('삭제 실패: '+err.message);return;}
   }
+  delete _propThumbs[String(editPropertyId)];
   properties=properties.filter(x=>!idEq(x.id,editPropertyId));
   persist();closePropertyModal();renderProperties();
   toast('매물이 삭제되었습니다');
