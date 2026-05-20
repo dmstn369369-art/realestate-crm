@@ -304,7 +304,7 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
 .modal-foot{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;background:var(--bg2);border-radius:0 0 16px 16px}
 .modal-foot-right{display:flex;gap:8px;margin-left:auto}
 .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;min-width:0}
-.gr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.gr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;align-items:start}
 .gr3>.fg{margin-bottom:0}
 .fg label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.3px}
 .fg input,.fg select,.fg textarea{padding:8px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:'Noto Sans KR',sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s;width:100%}
@@ -1770,14 +1770,13 @@ html{overflow-x:hidden}
             <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
             <div class="fg">
               <label>욕실 수</label>
-              <input type="text" id="p-baths" placeholder="1 또는 내부 공용 등">
-              <select id="p-baths-select" onchange="onBathsSelect()" style="margin-top:4px;font-size:11px;color:var(--text2)">
-                <option value="">목록에서 선택...</option>
-                <option value="내부 화장실 공용">내부 화장실 공용</option>
-                <option value="내부 남녀 화장실 분리">내부 남녀 화장실 분리</option>
-                <option value="외부 화장실 공용">외부 화장실 공용</option>
-                <option value="외부 남녀 화장실 분리">외부 남녀 화장실 분리</option>
-              </select>
+              <input type="text" id="p-baths" placeholder="1 또는 내부 공용 등" list="baths-list" autocomplete="off">
+              <datalist id="baths-list">
+                <option value="내부 화장실 공용">
+                <option value="내부 남녀 화장실 분리">
+                <option value="외부 화장실 공용">
+                <option value="외부 남녀 화장실 분리">
+              </datalist>
             </div>
             <div class="fg"><label>방향</label>
               <select id="p-direction">
@@ -1793,7 +1792,7 @@ html{overflow-x:hidden}
           <div class="gr3" style="margin-bottom:10px">
             <div class="fg">
               <label>입주 가능일</label>
-              <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:wrap">
+              <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:nowrap">
                 <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:11px;color:var(--text2);white-space:nowrap">
                   <input type="checkbox" id="p-movein-immediate" onchange="onMoveinTypeChange()">즉시입주
                 </label>
@@ -5785,13 +5784,6 @@ function initPhotoDrop(){
   };
 }
 
-function onBathsSelect(){
-  const sel=$('p-baths-select');
-  if(!sel||!sel.value)return;
-  const inp=$('p-baths');
-  if(inp)inp.value=sel.value;
-  sel.value='';
-}
 
 function onParkingChange(){
   const v=$('p-parking-type')?.value||'';
@@ -6138,8 +6130,7 @@ async function openPropertyModal(id){
     $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
     $('p-area-sqm').textContent='';
     $('p-parking-type').value='';$('p-parking-count').value='';$('p-parking-custom').value='';
-    if($('p-baths-select'))$('p-baths-select').value='';
-    if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
+if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
     if($('p-movein-negotiable'))$('p-movein-negotiable').checked=false;
     if($('p-movein'))$('p-movein').disabled=false;
     onParkingChange();
