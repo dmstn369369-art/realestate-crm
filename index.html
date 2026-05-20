@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Brokid - 부동산 중개 보조 시스템</title>
+<meta property="og:title" content="Brokid - 부동산 중개 보조 시스템">
+<meta property="og:description" content="Brokid 매물 소개서">
+<meta property="og:image" content="">
+<meta property="og:url" content="">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Brokid">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Brokid - 부동산 중개 보조 시스템">
+<meta name="twitter:description" content="Brokid 매물 소개서">
+<meta name="twitter:image" content="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Cpath d='M 40 10 L 68 32 L 68 68 L 12 68 L 12 32 Z' fill='none' stroke='%23D4A24C' stroke-width='6' stroke-linejoin='round'/%3E%3Ctext x='40' y='58' font-family='Arial' font-size='28' font-weight='700' fill='%23D4A24C' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -626,6 +636,9 @@ html{overflow-x:hidden}
 .prop-status-completed{background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.2)}
 .prop-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
 .prop-card:hover{border-color:var(--border2)}
+.prop-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0;align-self:center}
+.prop-action-btn{width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;line-height:1}
+.prop-action-btn:hover{background:var(--gold-dim);border-color:var(--gold3);color:var(--gold)}
 .prop-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
 .prop-card-title{font-size:13px;font-weight:700;color:var(--text);font-family:'Noto Serif KR',serif;line-height:1.4}
 .prop-card-badges{display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap}
@@ -696,7 +709,8 @@ html{overflow-x:hidden}
 .sv-thumbs::-webkit-scrollbar{display:none}
 .sv-thumb{width:58px;height:42px;object-fit:cover;border-radius:4px;cursor:pointer;opacity:.5;border:2px solid transparent;flex-shrink:0;transition:opacity .2s,border-color .2s}
 .sv-thumb.active{opacity:1;border-color:var(--gold)}
-.sv-body{max-width:680px;margin:0 auto;padding:18px 16px 110px}
+.sv-inner{max-width:600px;margin:0 auto}
+.sv-body{padding:18px 16px 110px}
 .sv-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.35}
 .sv-address{font-size:12px;color:var(--text2);margin-bottom:14px}
 .sv-price-box{background:var(--gold-dim);border:1px solid var(--gold3);border-radius:var(--radius2);padding:14px 18px;margin-bottom:14px}
@@ -2160,17 +2174,19 @@ html{overflow-x:hidden}
     <span class="sv-logo">BROKID</span>
     <span class="sv-badge" id="svBadge"></span>
   </div>
-  <div id="svSlideArea"></div>
-  <div class="sv-body">
-    <div class="sv-title" id="svTitle"></div>
-    <div class="sv-address" id="svAddress"></div>
-    <div id="svPriceBox" class="sv-price-box"></div>
-    <div class="sv-info-grid" id="svInfoGrid"></div>
-    <div id="svNotesWrap" style="display:none">
-      <div class="sv-sec-title">특이사항</div>
-      <div class="sv-notes" id="svNotes"></div>
+  <div class="sv-inner">
+    <div id="svSlideArea"></div>
+    <div class="sv-body">
+      <div class="sv-title" id="svTitle"></div>
+      <div class="sv-address" id="svAddress"></div>
+      <div id="svPriceBox" class="sv-price-box"></div>
+      <div class="sv-info-grid" id="svInfoGrid"></div>
+      <div id="svNotesWrap" style="display:none">
+        <div class="sv-sec-title">특이사항</div>
+        <div class="sv-notes" id="svNotes"></div>
+      </div>
+      <div class="sv-foot">Brokid에서 제작 · brokid.kr</div>
     </div>
-    <div class="sv-foot">Brokid에서 제작 · brokid.kr</div>
   </div>
   <div class="sv-bar">
     <button class="sv-btn-call" id="svBtnCall">📞 문의하기</button>
@@ -6125,10 +6141,10 @@ function renderProperties(){
     const meta=[area,floor,rooms].filter(Boolean).join(' · ');
     const thumbUrl=_propThumbs[String(p.id)]||'';
     const thumbInner=thumbUrl?`<img src="${escHtml(thumbUrl)}" alt="">`:'🏠';
-    return `<div class="prop-card" onclick="openPropertyModal('${p.id}')">
-      <div style="display:flex;gap:10px;align-items:flex-start">
-        <div class="prop-thumb" id="pthumb-${p.id}">${thumbInner}</div>
-        <div style="flex:1;min-width:0">
+    return `<div class="prop-card">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="prop-thumb" id="pthumb-${p.id}" onclick="openPropertyModal('${p.id}')" style="flex-shrink:0">${thumbInner}</div>
+        <div style="flex:1;min-width:0" onclick="openPropertyModal('${p.id}')">
           <div class="prop-card-head">
             <div class="prop-card-title">${escHtml(p.title)}</div>
             <div class="prop-card-badges">
@@ -6140,6 +6156,10 @@ function renderProperties(){
           <div class="prop-card-addr">${escHtml(p.address||'')}</div>
           <div class="prop-card-price">${escHtml(formatPropertyPrice(p))}</div>
           ${meta?`<div class="prop-card-meta"><span>${escHtml(meta)}</span></div>`:''}
+        </div>
+        <div class="prop-actions" onclick="event.stopPropagation()">
+          <button class="prop-action-btn" onclick="generatePropertyPDF('${p.id}')" title="PDF 소개서">📥</button>
+          <button class="prop-action-btn" onclick="sharePropertyLink('${p.id}')" title="링크 공유">🌐</button>
         </div>
       </div>
     </div>`;
@@ -6834,18 +6854,20 @@ function _buildPriceTxt(p){
   return '가격 미입력';
 }
 
-/* PDF — 새 탭 열고 인쇄 */
-async function generatePropertyPDF(){
-  const p=properties.find(x=>idEq(x.id,editPropertyId));
+/* PDF — 새 탭 열고 인쇄 (2페이지) */
+async function generatePropertyPDF(propId){
+  const targetId=propId||editPropertyId;
+  const p=properties.find(x=>idEq(x.id,targetId));
   if(!p){toast('매물 정보를 찾을 수 없습니다');return;}
   toast('소개서 준비 중...');
 
-  // 사진 수집 (propPhotos 우선, 없으면 DB 조회)
-  let photos=propPhotos.filter(ph=>ph.url).map(ph=>ph.url);
-  if(!photos.length&&typeof supabaseClient!=='undefined'&&supabaseClient&&editPropertyId){
+  // 사진 수집: 카드에서 호출 시 항상 DB 조회, 모달에서 호출 시 propPhotos 우선
+  let photos=[];
+  if(!propId&&propPhotos.length)photos=propPhotos.filter(ph=>ph.url).map(ph=>ph.url);
+  if(!photos.length&&typeof supabaseClient!=='undefined'&&supabaseClient){
     try{
       const{data}=await supabaseClient.from('property_photos')
-        .select('photo_url,display_order').eq('property_id',editPropertyId).order('display_order');
+        .select('photo_url,display_order').eq('property_id',targetId).order('display_order');
       if(data)photos=data.map(r=>r.photo_url).filter(Boolean);
     }catch(e){}
   }
@@ -6854,6 +6876,8 @@ async function generatePropertyPDF(){
   const ptL={office:'사무실',store:'상가',warehouse:'창고',factory:'공장',land:'토지',building:'건물',other:'기타'};
   const dateStr=new Date().toLocaleDateString('ko-KR');
   const priceText=_buildPriceTxt(p);
+  const agentOrg=typeof currentOrganization!=='undefined'&&currentOrganization?currentOrganization.name||'':'';
+  const agentEmail=typeof currentUser!=='undefined'&&currentUser?currentUser.email||'':'';
 
   const infoRows=[];
   if(p.area_pyeong)infoRows.push(['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
@@ -6876,13 +6900,11 @@ async function generatePropertyPDF(){
       <div style="font-size:13px;font-weight:600;color:#111">${v}</div>
     </div>`).join('');
 
-  const mainPhotoHtml=photos[0]?`<div style="width:100%;max-height:340px;overflow:hidden;margin-bottom:0"><img src="${photos[0]}" alt="" style="width:100%;max-height:340px;object-fit:cover;display:block" crossorigin="anonymous"></div>`:'';
-  const extraPhotosHtml=photos.length>1?`
-    <div style="margin-bottom:18px">
-      <div style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">사진</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-        ${photos.slice(1,5).map(u=>`<img src="${u}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px" crossorigin="anonymous">`).join('')}
-      </div>
+  const mainPhotoHtml=photos[0]?`<div style="width:100%;height:280px;overflow:hidden"><img src="${photos[0]}" alt="" style="width:100%;height:280px;object-fit:cover;display:block" crossorigin="anonymous"></div>`:'';
+  // 2페이지 사진 격자
+  const photoGridHtml=photos.length>1?`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${photos.slice(0,15).map(u=>`<img src="${u}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block" crossorigin="anonymous">`).join('')}
     </div>`:'';
 
   const html=`<!DOCTYPE html><html lang="ko"><head>
@@ -6892,32 +6914,43 @@ async function generatePropertyPDF(){
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-@page{margin:0;size:A4}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@page{margin:12mm 15mm;size:A4}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg2{page-break-before:always;break-before:page}}
+.pg1{page-break-after:always;break-after:page}
+.pg2{page-break-before:always;break-before:page}
 </style>
 </head><body>
-<div style="background:#0d1117;color:#d4a843;padding:20px 28px;display:flex;align-items:center;justify-content:space-between">
-  <span style="font-size:22px;font-weight:700;letter-spacing:2px">BROKID</span>
-  <span style="font-size:11px;border:1px solid #d4a843;padding:4px 12px;border-radius:20px">${ptL[p.property_type]||p.property_type||''} · ${txL[p.transaction_type]||''}</span>
-  <span style="font-size:11px;color:#8b949e">${dateStr}</span>
-</div>
-${mainPhotoHtml}
-<div style="padding:24px 28px">
-  <div style="font-size:20px;font-weight:700;margin-bottom:4px">${(p.title||'제목 없음').replace(/</g,'&lt;')}</div>
-  <div style="font-size:13px;color:#666;margin-bottom:18px">📍 ${(p.address||'주소 미입력').replace(/</g,'&lt;')}</div>
-  <div style="background:#fffbf0;border:1.5px solid #d4a843;border-radius:10px;padding:14px 18px;margin-bottom:18px">
-    <div style="font-size:10px;color:#8a6820;letter-spacing:.5px;margin-bottom:4px">거래 가격</div>
-    <div style="font-size:22px;font-weight:700;color:#8a6820">${priceText.replace(/</g,'&lt;')}</div>
+<!-- Page 1 -->
+<div class="pg1">
+  <div style="background:#0d1117;color:#d4a843;padding:16px 0 16px;display:flex;align-items:center;justify-content:space-between;margin:-12mm -15mm 0;padding:16px 15mm">
+    <span style="font-size:20px;font-weight:700;letter-spacing:2px">BROKID</span>
+    <span style="font-size:10px;border:1px solid #d4a843;padding:3px 10px;border-radius:20px">${ptL[p.property_type]||p.property_type||''} · ${txL[p.transaction_type]||''}</span>
+    <span style="font-size:10px;color:#8b949e">${dateStr}</span>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">${infoCardsHtml}</div>
-  ${p.notes?`<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">특이사항</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:13px 15px;white-space:pre-wrap;font-size:13px;color:#444;line-height:1.65">${(p.notes).replace(/</g,'&lt;')}</div></div>`:''}
-  ${extraPhotosHtml}
+  <div style="margin:0 -15mm">${mainPhotoHtml}</div>
+  <div style="margin-top:18px">
+    <div style="font-size:19px;font-weight:700;margin-bottom:4px">${(p.title||'제목 없음').replace(/</g,'&lt;')}</div>
+    <div style="font-size:12px;color:#666;margin-bottom:14px">📍 ${(p.address||'주소 미입력').replace(/</g,'&lt;')}</div>
+    <div style="background:#fffbf0;border:1.5px solid #d4a843;border-radius:10px;padding:12px 16px;margin-bottom:14px">
+      <div style="font-size:9px;color:#8a6820;letter-spacing:.5px;margin-bottom:3px">거래 가격</div>
+      <div style="font-size:20px;font-weight:700;color:#8a6820">${priceText.replace(/</g,'&lt;')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">${infoCardsHtml}</div>
+    ${p.notes?`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">특이사항</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.6">${(p.notes).replace(/</g,'&lt;')}</div></div>`:''}
+    ${agentOrg||agentEmail?`<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:4px;display:flex;align-items:center;gap:12px"><div style="width:36px;height:36px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:700;font-size:14px;flex-shrink:0">B</div><div><div style="font-size:12px;font-weight:700;color:#111">${agentOrg.replace(/</g,'&lt;')||'Brokid'}</div>${agentEmail?`<div style="font-size:11px;color:#666">${agentEmail.replace(/</g,'&lt;')}</div>`:''}</div></div>`:''}
+    ${photos.length>1?`<div style="margin-top:12px;font-size:10px;color:#9ca3af;text-align:center">다음 페이지에 매물 사진 ${Math.min(photos.length,15)}장이 있습니다</div>`:''}
+  </div>
 </div>
-<div style="background:#0d1117;color:#8b949e;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;font-size:11px">
-  <span style="color:#d4a843;font-weight:700">BROKID</span>
-  <span>Brokid에서 제작 · brokid.kr</span>
-</div>
-<script>window.onload=function(){setTimeout(function(){window.print();},600);}<\/script>
+${photos.length>1?`<!-- Page 2 -->
+<div class="pg2">
+  <div style="background:#0d1117;color:#d4a843;padding:14px 0;display:flex;align-items:center;justify-content:space-between;margin:-12mm -15mm 16px;padding:14px 15mm">
+    <span style="font-size:16px;font-weight:700;letter-spacing:2px">BROKID</span>
+    <span style="font-size:11px;color:#8b949e">${(p.title||'매물').replace(/</g,'&lt;')} · 사진</span>
+  </div>
+  ${photoGridHtml}
+  <div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:16px">Brokid에서 제작 · brokid.kr</div>
+</div>`:''}
+<script>window.onload=function(){setTimeout(function(){window.print();},700);}<\/script>
 </body></html>`;
 
   const w=window.open('','_blank');
@@ -6929,8 +6962,9 @@ ${mainPhotoHtml}
 
 /* 웹 링크 공유 */
 let _shareUrl='';
-function sharePropertyLink(){
-  const p=properties.find(x=>idEq(x.id,editPropertyId));
+function sharePropertyLink(propId){
+  const targetId=propId||editPropertyId;
+  const p=properties.find(x=>idEq(x.id,targetId));
   if(!p){toast('매물 정보를 찾을 수 없습니다');return;}
   const d={
     title:p.title||'',address:p.address||'',property_type:p.property_type||'',
@@ -6945,9 +6979,9 @@ function sharePropertyLink(){
   };
   try{
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
-    _shareUrl=`${location.origin}${location.pathname}?p=${editPropertyId}&d=${encoded}`;
+    _shareUrl=`${location.origin}${location.pathname}?p=${targetId}&d=${encoded}`;
   }catch(e){
-    _shareUrl=`${location.origin}${location.pathname}?p=${editPropertyId}`;
+    _shareUrl=`${location.origin}${location.pathname}?p=${targetId}`;
   }
   $('shareUrlBox').textContent=_shareUrl;
   $('mShare').classList.add('open');
@@ -7063,7 +7097,20 @@ function renderSharedProperty(p,photos){
     $('svNotes').textContent=p.notes;
   }
 
-  document.title=`${p.title||'매물 소개서'} - Brokid`;
+  const _pgTitle=`${p.title||'매물 소개서'} - Brokid`;
+  document.title=_pgTitle;
+  // OG 메타 태그 동적 업데이트 (브라우저에서 공유 시 반영)
+  const _pgDesc=`${_buildPriceTxt(p)} · ${p.address||''}`;
+  const _setM=(sel,attr,val)=>{const el=document.querySelector(sel);if(el&&val)el.setAttribute(attr,val);};
+  _setM('meta[property="og:title"]','content',_pgTitle);
+  _setM('meta[property="og:description"]','content',_pgDesc);
+  _setM('meta[property="og:url"]','content',location.href);
+  _setM('meta[name="twitter:title"]','content',_pgTitle);
+  _setM('meta[name="twitter:description"]','content',_pgDesc);
+  if(photos[0]){
+    _setM('meta[property="og:image"]','content',photos[0]);
+    _setM('meta[name="twitter:image"]','content',photos[0]);
+  }
 
   _svPhotos=photos;_svIdx=0;
   _renderSvSlide();
