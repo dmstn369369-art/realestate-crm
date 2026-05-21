@@ -1821,15 +1821,14 @@ html{overflow-x:hidden}
           </div>
           <div class="gr3">
             <div class="fg"><label>방 수</label><input type="number" id="p-rooms" placeholder="2" min="0"></div>
-            <div class="fg">
-              <label>욕실 수</label>
-              <input type="text" id="p-baths" placeholder="1 또는 내부 공용 등" list="baths-list" autocomplete="off">
-              <datalist id="baths-list">
-                <option value="내부 화장실 공용">
-                <option value="내부 남녀 화장실 분리">
-                <option value="외부 화장실 공용">
-                <option value="외부 남녀 화장실 분리">
-              </datalist>
+            <div class="fg"><label>욕실 수</label>
+              <select id="p-baths">
+                <option value="">선택 안 함</option>
+                <option value="내부 화장실 공용">내부 화장실 공용</option>
+                <option value="내부 남녀 화장실 분리">내부 남녀 화장실 분리</option>
+                <option value="외부 화장실 공용">외부 화장실 공용</option>
+                <option value="외부 남녀 화장실 분리">외부 남녀 화장실 분리</option>
+              </select>
             </div>
             <div class="fg"><label>방향</label>
               <select id="p-direction">
@@ -1841,8 +1840,8 @@ html{overflow-x:hidden}
               </select>
             </div>
           </div>
-          <!-- 입주가능일 / 거래상태 / 주차 — 3등분 -->
-          <div class="gr3" style="margin-bottom:10px">
+          <!-- 입주가능일 / 거래상태 / 주차 / 엘리베이터 — 4등분 -->
+          <div class="gr3" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:10px">
             <div class="fg">
               <label>입주 가능일</label>
               <div style="display:flex;gap:10px;margin-bottom:5px;flex-wrap:nowrap">
@@ -1872,6 +1871,13 @@ html{overflow-x:hidden}
               </select>
               <input type="number" id="p-parking-count" placeholder="주차 대수" min="0" style="display:none;margin-top:4px">
               <input type="text" id="p-parking-custom" placeholder="직접입력" style="display:none;margin-top:4px">
+            </div>
+            <div class="fg"><label>엘리베이터</label>
+              <select id="p-elevator">
+                <option value="">선택 안 함</option>
+                <option value="available">유</option>
+                <option value="unavailable">무</option>
+              </select>
             </div>
           </div>
         </div>
@@ -6208,8 +6214,9 @@ async function openPropertyModal(id){
     $('p-floor-cur').value=p.floor_current||'';
     $('p-floor-tot').value=p.floor_total||'';
     $('p-rooms').value=p.rooms||'';
-    $('p-baths').value=p.bathrooms!=null?String(p.bathrooms):'';
+    $('p-baths').value=p.bathrooms||'';
     $('p-direction').value=p.direction||'';
+    $('p-elevator').value=p.elevator||'';
     $('p-status').value=p.status||'active';
     $('p-notes').value=p.notes||'';
     $('p-deposit').value=p.price_deposit||'';
@@ -6239,7 +6246,7 @@ async function openPropertyModal(id){
     if($('propShareBtn'))$('propShareBtn').style.display='none';
     fields.forEach(f=>{const el=$(f);if(el)el.value='';});
     $('p-ptype').value='office';$('p-txtype').value='monthly';
-    $('p-direction').value='';$('p-movein').value='';$('p-status').value='active';
+    $('p-direction').value='';$('p-elevator').value='';$('p-movein').value='';$('p-status').value='active';
     $('p-area-sqm').textContent='';
     $('p-parking-type').value='';$('p-parking-count').value='';$('p-parking-custom').value='';
 if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
@@ -6284,8 +6291,9 @@ async function saveProperty(){
     floor_current: parseInt($('p-floor-cur').value)||null,
     floor_total: parseInt($('p-floor-tot').value)||null,
     rooms: parseInt($('p-rooms').value)||null,
-    bathrooms: $('p-baths').value.trim()||null,
+    bathrooms: $('p-baths').value||null,
     direction: $('p-direction').value||null,
+    elevator: $('p-elevator').value||null,
     status: $('p-status').value||'active',
     notes: $('p-notes').value.trim()||null,
     parking_type: (()=>{const v=$('p-parking-type').value;return v==='custom'?($('p-parking-custom').value.trim()||null):v||null;})(),
@@ -6911,6 +6919,7 @@ async function generatePropertyPDF(propId,showAddr){
     const pl={available:'가능',mechanical:'기계식'};
     infoRows.push(['주차',pl[p.parking_type]||p.parking_type]);
   }
+  if(p.elevator){const el={available:'유',unavailable:'무'};infoRows.push(['엘리베이터',el[p.elevator]||p.elevator]);}
   if(p.move_in_type==='immediate')infoRows.push(['입주','즉시입주']);
   else if(p.move_in_type==='negotiable')infoRows.push(['입주','협의가능']);
   else if(p.move_in_type==='immediate_and_negotiable')infoRows.push(['입주','즉시/협의']);
@@ -7002,7 +7011,7 @@ function _getShareUrl(p){
     rooms:p.rooms||null,bathrooms:p.bathrooms||null,direction:p.direction||'',
     move_in_date:p.move_in_date||'',move_in_type:p.move_in_type||null,
     parking_type:p.parking_type||null,parking_count:p.parking_count||null,
-    notes:p.notes||''};
+    elevator:p.elevator||null,notes:p.notes||''};
   try{
     const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
     return `${location.origin}${location.pathname}?p=${_sharePropId}&d=${encoded}`;
@@ -7150,6 +7159,7 @@ function renderSharedProperty(p,photos){
     const pl={available:'가능',mechanical:'기계식'};
     infoItems.push(['주차',pl[p.parking_type]||p.parking_type]);
   }
+  if(p.elevator){const el={available:'유',unavailable:'무'};infoItems.push(['엘리베이터',el[p.elevator]||p.elevator]);}
   if(p.move_in_type==='immediate')infoItems.push(['입주','즉시입주']);
   else if(p.move_in_type==='negotiable')infoItems.push(['입주','협의가능']);
   else if(p.move_in_type==='immediate_and_negotiable')infoItems.push(['입주','즉시/협의']);
