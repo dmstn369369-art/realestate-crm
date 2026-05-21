@@ -7000,24 +7000,8 @@ function _maskAddr(addr){
   return addr.split(' ').slice(0,3).join(' ');
 }
 
-function _getShareUrl(p){
-  const showAddr=$('shareShowAddr')?.checked||false;
-  const addr=showAddr?(p.address||''):_maskAddr(p.address||'');
-  const d={title:p.title||'',address:addr,property_type:p.property_type||'',
-    transaction_type:p.transaction_type||'',price_sale:p.price_sale||null,
-    price_deposit:p.price_deposit||null,price_monthly:p.price_monthly||null,
-    price_management:p.price_management||null,area_pyeong:p.area_pyeong||null,
-    floor_current:p.floor_current||null,floor_total:p.floor_total||null,
-    rooms:p.rooms||null,bathrooms:p.bathrooms||null,direction:p.direction||'',
-    move_in_date:p.move_in_date||'',move_in_type:p.move_in_type||null,
-    parking_type:p.parking_type||null,parking_count:p.parking_count||null,
-    elevator:p.elevator||null,notes:p.notes||''};
-  try{
-    const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
-    return `${location.origin}${location.pathname}?p=${_sharePropId}&d=${encoded}`;
-  }catch(e){
-    return `${location.origin}${location.pathname}?p=${_sharePropId}`;
-  }
+function _getShareUrl(){
+  return `${location.origin}${location.pathname}?p=${_sharePropId}`;
 }
 
 function _buildShareText(p){
@@ -7028,7 +7012,7 @@ function _buildShareText(p){
   const tx=txL[p.transaction_type]||'';
   const area=p.area_pyeong?`${p.area_pyeong}평`:'';
   const floor=p.floor_current?`${p.floor_current}층 / 총 ${p.floor_total||'?'}층`:'';
-  const url=_getShareUrl(p);
+  const url=_getShareUrl();
   const lines=[`🏠 ${p.title||'매물'}`,`💰 ${[tx,price].filter(Boolean).join(' ')}`];
   if(area)lines.push(`📐 ${area}`);
   if(floor)lines.push(`🏢 ${floor}`);
@@ -7092,16 +7076,9 @@ async function initSharedView(){
   });
   $('sharedView').style.display='block';
 
-  // URL 인코딩 데이터 디코딩
+  // Supabase 공개 조회 (공개 RLS)
   let propData=null;
-  const encoded=urlp.get('d');
-  if(encoded){
-    try{propData=JSON.parse(decodeURIComponent(escape(atob(encoded))));}
-    catch(e){console.warn('[share decode]',e);}
-  }
-
-  // Supabase 공개 조회 시도 (RLS 공개 설정 시 동작)
-  if(!propData&&typeof supabaseClient!=='undefined'&&supabaseClient){
+  if(typeof supabaseClient!=='undefined'&&supabaseClient){
     try{
       const{data}=await supabaseClient.from('properties').select('*').eq('id',pid).maybeSingle();
       if(data)propData=data;
