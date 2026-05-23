@@ -1209,16 +1209,17 @@ html{overflow-x:hidden}
 
         <!-- 데이터 백업 -->
         <div class="panel" style="margin-top:12px">
-          <div class="panel-head">
-            <div style="display:flex;align-items:center;gap:10px">
+          <div class="panel-head" onclick="toggleBackupSection()" style="cursor:pointer;user-select:none">
+            <div style="display:flex;align-items:center;gap:10px;flex:1">
               <span style="font-size:20px">📦</span>
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--text)">데이터 백업</div>
                 <div style="font-size:11px;color:var(--text3);margin-top:2px">내 데이터를 파일로 내려받습니다</div>
               </div>
             </div>
+            <span id="backupArrow" style="font-size:12px;color:var(--text3);margin-left:auto">▶</span>
           </div>
-          <div style="padding:0 16px 16px">
+          <div id="backupBody" style="display:none;padding:0 16px 16px">
             <div id="backupLoginNotice" style="font-size:11px;color:var(--text3);padding:8px 0">로그인 후 사용 가능합니다</div>
             <div id="backupForm" style="display:none">
               <div style="margin:8px 0 14px">
@@ -4526,6 +4527,15 @@ async function handleContactCsvUpload(e){
 // ═══════════════════════════════════════════════════════
 
 // ─── 데이터 백업 (내보내기) ───
+
+function toggleBackupSection(){
+  const body = $('backupBody');
+  const arrow = $('backupArrow');
+  if(!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if(arrow) arrow.textContent = isOpen ? '▶' : '▼';
+}
 
 function toggleAllBackup(allChk){
   document.querySelectorAll('.bk-item').forEach(c => c.checked = allChk.checked);
