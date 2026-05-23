@@ -847,6 +847,9 @@ html{overflow-x:hidden}
     <div class="ni" id="navProperties" onclick="go('properties',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14V7.5L8 2l7 5.5V14a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><path d="M5 15V9h6v6"/></svg>매물관리
     </div>
+    <div class="ni" onclick="go('contacts',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>주소록
+    </div>
     <div class="ni" onclick="go('settings',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>설정
     </div>
@@ -944,6 +947,40 @@ html{overflow-x:hidden}
         <table>
           <thead><tr><th>중요도</th><th>인입일</th><th>고객명</th><th>전화번호</th><th>유형</th><th>진행단계</th><th>찾는 조건 / 메모</th><th>관리</th></tr></thead>
           <tbody id="clientTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONTACTS (주소록) -->
+    <div class="page" id="p-contacts">
+      <div class="filters">
+        <div class="sbar">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+          <input type="text" id="contact-search" placeholder="이름, 전화번호, 메모 검색..." oninput="renderContacts()">
+        </div>
+        <select class="btn" id="contact-cat-filter" onchange="renderContacts()">
+          <option value="">구분 전체</option>
+          <option value="owner">집주인</option>
+          <option value="tenant">세입자</option>
+        </select>
+        <button class="btn btn-gold" onclick="openContactModal(null)" style="white-space:nowrap">+ 연락처 추가</button>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <span style="font-size:12px;font-weight:600">주소록</span>
+          <span id="contactCount" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>이름</th>
+              <th>전화번호</th>
+              <th>메모</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="contactTable"></tbody>
         </table>
       </div>
     </div>
@@ -1727,6 +1764,38 @@ html{overflow-x:hidden}
   </div>
 </div>
 
+<!-- CONTACT MODAL (주소록) -->
+<div class="modal" id="mContact">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="contactModalTitle">연락처 추가</div>
+      <button type="button" class="modal-close" onclick="closeContactModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fr">
+        <div class="fg"><label>이름 *</label><input type="text" id="ct-name" placeholder="홍길동"></div>
+        <div class="fg"><label>구분 *</label>
+          <select id="ct-category">
+            <option value="owner">집주인</option>
+            <option value="tenant">세입자</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>전화번호</label><input type="tel" id="ct-phone" placeholder="010-0000-0000" inputmode="tel"></div>
+      <div class="fg"><label>메모</label><textarea id="ct-memo" placeholder="특이사항, 매물 주소 등..."></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <div>
+        <button type="button" class="btn btn-red" id="contactDelBtn" style="display:none" onclick="deleteContactFromModal()">삭제</button>
+      </div>
+      <div class="modal-foot-right">
+        <button type="button" class="btn" onclick="closeContactModal()">취소</button>
+        <button type="button" class="btn btn-gold" onclick="saveContact()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PROPERTY MODAL -->
 <div class="modal" id="mProperty">
   <div class="modal-box" style="width:800px;max-width:calc(100vw - 32px)">
@@ -2219,7 +2288,7 @@ html{overflow-x:hidden}
 // ═══════════════════════════════════════════════════════
 // DATA LAYER
 // ═══════════════════════════════════════════════════════
-const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings',properties:'crm5_properties'};
+const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings',properties:'crm5_properties',contacts:'crm5_contacts'};
 function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
 // UUID(문자열)와 로컬 숫자 ID 모두 안전하게 비교
@@ -2230,6 +2299,7 @@ let events     = ld(KEY.events)     || mkEvents();
 let fees       = ld(KEY.fees)       || [];
 let uid        = ld(KEY.uid)        || {c:200,e:300,f:400,p:500};
 let properties = ld(KEY.properties) || [];
+let contacts   = ld(KEY.contacts)   || [];
 let contractsRaw = ld(KEY.contracts);
 // 마이그레이션: 옛 구조({eventId: data}) → 새 구조([계약, 계약, ...])
 let contracts = migrateContracts(contractsRaw);
@@ -2266,7 +2336,7 @@ function migrateContracts(raw){
   });
   return arr;
 }
-function persist(){sv(KEY.clients,clients);sv(KEY.events,events);sv(KEY.fees,fees);sv(KEY.uid,uid);sv(KEY.contracts,contracts);sv(KEY.settings,settings);sv(KEY.properties,properties);}
+function persist(){sv(KEY.clients,clients);sv(KEY.events,events);sv(KEY.fees,fees);sv(KEY.uid,uid);sv(KEY.contracts,contracts);sv(KEY.settings,settings);sv(KEY.properties,properties);sv(KEY.contacts,contacts);}
 
 // ═══════════════════════════════════════════════════════
 // SETTINGS (정산 비율 등)
@@ -2313,12 +2383,13 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',contacts:'주소록',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='properties')renderProperties();
+  else if(id==='contacts')renderContacts();
   else if(id==='settings')renderSettingsPage();
   else if(id==='notices')renderNotices();
   else if(id==='inquiries')renderInquiries();
@@ -4022,6 +4093,156 @@ async function deleteClientFromModal(){
 }
 
 // ═══════════════════════════════════════════════════════
+// 주소록 (CONTACTS)
+// ═══════════════════════════════════════════════════════
+const CONTACT_CATEGORY = { owner: '집주인', tenant: '세입자' };
+
+let editContactId = null;
+
+function renderContacts(){
+  const q = ($('contact-search')?.value || '').trim().toLowerCase();
+  const catFilter = $('contact-cat-filter')?.value || '';
+
+  let list = contacts.filter(c => {
+    if(catFilter && c.category !== catFilter) return false;
+    if(q){
+      const hay = [c.name, c.phone, c.memo].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+
+  const tbody = $('contactTable');
+  const countEl = $('contactCount');
+  if(!tbody) return;
+
+  if(countEl) countEl.textContent = ` · ${list.length}명`;
+
+  if(!list.length){
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">연락처가 없습니다</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const catLabel = CONTACT_CATEGORY[c.category] || c.category || '';
+    const catColor = c.category === 'owner' ? 'var(--gold)' : 'var(--blue)';
+    const safeId = String(c.id).replace(/'/g, "\\'");
+    return `<tr onclick="openContactModal('${safeId}')">
+      <td><span style="font-size:11px;font-weight:700;color:${catColor}">${escHtml(catLabel)}</span></td>
+      <td class="td-name">${escHtml(c.name)}</td>
+      <td>${escHtml(c.phone || '')}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
+      <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openContactModal(id){
+  closeQuickPop(); closeMP();
+  if(id !== null && id !== undefined && String(id).indexOf('-') === -1 && !isNaN(id)){
+    id = parseInt(id, 10);
+  }
+  editContactId = id || null;
+  if(id){
+    const c = contacts.find(x => idEq(x.id, id));
+    if(!c){ toast('연락처를 찾을 수 없습니다'); return; }
+    $('contactModalTitle').textContent = '연락처 수정';
+    $('contactDelBtn').style.display = 'inline-flex';
+    $('ct-name').value = c.name;
+    $('ct-category').value = c.category || 'owner';
+    $('ct-phone').value = c.phone || '';
+    $('ct-memo').value = c.memo || '';
+  } else {
+    $('contactModalTitle').textContent = '연락처 추가';
+    $('contactDelBtn').style.display = 'none';
+    $('ct-name').value = ''; $('ct-category').value = 'owner';
+    $('ct-phone').value = ''; $('ct-memo').value = '';
+  }
+  $('mContact').classList.add('open');
+}
+
+function closeContactModal(){ $('mContact').classList.remove('open'); editContactId = null; }
+
+async function saveContact(){
+  const name = $('ct-name').value.trim();
+  if(!name){ alert('이름을 입력해주세요.'); return; }
+  const category = $('ct-category').value;
+  const phone = $('ct-phone').value.trim();
+  const memo = $('ct-memo').value.trim();
+
+  const canUseCloud = !!(supabaseClient && currentUser && currentOrganization);
+
+  if(!canUseCloud){ toast('로그인이 필요합니다'); return; }
+
+  if(editContactId){
+    // 수정
+    try {
+      const { data: updated, error } = await supabaseClient
+        .from('contacts')
+        .update({ name, category, phone: phone || null, memo: memo || null })
+        .eq('id', editContactId)
+        .select()
+        .single();
+      if(error){ alert('수정 실패: ' + error.message); return; }
+      const i = contacts.findIndex(x => idEq(x.id, editContactId));
+      if(i >= 0) contacts[i] = _mapContact(updated);
+      toast('연락처 수정 완료 (클라우드)');
+    } catch(err){ alert('수정 중 오류: ' + err.message); return; }
+  } else {
+    // 신규
+    try {
+      const { data: created, error } = await supabaseClient
+        .from('contacts')
+        .insert({ organization_id: currentOrganization.id, name, category, phone: phone || null, memo: memo || null })
+        .select()
+        .single();
+      if(error){ alert('추가 실패: ' + error.message); return; }
+      contacts.push(_mapContact(created));
+      toast(`"${name}" 등록 완료 (클라우드)`);
+    } catch(err){ alert('추가 중 오류: ' + err.message); return; }
+  }
+
+  persist();
+  closeContactModal();
+  renderContacts();
+}
+
+async function deleteContactFromModal(){
+  if(!editContactId) return;
+  const c = contacts.find(x => idEq(x.id, editContactId));
+  if(!c) return;
+  if(!confirm(`"${c.name}" 을(를) 삭제하시겠습니까?`)) return;
+
+  const canUseCloud = !!(supabaseClient && currentUser && c._supabase);
+  if(canUseCloud){
+    try {
+      const { error } = await supabaseClient.from('contacts').delete().eq('id', editContactId);
+      if(error){ toast('삭제 실패: ' + error.message); return; }
+    } catch(err){ toast('삭제 중 오류: ' + err.message); return; }
+  }
+
+  contacts = contacts.filter(x => !idEq(x.id, editContactId));
+  persist();
+  closeContactModal();
+  renderContacts();
+  toast('연락처가 삭제되었습니다');
+}
+
+function _mapContact(row){
+  return {
+    id: row.id,
+    name: row.name || '',
+    category: row.category || 'owner',
+    phone: row.phone || '',
+    memo: row.memo || '',
+    created_at: row.created_at || '',
+    _supabase: true
+  };
+}
+
+// ═══════════════════════════════════════════════════════
 // BACKUP / RESTORE
 // ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
@@ -4181,6 +4402,7 @@ document.querySelectorAll('.modal').forEach(m=>{
       _backdropDown=false;
       if(m.id==='mEvent')closeEventModal();
       else if(m.id==='mClient')closeClientModal();
+      else if(m.id==='mContact')closeContactModal();
       else if(m.id==='mContract')closeContractModal();
       else if(m.id==='mClientDelChoice')closeClientDelChoice();
       else if(m.id==='mProfile')closeProfileModal();
@@ -4447,6 +4669,7 @@ document.addEventListener('keydown',e=>{
     }
     else if($('mEvent').classList.contains('open'))closeEventModal();
     else if($('mClient').classList.contains('open'))closeClientModal();
+    else if($('mContact').classList.contains('open'))closeContactModal();
     else if($('mContract').classList.contains('open'))closeContractModal();
     else if($('mClientDelChoice').classList.contains('open'))closeClientDelChoice();
     else if($('mProfile').classList.contains('open'))closeProfileModal();
@@ -4986,12 +5209,26 @@ async function loadDataFromSupabase(){
       console.log(`✅ 매물 ${properties.length}건 로드 완료`);
     }
 
+    // 주소록 데이터 로드
+    const { data: cloudContacts, error: contactErr } = await supabaseClient
+      .from('contacts')
+      .select('*')
+      .eq('organization_id', currentOrganization.id)
+      .order('name', { ascending: true });
+    if(contactErr){
+      console.warn('주소록 로드 실패 (무시):', contactErr.message);
+    } else {
+      contacts = (cloudContacts || []).map(row => _mapContact(row));
+      console.log(`✅ 주소록 ${contacts.length}명 로드 완료`);
+    }
+
     // UI 갱신
     persist();
     buildMF();
     renderClients();
     if(typeof drawCal === 'function') drawCal();
     if(curPage === 'properties') renderProperties();
+    if(curPage === 'contacts') renderContacts();
 
     showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 · 계약 ${contracts.length}건 동기화 완료`);
   } catch(err){
@@ -5106,11 +5343,13 @@ function handleSignedOut(){
   clients = clients.filter(c => !c._supabase);
   events = events.filter(e => !e._supabase);
   contracts = contracts.filter(ct => !ct._supabase);
+  contacts = contacts.filter(ct => !ct._supabase);
   persist();
   buildMF();
   renderClients();
+  if(typeof renderContacts === 'function') renderContacts();
   if(typeof drawCal === 'function') drawCal();
-  
+
   updateAuthUI(null);
   showSupabaseStatus('info', '로그아웃됨 (로컬 모드)');
 }
