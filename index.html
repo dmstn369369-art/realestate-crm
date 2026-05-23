@@ -960,9 +960,13 @@ html{overflow-x:hidden}
         </div>
         <select class="btn" id="contact-cat-filter" onchange="renderContacts()">
           <option value="">구분 전체</option>
-          <option value="owner">집주인</option>
-          <option value="tenant">세입자</option>
+          <option value="임대인">임대인</option>
+          <option value="임차인">임차인</option>
+          <option value="관리인">관리인</option>
         </select>
+        <input type="file" id="contactCsvInput" accept=".csv" style="display:none" onchange="handleContactCsvUpload(event)">
+        <button class="btn" onclick="downloadContactCsvTemplate()" style="white-space:nowrap">CSV 양식</button>
+        <button class="btn" onclick="$('contactCsvInput').click()" style="white-space:nowrap">CSV 업로드</button>
         <button class="btn btn-gold" onclick="openContactModal(null)" style="white-space:nowrap">+ 연락처 추가</button>
       </div>
       <div class="tbl-wrap">
@@ -1775,10 +1779,13 @@ html{overflow-x:hidden}
       <div class="fr">
         <div class="fg"><label>이름 *</label><input type="text" id="ct-name" placeholder="홍길동"></div>
         <div class="fg"><label>구분 *</label>
-          <select id="ct-category">
-            <option value="owner">집주인</option>
-            <option value="tenant">세입자</option>
+          <select id="ct-category" onchange="_onCategoryChange()">
+            <option value="임대인">임대인</option>
+            <option value="임차인">임차인</option>
+            <option value="관리인">관리인</option>
+            <option value="__custom__">직접입력</option>
           </select>
+          <input type="text" id="ct-category-custom" placeholder="직접 입력..." style="display:none;margin-top:6px">
         </div>
       </div>
       <div class="fg"><label>전화번호</label><input type="tel" id="ct-phone" placeholder="010-0000-0000" inputmode="tel"></div>
@@ -4095,7 +4102,13 @@ async function deleteClientFromModal(){
 // ═══════════════════════════════════════════════════════
 // 주소록 (CONTACTS)
 // ═══════════════════════════════════════════════════════
-const CONTACT_CATEGORY = { owner: '집주인', tenant: '세입자' };
+// 레거시 key→한글 변환 (구버전 데이터 호환)
+const _CONTACT_LEGACY = { owner: '집주인', tenant: '세입자' };
+const _CONTACT_PRESET = ['임대인', '임차인', '관리인'];
+const _CONTACT_COLORS = { '임대인': 'var(--gold)', '임차인': 'var(--blue)', '관리인': 'var(--green)' };
+
+function _catLabel(cat){ return _CONTACT_LEGACY[cat] || cat || ''; }
+function _catColor(cat){ return _CONTACT_COLORS[cat] || 'var(--text3)'; }
 
 let editContactId = null;
 
@@ -4104,9 +4117,10 @@ function renderContacts(){
   const catFilter = $('contact-cat-filter')?.value || '';
 
   let list = contacts.filter(c => {
-    if(catFilter && c.category !== catFilter) return false;
+    const label = _catLabel(c.category);
+    if(catFilter && label !== catFilter) return false;
     if(q){
-      const hay = [c.name, c.phone, c.memo].join(' ').toLowerCase();
+      const hay = [c.name, c.phone, c.memo, label].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
@@ -4126,17 +4140,29 @@ function renderContacts(){
   }
 
   tbody.innerHTML = list.map(c => {
-    const catLabel = CONTACT_CATEGORY[c.category] || c.category || '';
-    const catColor = c.category === 'owner' ? 'var(--gold)' : 'var(--blue)';
+    const label = _catLabel(c.category);
+    const color = _catColor(c.category);
     const safeId = String(c.id).replace(/'/g, "\\'");
     return `<tr onclick="openContactModal('${safeId}')">
-      <td><span style="font-size:11px;font-weight:700;color:${catColor}">${escHtml(catLabel)}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${color}">${escHtml(label)}</span></td>
       <td class="td-name">${escHtml(c.name)}</td>
       <td>${escHtml(c.phone || '')}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
       <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
     </tr>`;
   }).join('');
+}
+
+function _onCategoryChange(){
+  const val = $('ct-category').value;
+  const custom = $('ct-category-custom');
+  if(custom) custom.style.display = val === '__custom__' ? '' : 'none';
+}
+
+function _getCategoryValue(){
+  const sel = $('ct-category').value;
+  if(sel === '__custom__') return ($('ct-category-custom')?.value || '').trim();
+  return sel;
 }
 
 function openContactModal(id){
@@ -4151,24 +4177,39 @@ function openContactModal(id){
     $('contactModalTitle').textContent = '연락처 수정';
     $('contactDelBtn').style.display = 'inline-flex';
     $('ct-name').value = c.name;
-    $('ct-category').value = c.category || 'owner';
+    // 레거시 key 변환 후 preset 여부 판단
+    const cat = _catLabel(c.category);
+    if(_CONTACT_PRESET.includes(cat)){
+      $('ct-category').value = cat;
+      $('ct-category-custom').style.display = 'none';
+    } else {
+      $('ct-category').value = '__custom__';
+      $('ct-category-custom').value = cat;
+      $('ct-category-custom').style.display = '';
+    }
     $('ct-phone').value = c.phone || '';
     $('ct-memo').value = c.memo || '';
   } else {
     $('contactModalTitle').textContent = '연락처 추가';
     $('contactDelBtn').style.display = 'none';
-    $('ct-name').value = ''; $('ct-category').value = 'owner';
+    $('ct-name').value = ''; $('ct-category').value = '임대인';
+    $('ct-category-custom').style.display = 'none'; $('ct-category-custom').value = '';
     $('ct-phone').value = ''; $('ct-memo').value = '';
   }
   $('mContact').classList.add('open');
 }
 
-function closeContactModal(){ $('mContact').classList.remove('open'); editContactId = null; }
+function closeContactModal(){
+  $('mContact').classList.remove('open');
+  editContactId = null;
+  if($('ct-category-custom')) $('ct-category-custom').style.display = 'none';
+}
 
 async function saveContact(){
   const name = $('ct-name').value.trim();
   if(!name){ alert('이름을 입력해주세요.'); return; }
-  const category = $('ct-category').value;
+  const category = _getCategoryValue();
+  if(!category){ alert('구분을 입력해주세요.'); return; }
   const phone = $('ct-phone').value.trim();
   const memo = $('ct-memo').value.trim();
 
@@ -4234,12 +4275,87 @@ function _mapContact(row){
   return {
     id: row.id,
     name: row.name || '',
-    category: row.category || 'owner',
+    category: row.category || '임대인',
     phone: row.phone || '',
     memo: row.memo || '',
     created_at: row.created_at || '',
     _supabase: true
   };
+}
+
+// ── CSV 파싱 (따옴표 필드 지원) ──
+function _parseCsvLine(line){
+  const result = [];
+  let cur = '', inQuote = false;
+  for(let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if(ch === '"'){
+      if(inQuote && line[i+1] === '"'){ cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if(ch === ',' && !inQuote){
+      result.push(cur); cur = '';
+    } else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function downloadContactCsvTemplate(){
+  const rows = [
+    '이름,구분,전화번호,메모',
+    '홍길동,임대인,010-1234-5678,301호 집주인',
+    '김철수,임차인,010-9876-5432,202호 세입자',
+    '이영희,관리인,010-5555-1234,관리사무소'
+  ];
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '주소록_양식.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+async function handleContactCsvUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  e.target.value = '';
+
+  const canUseCloud = !!(supabaseClient && currentUser && currentOrganization);
+  if(!canUseCloud){ toast('로그인이 필요합니다'); return; }
+
+  let text;
+  try { text = await file.text(); } catch(err){ toast('파일 읽기 실패'); return; }
+
+  const lines = text.split(/\r?\n/);
+  let ok = 0, skip = 0;
+
+  for(let i = 0; i < lines.length; i++){
+    const raw = lines[i].trim();
+    if(!raw) continue;
+    const cols = _parseCsvLine(raw);
+    const name = (cols[0] || '').trim();
+    // 헤더 줄 건너뛰기
+    if(i === 0 && (name === '이름' || name.toLowerCase() === 'name')){ continue; }
+    if(!name){ skip++; continue; }
+
+    const category = (cols[1] || '').trim() || '임대인';
+    const phone = (cols[2] || '').trim();
+    const memo = (cols[3] || '').trim();
+
+    try {
+      const { data: created, error } = await supabaseClient
+        .from('contacts')
+        .insert({ organization_id: currentOrganization.id, name, category, phone: phone || null, memo: memo || null })
+        .select()
+        .single();
+      if(error){ skip++; continue; }
+      contacts.push(_mapContact(created));
+      ok++;
+    } catch(err){ skip++; }
+  }
+
+  persist();
+  renderContacts();
+  toast(skip > 0 ? `${ok}건 등록됨 (건너뜀 ${skip}건)` : `${ok}건 등록됨`);
 }
 
 // ═══════════════════════════════════════════════════════
