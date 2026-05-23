@@ -999,6 +999,7 @@ html{overflow-x:hidden}
           <tbody id="contactTable"></tbody>
         </table>
       </div>
+      <div id="contactSentinel" style="height:1px"></div>
     </div>
 
     <!-- SETTLEMENT -->
@@ -4138,12 +4139,29 @@ function _catLabel(cat){ return _CONTACT_LEGACY[cat] || cat || ''; }
 function _catColor(cat){ return _CONTACT_COLORS[cat] || 'var(--text3)'; }
 
 let editContactId = null;
+let _contactFiltered = [];   // 현재 필터·정렬된 전체 목록
+let _contactShown = 0;       // 현재 DOM에 그려진 행 수
+const _CONTACT_CHUNK = 80;   // 한 번에 그릴 행 수
+let _contactScrollSetup = false;
+
+function _contactRowHtml(c){
+  const label = _catLabel(c.category);
+  const color = _catColor(c.category);
+  const safeId = String(c.id).replace(/'/g, "\\'");
+  return `<tr onclick="openContactModal('${safeId}')">
+    <td><span style="font-size:11px;font-weight:700;color:${color}">${escHtml(label)}</span></td>
+    <td class="td-name">${escHtml(c.name)}</td>
+    <td>${escHtml(c.phone || '')}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
+    <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
+  </tr>`;
+}
 
 function renderContacts(){
   const q = ($('contact-search')?.value || '').trim().toLowerCase();
   const catFilter = $('contact-cat-filter')?.value || '';
 
-  let list = contacts.filter(c => {
+  _contactFiltered = contacts.filter(c => {
     const label = _catLabel(c.category);
     if(catFilter && label !== catFilter) return false;
     if(q){
@@ -4152,32 +4170,50 @@ function renderContacts(){
     }
     return true;
   });
-
-  list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+  _contactFiltered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
 
   const tbody = $('contactTable');
-  const countEl = $('contactCount');
   if(!tbody) return;
 
-  if(countEl) countEl.textContent = ` · ${list.length}명`;
+  const countEl = $('contactCount');
+  if(countEl) countEl.textContent = ` · ${_contactFiltered.length}명`;
 
-  if(!list.length){
+  // 필터·검색 변경 시 스크롤 맨 위로
+  document.querySelector('.content')?.scrollTo(0, 0);
+
+  if(!_contactFiltered.length){
     tbody.innerHTML = '<tr><td colspan="5" class="empty">연락처가 없습니다</td></tr>';
+    _contactShown = 0;
     return;
   }
 
-  tbody.innerHTML = list.map(c => {
-    const label = _catLabel(c.category);
-    const color = _catColor(c.category);
-    const safeId = String(c.id).replace(/'/g, "\\'");
-    return `<tr onclick="openContactModal('${safeId}')">
-      <td><span style="font-size:11px;font-weight:700;color:${color}">${escHtml(label)}</span></td>
-      <td class="td-name">${escHtml(c.name)}</td>
-      <td>${escHtml(c.phone || '')}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
-      <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
-    </tr>`;
-  }).join('');
+  // 첫 청크만 렌더 — 나머지는 스크롤 시 append
+  tbody.innerHTML = _contactFiltered.slice(0, _CONTACT_CHUNK).map(_contactRowHtml).join('');
+  _contactShown = Math.min(_CONTACT_CHUNK, _contactFiltered.length);
+
+  _setupContactScroll();
+}
+
+function _loadMoreContacts(){
+  if(_contactShown >= _contactFiltered.length) return;
+  const tbody = $('contactTable');
+  if(!tbody) return;
+  const next = _contactFiltered.slice(_contactShown, _contactShown + _CONTACT_CHUNK);
+  tbody.insertAdjacentHTML('beforeend', next.map(_contactRowHtml).join(''));
+  _contactShown += next.length;
+}
+
+function _setupContactScroll(){
+  if(_contactScrollSetup) return;
+  const content = document.querySelector('.content');
+  if(!content) return;
+  content.addEventListener('scroll', function(){
+    if(curPage !== 'contacts') return;
+    if(this.scrollTop + this.clientHeight >= this.scrollHeight - 300){
+      _loadMoreContacts();
+    }
+  }, { passive: true });
+  _contactScrollSetup = true;
 }
 
 function _onCategoryChange(){
