@@ -850,6 +850,9 @@ html{overflow-x:hidden}
     <div class="ni" onclick="go('contacts',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>주소록
     </div>
+    <div class="ni" onclick="go('juso',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M8 9c0 0-5 4-5 7h10c0-3-5-7-5-7z"/><path d="M8 3v1M8 8v1"/></svg>주소검색
+    </div>
     <div class="ni" onclick="go('settings',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>설정
     </div>
@@ -1000,6 +1003,46 @@ html{overflow-x:hidden}
         </table>
       </div>
       <div id="contactSentinel" style="height:1px"></div>
+    </div>
+
+    <!-- JUSO 주소검색 -->
+    <div class="page" id="p-juso">
+      <div class="filters">
+        <div class="sbar" style="flex:1;max-width:480px">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+          <input type="text" id="juso-keyword" placeholder="도로명, 건물명, 지번 검색..." style="width:100%"
+            onkeydown="if(event.key==='Enter')searchJuso(1)">
+        </div>
+        <button class="btn btn-gold" onclick="searchJuso(1)" style="white-space:nowrap">검색</button>
+      </div>
+
+      <!-- 승인키 미입력 안내 -->
+      <div id="jusoKeyNotice" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+        ⚠ 도로명주소 API 승인키가 설정되지 않았습니다. <code>JUSO_API_KEY</code> 상수에 승인키를 입력해 주세요.
+      </div>
+
+      <!-- 선택된 주소 표시 -->
+      <div id="jusoSelected" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);border-radius:10px;margin-bottom:12px">
+        <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:6px">✓ 선택된 주소</div>
+        <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
+        <div id="jusoSelJibun" style="font-size:11px;color:var(--text3)"></div>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
+        <button class="btn" style="margin-top:8px;font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
+      </div>
+
+      <!-- 결과 목록 -->
+      <div id="jusoResultWrap" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
+          <span id="jusoResultCount" style="font-size:11px;color:var(--text3)"></span>
+          <div id="jusoPager" style="display:flex;gap:4px"></div>
+        </div>
+        <div id="jusoResultList"></div>
+      </div>
+
+      <!-- 결과 없음 -->
+      <div id="jusoEmpty" style="display:none;text-align:center;padding:48px 0;color:var(--text3);font-size:13px">
+        검색 결과가 없습니다.
+      </div>
     </div>
 
     <!-- SETTLEMENT -->
@@ -2355,6 +2398,11 @@ html{overflow-x:hidden}
 // DATA LAYER
 // ═══════════════════════════════════════════════════════
 const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'crm5_uid',contracts:'crm5_contracts',settings:'crm5_settings',properties:'crm5_properties',contacts:'crm5_contacts'};
+
+// 도로명주소 API (행정안전부) — 승인키를 아래에 입력하세요
+const JUSO_API_KEY = ''; // 여기에 도로명주소 승인키 입력
+const JUSO_API_URL = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
+
 function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
 // UUID(문자열)와 로컬 숫자 ID 모두 안전하게 비교
@@ -2449,13 +2497,14 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',contacts:'주소록',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',contacts:'주소록',juso:'주소검색',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='properties')renderProperties();
   else if(id==='contacts')renderContacts();
+  else if(id==='juso')renderJusoPage();
   else if(id==='settings')renderSettingsPage();
   else if(id==='notices')renderNotices();
   else if(id==='inquiries')renderInquiries();
@@ -4520,6 +4569,157 @@ async function handleContactCsvUpload(e){
   renderContacts();
   _csvProgressHide(ok, skip);
   toast(skip > 0 ? `${ok}건 등록됨 (건너뜀 ${skip}건)` : `${ok}건 등록됨`);
+}
+
+// ═══════════════════════════════════════════════════════
+// 도로명주소 검색 (행정안전부 Juso API)
+// ═══════════════════════════════════════════════════════
+let _jusoSelected = null;  // { roadAddr, jibunAddr, admCd, lnbrMnnm, lnbrSlno }
+let _jusoList = [];
+let _jusoPage = 1;
+let _jusoKeyword = '';
+let _jusoTotal = 0;
+const _JUSO_PER_PAGE = 20;
+
+function renderJusoPage(){
+  // 승인키 미설정 안내
+  const noticeEl = $('jusoKeyNotice');
+  if(noticeEl) noticeEl.style.display = JUSO_API_KEY ? 'none' : '';
+  _renderJusoSelected();
+  // 결과 없으면 초기 상태 유지
+  if(!_jusoList.length){
+    const wrap = $('jusoResultWrap'); if(wrap) wrap.style.display = 'none';
+    const emp = $('jusoEmpty'); if(emp) emp.style.display = 'none';
+  } else {
+    _renderJusoResults();
+  }
+}
+
+async function searchJuso(page){
+  const kw = ($('juso-keyword')?.value || '').trim();
+  if(!kw){ toast('검색어를 입력해 주세요.'); return; }
+  if(!JUSO_API_KEY){
+    toast('승인키가 없습니다. JUSO_API_KEY를 설정해 주세요.');
+    const n = $('jusoKeyNotice'); if(n) n.style.display = '';
+    return;
+  }
+  _jusoKeyword = kw;
+  _jusoPage = page || 1;
+
+  const params = new URLSearchParams({
+    confmKey: JUSO_API_KEY,
+    currentPage: String(_jusoPage),
+    countPerPage: String(_JUSO_PER_PAGE),
+    keyword: kw,
+    resultType: 'json'
+  });
+
+  try {
+    const res = await fetch(`${JUSO_API_URL}?${params.toString()}`);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const result = json?.results;
+    const common = result?.common;
+    if(!common){ throw new Error('응답 형식 오류'); }
+    if(common.errorCode !== '0'){ toast(`주소 검색 오류: ${common.errorMessage}`); return; }
+    _jusoTotal = parseInt(common.totalCount) || 0;
+    _jusoList = result.juso || [];
+    _renderJusoResults();
+  } catch(err){
+    toast('주소 검색 중 오류가 발생했습니다.');
+    console.error('[Juso]', err);
+  }
+}
+
+function _renderJusoResults(){
+  const wrap = $('jusoResultWrap');
+  const emp = $('jusoEmpty');
+  const countEl = $('jusoResultCount');
+  const listEl = $('jusoResultList');
+  const pagerEl = $('jusoPager');
+  if(!wrap || !listEl) return;
+
+  if(!_jusoList.length){
+    wrap.style.display = 'none';
+    if(emp) emp.style.display = '';
+    return;
+  }
+  if(emp) emp.style.display = 'none';
+  wrap.style.display = '';
+
+  const start = (_jusoPage - 1) * _JUSO_PER_PAGE + 1;
+  const end = Math.min(_jusoPage * _JUSO_PER_PAGE, _jusoTotal);
+  if(countEl) countEl.textContent = `총 ${_jusoTotal.toLocaleString()}건 (${start}–${end})`;
+
+  listEl.innerHTML = _jusoList.map((item, i) => `
+    <div onclick="_selectJusoItem(${i})" style="padding:11px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background .15s"
+         onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${escHtml(item.roadAddr)}</div>
+      <div style="font-size:11px;color:var(--text3)">${escHtml(item.jibunAddr)}</div>
+      ${item.bdNm ? `<div style="font-size:10px;color:var(--gold);margin-top:2px">${escHtml(item.bdNm)}</div>` : ''}
+    </div>`).join('');
+
+  _renderJusoPager(pagerEl);
+}
+
+function _renderJusoPager(pagerEl){
+  if(!pagerEl) return;
+  const total = Math.ceil(_jusoTotal / _JUSO_PER_PAGE);
+  if(total <= 1){ pagerEl.innerHTML = ''; return; }
+  const cur = _jusoPage;
+  const group = Math.floor((cur - 1) / 10);
+  const from = group * 10 + 1;
+  const to = Math.min(from + 9, total);
+  let html = '';
+  if(from > 1) html += `<button class="btn btn-sm" onclick="searchJuso(${from-1})" style="padding:3px 7px">‹</button>`;
+  for(let p = from; p <= to; p++){
+    html += `<button class="btn btn-sm${p===cur?' btn-gold':''}" onclick="searchJuso(${p})" style="padding:3px 7px;min-width:28px">${p}</button>`;
+  }
+  if(to < total) html += `<button class="btn btn-sm" onclick="searchJuso(${to+1})" style="padding:3px 7px">›</button>`;
+  pagerEl.innerHTML = html;
+}
+
+function _selectJusoItem(idx){
+  const item = _jusoList[idx];
+  if(!item) return;
+  _jusoSelected = {
+    roadAddr: item.roadAddr,
+    jibunAddr: item.jibunAddr,
+    admCd: item.admCd,
+    lnbrMnnm: item.lnbrMnnm,
+    lnbrSlno: item.lnbrSlno
+  };
+  _renderJusoSelected();
+  toast('주소가 선택되었습니다.');
+}
+
+function _renderJusoSelected(){
+  const box = $('jusoSelected');
+  if(!box) return;
+  if(!_jusoSelected){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  const roadEl = $('jusoSelRoad');
+  const jibunEl = $('jusoSelJibun');
+  const metaEl = $('jusoSelMeta');
+  if(roadEl) roadEl.textContent = _jusoSelected.roadAddr;
+  if(jibunEl) jibunEl.textContent = '지번: ' + _jusoSelected.jibunAddr;
+  if(metaEl){
+    const tags = [
+      ['행정구역코드', _jusoSelected.admCd],
+      ['지번본번', _jusoSelected.lnbrMnnm],
+      ['지번부번', _jusoSelected.lnbrSlno]
+    ].filter(([,v]) => v).map(([k,v]) =>
+      `<span style="font-size:10px;background:var(--bg3);border-radius:4px;padding:2px 6px;color:var(--text3)">${escHtml(k)}: ${escHtml(v)}</span>`
+    ).join('');
+    metaEl.innerHTML = tags;
+  }
+}
+
+function copyJusoSelected(){
+  if(!_jusoSelected) return;
+  navigator.clipboard.writeText(_jusoSelected.roadAddr)
+    .then(() => toast('도로명주소가 복사되었습니다.'))
+    .catch(() => toast('복사 실패. 직접 복사해 주세요.'));
 }
 
 // ═══════════════════════════════════════════════════════
