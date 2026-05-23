@@ -969,6 +969,18 @@ html{overflow-x:hidden}
         <button class="btn" onclick="$('contactCsvInput').click()" style="white-space:nowrap">CSV 업로드</button>
         <button class="btn btn-gold" onclick="openContactModal(null)" style="white-space:nowrap">+ 연락처 추가</button>
       </div>
+      <!-- CSV 업로드 진행률 -->
+      <div id="csvProgress" style="display:none;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:600;color:var(--text2)" id="csvProgressLabel">CSV 업로드 중...</span>
+          <span id="csvProgressPct" style="font-size:12px;font-weight:700;color:var(--gold)">0%</span>
+        </div>
+        <div class="storage-bar" style="height:8px">
+          <div id="csvProgressFill" class="storage-fill" style="width:0%;background:var(--gold);transition:width .2s"></div>
+        </div>
+        <div id="csvProgressSub" style="font-size:10px;color:var(--text3);margin-top:5px">준비 중...</div>
+      </div>
+
       <div class="tbl-wrap">
         <div class="tbl-head">
           <span style="font-size:12px;font-weight:600">주소록</span>
@@ -4314,6 +4326,38 @@ function downloadContactCsvTemplate(){
   a.click(); URL.revokeObjectURL(url);
 }
 
+function _csvProgressShow(total){
+  const el = $('csvProgress');
+  if(!el) return;
+  $('csvProgressLabel').textContent = 'CSV 업로드 중...';
+  $('csvProgressPct').textContent = '0%';
+  $('csvProgressFill').style.width = '0%';
+  $('csvProgressSub').textContent = `0 / ${total.toLocaleString()}건`;
+  el.style.display = '';
+}
+
+function _csvProgressUpdate(done, total, ok, skip){
+  if(!$('csvProgress')) return;
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+  $('csvProgressPct').textContent = `${pct}%`;
+  $('csvProgressFill').style.width = `${pct}%`;
+  $('csvProgressSub').textContent = `${done.toLocaleString()} / ${total.toLocaleString()}건 처리 중 (성공 ${ok.toLocaleString()}건${skip > 0 ? ` · 실패 ${skip}건` : ''})`;
+}
+
+function _csvProgressHide(ok, skip){
+  const el = $('csvProgress');
+  if(!el) return;
+  $('csvProgressPct').textContent = '100%';
+  $('csvProgressFill').style.width = '100%';
+  $('csvProgressFill').style.background = 'var(--green)';
+  $('csvProgressLabel').textContent = '업로드 완료';
+  $('csvProgressSub').textContent = `${ok.toLocaleString()}건 등록됨${skip > 0 ? ` (건너뜀 ${skip}건)` : ''}`;
+  setTimeout(() => {
+    if(el) el.style.display = 'none';
+    $('csvProgressFill').style.background = 'var(--gold)';
+  }, 2500);
+}
+
 async function handleContactCsvUpload(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -4325,36 +4369,56 @@ async function handleContactCsvUpload(e){
   let text;
   try { text = await file.text(); } catch(err){ toast('파일 읽기 실패'); return; }
 
+  // 1단계: 유효 행 미리 파싱
   const lines = text.split(/\r?\n/);
-  let ok = 0, skip = 0;
-
+  const rows = [];
   for(let i = 0; i < lines.length; i++){
     const raw = lines[i].trim();
     if(!raw) continue;
     const cols = _parseCsvLine(raw);
     const name = (cols[0] || '').trim();
-    // 헤더 줄 건너뛰기
-    if(i === 0 && (name === '이름' || name.toLowerCase() === 'name')){ continue; }
-    if(!name){ skip++; continue; }
+    if(i === 0 && (name === '이름' || name.toLowerCase() === 'name')) continue;
+    if(!name) continue;
+    rows.push({
+      name,
+      category: (cols[1] || '').trim() || '임대인',
+      phone:    (cols[2] || '').trim(),
+      memo:     (cols[3] || '').trim()
+    });
+  }
 
-    const category = (cols[1] || '').trim() || '임대인';
-    const phone = (cols[2] || '').trim();
-    const memo = (cols[3] || '').trim();
+  if(!rows.length){ toast('등록할 항목이 없습니다'); return; }
 
+  // 2단계: 진행률 표시 후 100건씩 배치 insert
+  const BATCH = 100;
+  const total = rows.length;
+  let ok = 0, skip = 0;
+  _csvProgressShow(total);
+
+  for(let i = 0; i < rows.length; i += BATCH){
+    const batch = rows.slice(i, i + BATCH);
+    const insertData = batch.map(r => ({
+      organization_id: currentOrganization.id,
+      name:     r.name,
+      category: r.category,
+      phone:    r.phone || null,
+      memo:     r.memo || null
+    }));
     try {
       const { data: created, error } = await supabaseClient
         .from('contacts')
-        .insert({ organization_id: currentOrganization.id, name, category, phone: phone || null, memo: memo || null })
-        .select()
-        .single();
-      if(error){ skip++; continue; }
-      contacts.push(_mapContact(created));
-      ok++;
-    } catch(err){ skip++; }
+        .insert(insertData)
+        .select();
+      if(error){ skip += batch.length; }
+      else { (created || []).forEach(row => contacts.push(_mapContact(row))); ok += (created || []).length; }
+    } catch(err){ skip += batch.length; }
+
+    _csvProgressUpdate(Math.min(i + BATCH, total), total, ok, skip);
   }
 
   persist();
   renderContacts();
+  _csvProgressHide(ok, skip);
   toast(skip > 0 ? `${ok}건 등록됨 (건너뜀 ${skip}건)` : `${ok}건 등록됨`);
 }
 
