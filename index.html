@@ -1207,6 +1207,51 @@ html{overflow-x:hidden}
           </div>
         </div>
 
+        <!-- 데이터 백업 -->
+        <div class="panel" style="margin-top:12px">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">📦</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">데이터 백업</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">내 데이터를 파일로 내려받습니다</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:0 16px 16px">
+            <div id="backupLoginNotice" style="font-size:11px;color:var(--text3);padding:8px 0">로그인 후 사용 가능합니다</div>
+            <div id="backupForm" style="display:none">
+              <div style="margin:8px 0 14px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:1px solid var(--border);margin-bottom:4px">
+                  <input type="checkbox" id="bkAll" onchange="toggleAllBackup(this)" checked style="accent-color:var(--gold)">
+                  <span style="font-size:12px;font-weight:600;color:var(--text)">전체 선택</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+                  <input type="checkbox" class="bk-item" value="contacts" checked style="accent-color:var(--gold)">
+                  <span style="font-size:12px;color:var(--text2)">주소록</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+                  <input type="checkbox" class="bk-item" value="clients" checked style="accent-color:var(--gold)">
+                  <span style="font-size:12px;color:var(--text2)">고객관리</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+                  <input type="checkbox" class="bk-item" value="contracts" checked style="accent-color:var(--gold)">
+                  <span style="font-size:12px;color:var(--text2)">계약/정산</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+                  <input type="checkbox" class="bk-item" value="properties" checked style="accent-color:var(--gold)">
+                  <span style="font-size:12px;color:var(--text2)">매물관리</span>
+                </label>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" onclick="exportBackupCsv()" style="font-size:12px;padding:6px 14px" id="exportCsvBtn">CSV 내보내기</button>
+                <button class="btn btn-gold" onclick="exportBackupJson()" style="font-size:12px;padding:6px 14px" id="exportJsonBtn">JSON 전체 백업</button>
+              </div>
+              <div id="backupStatus" style="margin-top:10px;font-size:11px;color:var(--text3);min-height:16px"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- 위험 구역 -->
         <div class="panel" style="margin-top:12px;border-color:rgba(248,81,73,0.2)">
           <div class="panel-head">
@@ -2459,6 +2504,9 @@ function renderSettingsPage(){
   if(dab)dab.style.display=isLoggedIn?'':'none';
   renderStorageSection();
   if(isLoggedIn)loadStorageUsage();
+  const bkNotice=$('backupLoginNotice'), bkForm=$('backupForm');
+  if(bkNotice)bkNotice.style.display=isLoggedIn?'none':'';
+  if(bkForm)bkForm.style.display=isLoggedIn?'':'none';
 }
 
 function toggleChangePasswordSection(){
@@ -4476,6 +4524,156 @@ async function handleContactCsvUpload(e){
 // ═══════════════════════════════════════════════════════
 // BACKUP / RESTORE
 // ═══════════════════════════════════════════════════════
+
+// ─── 데이터 백업 (내보내기) ───
+
+function toggleAllBackup(allChk){
+  document.querySelectorAll('.bk-item').forEach(c => c.checked = allChk.checked);
+}
+
+function _getCheckedBackupItems(){
+  return [...document.querySelectorAll('.bk-item:checked')].map(c => c.value);
+}
+
+function _bkSetStatus(msg){
+  const el = $('backupStatus');
+  if(el) el.textContent = msg;
+}
+
+function _bkDownload(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function _toCsv(rows, headers, rowFn){
+  const esc = v => {
+    const s = String(v == null ? '' : v).replace(/\r?\n/g, ' ');
+    return (s.includes(',') || s.includes('"')) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return '﻿' + [headers, ...rows.map(rowFn)].map(r => r.map(esc).join(',')).join('\r\n');
+}
+
+async function _fetchBackupData(items){
+  const orgId = currentOrganization.id;
+  const out = {};
+  _bkSetStatus('Supabase에서 데이터 조회 중...');
+
+  if(items.includes('contacts')){
+    const { data } = await _fetchAll(() =>
+      supabaseClient.from('contacts').select('*').eq('organization_id', orgId).order('name'));
+    out.contacts = data || [];
+  }
+  if(items.includes('clients')){
+    const { data } = await _fetchAll(() =>
+      supabaseClient.from('clients').select('*').eq('organization_id', orgId).order('created_at', {ascending:false}));
+    out.clients = data || [];
+  }
+  if(items.includes('contracts')){
+    const { data: cts } = await _fetchAll(() =>
+      supabaseClient.from('contracts').select('*').eq('organization_id', orgId).order('balance_date', {ascending:false}));
+    const { data: pays } = await _fetchAll(() =>
+      supabaseClient.from('payments').select('*').eq('organization_id', orgId));
+    out.contracts = cts || [];
+    out.payments = pays || [];
+  }
+  if(items.includes('properties')){
+    const { data } = await _fetchAll(() =>
+      supabaseClient.from('properties').select('*').eq('organization_id', orgId).order('created_at', {ascending:false}));
+    out.properties = data || [];
+  }
+  return out;
+}
+
+async function exportBackupCsv(){
+  if(!isUserLoggedIn()){ toast('로그인이 필요합니다'); return; }
+  const items = _getCheckedBackupItems();
+  if(!items.length){ toast('백업할 항목을 선택해주세요'); return; }
+
+  const btn = $('exportCsvBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '처리 중...'; }
+  try {
+    const data = await _fetchBackupData(items);
+    const d = new Date().toISOString().split('T')[0];
+    let count = 0;
+
+    if(data.contacts?.length >= 0){
+      _bkDownload(_toCsv(data.contacts,
+        ['이름','구분','전화번호','메모','등록일'],
+        r => [r.name, r.category, r.phone, r.memo, (r.created_at||'').split('T')[0]]),
+        `contacts_${d}.csv`, 'text/csv;charset=utf-8');
+      count++;
+    }
+    if(data.clients?.length >= 0){
+      _bkDownload(_toCsv(data.clients,
+        ['이름','전화번호','유형','중요도','메모','인입일'],
+        r => [r.name, r.phone, r.ctype, r.priority, r.memo, r.inquiry_date||(r.created_at||'').split('T')[0]]),
+        `clients_${d}.csv`, 'text/csv;charset=utf-8');
+      count++;
+    }
+    if(data.contracts?.length >= 0){
+      _bkDownload(_toCsv(data.contracts,
+        ['주소','계약유형','계약일','잔금일','보증금(만원)','월세(만원)','관리비(만원)','메모'],
+        r => [r.address, r.contract_type, r.sign_date, r.balance_date, r.deposit, r.monthly, r.maintenance, r.memo]),
+        `contracts_${d}.csv`, 'text/csv;charset=utf-8');
+      count++;
+      _bkDownload(_toCsv(data.payments,
+        ['수령일','구분','금액(만원)','메모'],
+        r => [r.payment_date, r.side, r.amount, r.memo]),
+        `payments_${d}.csv`, 'text/csv;charset=utf-8');
+      count++;
+    }
+    if(data.properties?.length >= 0){
+      _bkDownload(_toCsv(data.properties,
+        ['제목','유형','거래유형','주소','매매가','보증금','월세','면적(평)','층','총층','상태','등록일'],
+        r => [r.title, r.property_type, r.transaction_type, r.address, r.price_sale, r.price_deposit, r.price_monthly, r.area_pyeong, r.floor_current, r.floor_total, r.status, (r.created_at||'').split('T')[0]]),
+        `properties_${d}.csv`, 'text/csv;charset=utf-8');
+      count++;
+    }
+    _bkSetStatus(`CSV ${count}개 파일 다운로드 완료 (${d})`);
+    toast(`CSV ${count}개 파일 저장됨`);
+  } catch(err){
+    console.error('CSV 백업 오류:', err);
+    _bkSetStatus('백업 실패: ' + err.message);
+    toast('백업 중 오류 발생');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'CSV 내보내기'; }
+  }
+}
+
+async function exportBackupJson(){
+  if(!isUserLoggedIn()){ toast('로그인이 필요합니다'); return; }
+  const items = _getCheckedBackupItems();
+  if(!items.length){ toast('백업할 항목을 선택해주세요'); return; }
+
+  const btn = $('exportJsonBtn');
+  if(btn){ btn.disabled = true; btn.textContent = '처리 중...'; }
+  try {
+    const data = await _fetchBackupData(items);
+    const d = new Date().toISOString().split('T')[0];
+    const payload = {
+      exported_at: new Date().toISOString(),
+      organization: currentOrganization?.name || '',
+      data
+    };
+    _bkDownload(JSON.stringify(payload, null, 2),
+      `brokid_backup_${d}.json`, 'application/json');
+    const total = Object.values(data).reduce((s, a) => s + (a?.length || 0), 0);
+    _bkSetStatus(`JSON 백업 완료 — 총 ${total.toLocaleString()}건 (${d})`);
+    toast('JSON 백업 파일 저장됨');
+  } catch(err){
+    console.error('JSON 백업 오류:', err);
+    _bkSetStatus('백업 실패: ' + err.message);
+    toast('백업 중 오류 발생');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'JSON 전체 백업'; }
+  }
+}
+
 // ═══════════════════════════════════════════════════════
 // RATIO MODAL (정산 비율 설정)
 // ═══════════════════════════════════════════════════════
