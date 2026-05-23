@@ -5186,7 +5186,8 @@ async function loadDataFromSupabase(){
       .from('clients')
       .select('*')
       .eq('organization_id', currentOrganization.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000);
     
     if(clientErr){
       console.error('고객 로드 실패:', clientErr.message);
@@ -5213,7 +5214,8 @@ async function loadDataFromSupabase(){
       .from('events')
       .select('*')
       .eq('organization_id', currentOrganization.id)
-      .order('event_date', { ascending: true });
+      .order('event_date', { ascending: true })
+      .limit(10000);
 
     if(eventErr){
       console.error('일정 로드 실패:', eventErr.message);
@@ -5236,7 +5238,8 @@ async function loadDataFromSupabase(){
       .from('contracts')
       .select('*')
       .eq('organization_id', currentOrganization.id)
-      .order('balance_date', { ascending: false });
+      .order('balance_date', { ascending: false })
+      .limit(10000);
 
     if(contractErr){
       console.error('계약 로드 실패:', contractErr.message);
@@ -5266,7 +5269,8 @@ async function loadDataFromSupabase(){
     const { data: cloudPayments, error: paymentErr } = await supabaseClient
       .from('payments')
       .select('*')
-      .eq('organization_id', currentOrganization.id);
+      .eq('organization_id', currentOrganization.id)
+      .limit(10000);
 
     if(paymentErr){
       console.error('수수료 로드 실패:', paymentErr.message);
@@ -5293,7 +5297,8 @@ async function loadDataFromSupabase(){
       .from('properties')
       .select('*')
       .eq('organization_id', currentOrganization.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10000);
     if(propErr){
       console.warn('매물 로드 실패 (무시):', propErr.message);
     } else {
@@ -5330,7 +5335,8 @@ async function loadDataFromSupabase(){
       .from('contacts')
       .select('*')
       .eq('organization_id', currentOrganization.id)
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(10000);
     if(contactErr){
       console.warn('주소록 로드 실패 (무시):', contactErr.message);
     } else {
