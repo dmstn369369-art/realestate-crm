@@ -4773,18 +4773,12 @@ async function fetchBuildingInfo(){
       return;
     }
 
-    // 응답 경로 탐색: response.body.items.item (Edge Function이 원문 그대로 반환)
-    const raw = data?.response?.body?.items?.item
-             ?? data?.body?.items?.item
-             ?? data?.items?.item;
-
-    if(!raw){
+    // 응답 형태: { title, floor, expos, recap }
+    if(!data || (!data.title && !data.floor && !data.expos && !data.recap)){
       if(content) content.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:12px 0">조회된 건축물 정보가 없습니다.</div>';
       return;
     }
-
-    const items = Array.isArray(raw) ? raw : [raw];
-    _renderBldgResult(items, content);
+    _renderBldgResult(data, content);
   } catch(err){
     if(content) content.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px 0">${escHtml(err.message || '건축물대장 조회 중 오류')}</div>`;
     console.error('[building-info]', err);
@@ -4793,39 +4787,122 @@ async function fetchBuildingInfo(){
   }
 }
 
-function _renderBldgResult(items, el){
-  const fields = [
-    ['주용도',     'mainPurpsCdNm',      null],
-    ['구조',       'strctCdNm',          null],
-    ['대지면적',   'platArea',           'm²'],
-    ['건축면적',   'archArea',           'm²'],
-    ['연면적',     'totArea',            'm²'],
-    ['건폐율',     'bcRat',              '%'],
-    ['용적률',     'vlRat',              '%'],
-    ['지상층수',   'grndFlrCnt',         '층'],
-    ['지하층수',   'ugrndFlrCnt',        '층'],
-    ['사용승인일', 'useAprDay',          null],
-  ];
+function _renderBldgResult(data, el){
+  // data = { title, floor, expos, recap } — 각 값은 null/배열/객체 가능
+  const toArr = v => !v ? [] : (Array.isArray(v) ? v : [v]);
+  const titleItems = toArr(data.title);
+  const floorItems = toArr(data.floor);
+  const exposItems = toArr(data.expos);
+  const recapItems = toArr(data.recap);
 
   let html = '';
-  items.forEach((item, i) => {
-    if(items.length > 1)
-      html += `<div style="font-size:11px;font-weight:700;color:var(--gold);margin:${i > 0 ? '14px' : '0'} 0 6px">건물 ${i + 1}</div>`;
-    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
-    fields.forEach(([label, key, unit]) => {
-      let val = item[key];
-      if(val === undefined || val === null || val === '') val = '-';
-      else if(unit) val = Number(val).toLocaleString() + unit;
-      else if(key === 'useAprDay') val = String(val).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
-      html += `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:6px 8px;color:var(--text3);width:90px;font-weight:600;white-space:nowrap">${escHtml(label)}</td>
-        <td style="padding:6px 8px;color:var(--text)">${escHtml(String(val))}</td>
-      </tr>`;
-    });
-    html += '</table>';
-  });
 
-  el.innerHTML = html;
+  // ── 표제부 ──
+  html += _bldgSection('bldgSecTitle', '표제부', true,
+    titleItems.length
+      ? titleItems.map(_bldgTitleTable).join('')
+      : '<div style="padding:8px 0;font-size:12px;color:var(--text3)">정보 없음</div>'
+  );
+
+  // ── 층별개요 ──
+  if(floorItems.length){
+    html += _bldgSection('bldgSecFloor', `층별개요 (${floorItems.length}층)`, floorItems.length <= 5,
+      _bldgFloorTable(floorItems)
+    );
+  }
+
+  // ── 전유부 ──
+  if(exposItems.length){
+    html += _bldgSection('bldgSecExpos', `전유부 (${exposItems.length}호)`, exposItems.length <= 5,
+      _bldgExposTable(exposItems)
+    );
+  }
+
+  // ── 총괄표제부 ──
+  if(recapItems.length){
+    html += _bldgSection('bldgSecRecap', '총괄표제부', false,
+      recapItems.map(_bldgTitleTable).join('')
+    );
+  }
+
+  el.innerHTML = html || '<div style="text-align:center;color:var(--text3);font-size:12px;padding:12px 0">조회된 정보가 없습니다.</div>';
+}
+
+function _bldgSection(id, label, expanded, innerHtml){
+  const arrow = expanded ? '▼' : '▶';
+  const display = expanded ? '' : 'display:none';
+  return `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+    <div onclick="toggleBldgSection('${id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg2);cursor:pointer;user-select:none">
+      <span style="font-size:11px;font-weight:700;color:var(--text2)">${escHtml(label)}</span>
+      <span id="${id}_arrow" style="font-size:10px;color:var(--text3)">${arrow}</span>
+    </div>
+    <div id="${id}" style="padding:0 12px 10px;${display}">${innerHtml}</div>
+  </div>`;
+}
+
+function toggleBldgSection(id){
+  const body = $(id);
+  const arrow = $(id + '_arrow');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if(arrow) arrow.textContent = open ? '▶' : '▼';
+}
+
+function _bldgTitleTable(item){
+  const fields = [
+    ['주용도',     'mainPurpsCdNm', null],
+    ['구조',       'strctCdNm',     null],
+    ['대지면적',   'platArea',      'm²'],
+    ['건축면적',   'archArea',      'm²'],
+    ['연면적',     'totArea',       'm²'],
+    ['건폐율',     'bcRat',         '%'],
+    ['용적률',     'vlRat',         '%'],
+    ['지상층수',   'grndFlrCnt',    '층'],
+    ['지하층수',   'ugrndFlrCnt',   '층'],
+    ['사용승인일', 'useAprDay',     null],
+  ];
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px">';
+  fields.forEach(([label, key, unit]) => {
+    let val = item?.[key];
+    if(val === undefined || val === null || val === '') val = '-';
+    else if(unit) val = Number(val).toLocaleString() + unit;
+    else if(key === 'useAprDay') val = String(val).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+    html += `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 8px;color:var(--text3);width:90px;font-weight:600;white-space:nowrap">${escHtml(label)}</td>
+      <td style="padding:5px 8px;color:var(--text)">${escHtml(String(val))}</td>
+    </tr>`;
+  });
+  html += '</table>';
+  return html;
+}
+
+function _bldgFloorTable(items){
+  const th = s => `<th style="padding:5px 8px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${s}</th>`;
+  const td = s => `<td style="padding:5px 8px;font-size:12px;color:var(--text)">${escHtml(String(s ?? '-'))}</td>`;
+  let html = `<table style="width:100%;border-collapse:collapse;margin-top:6px"><thead><tr>${th('층번호')}${th('층용도')}${th('면적(m²)')}</tr></thead><tbody>`;
+  items.forEach(item => {
+    const flrNo = item?.flrNoNm ?? item?.flrNo ?? '-';
+    const purps  = item?.mainPurpsCdNm ?? '-';
+    const area   = item?.area != null ? Number(item.area).toLocaleString() : '-';
+    html += `<tr style="border-bottom:1px solid var(--border)">${td(flrNo)}${td(purps)}${td(area)}</tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function _bldgExposTable(items){
+  const th = s => `<th style="padding:5px 8px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${s}</th>`;
+  const td = s => `<td style="padding:5px 8px;font-size:12px;color:var(--text)">${escHtml(String(s ?? '-'))}</td>`;
+  let html = `<table style="width:100%;border-collapse:collapse;margin-top:6px"><thead><tr>${th('호명칭')}${th('전용면적(m²)')}${th('용도')}</tr></thead><tbody>`;
+  items.forEach(item => {
+    const ho   = item?.hoNm ?? '-';
+    const area = item?.area != null ? Number(item.area).toLocaleString() : '-';
+    const purps = item?.mainPurpsCdNm ?? '-';
+    html += `<tr style="border-bottom:1px solid var(--border)">${td(ho)}${td(area)}${td(purps)}</tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
 }
 
 // ═══════════════════════════════════════════════════════
