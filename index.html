@@ -956,6 +956,7 @@ html{overflow-x:hidden}
 
     <!-- CONTACTS (주소록) -->
     <div class="page" id="p-contacts">
+      <div style="max-width:900px;margin:0 auto">
       <div class="filters">
         <div class="sbar">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
@@ -993,8 +994,7 @@ html{overflow-x:hidden}
           <thead>
             <tr>
               <th>구분</th>
-              <th>이름</th>
-              <th>전화번호</th>
+              <th>연락처</th>
               <th>메모</th>
               <th>관리</th>
             </tr>
@@ -1003,10 +1003,12 @@ html{overflow-x:hidden}
         </table>
       </div>
       <div id="contactSentinel" style="height:1px"></div>
+      </div><!-- /max-width -->
     </div>
 
     <!-- JUSO 주소검색 -->
     <div class="page" id="p-juso">
+      <div style="max-width:900px;margin:0 auto">
       <div class="filters">
         <div class="sbar" style="flex:1;max-width:480px">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
@@ -1054,6 +1056,7 @@ html{overflow-x:hidden}
       <div id="jusoEmpty" style="display:none;text-align:center;padding:48px 0;color:var(--text3);font-size:13px">
         검색 결과가 없습니다.
       </div>
+      </div><!-- /max-width -->
     </div>
 
     <!-- SETTLEMENT -->
@@ -4257,10 +4260,10 @@ function _contactRowHtml(c){
   const label = _catLabel(c.category);
   const color = _catColor(c.category);
   const safeId = String(c.id).replace(/'/g, "\\'");
+  const phone = c.phone ? ` <span style="color:var(--text3);font-size:11px">${escHtml(c.phone)}</span>` : '';
   return `<tr onclick="openContactModal('${safeId}')">
     <td><span style="font-size:11px;font-weight:700;color:${color}">${escHtml(label)}</span></td>
-    <td class="td-name">${escHtml(c.name)}</td>
-    <td>${escHtml(c.phone || '')}</td>
+    <td class="td-name">${escHtml(c.name)}${phone}</td>
     <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
     <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
   </tr>`;
@@ -4291,7 +4294,7 @@ function renderContacts(){
   document.querySelector('.content')?.scrollTo(0, 0);
 
   if(!_contactFiltered.length){
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">연락처가 없습니다</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">연락처가 없습니다</td></tr>';
     _contactShown = 0;
     return;
   }
@@ -4618,6 +4621,9 @@ async function searchJuso(page){
   }
   _jusoKeyword = kw;
   _jusoPage = page || 1;
+
+  // 새 검색 시 이전 건축물대장 결과 자동 닫기
+  const _bw = $('jusoBldgWrap'); if(_bw) _bw.style.display = 'none';
 
   const params = new URLSearchParams({
     confmKey: JUSO_API_KEY,
