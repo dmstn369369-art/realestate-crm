@@ -1036,25 +1036,33 @@ html{overflow-x:hidden}
       </div>
 
       <!-- 건축물대장 결과 -->
-      <div id="jusoBldgWrap" style="display:none;max-width:700px;margin:0 0 12px">
+      <div id="jusoBldgWrap" style="display:none;margin:0 0 12px">
         <div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
           <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
           <div id="jusoBldgContent"></div>
         </div>
       </div>
 
-      <!-- 결과 목록 -->
-      <div id="jusoResultWrap" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
-          <span id="jusoResultCount" style="font-size:11px;color:var(--text3)"></span>
-          <div id="jusoPager" style="display:flex;gap:4px"></div>
+      <!-- 결과 + 최근검색 2열 -->
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px">
+          <!-- 결과 목록 -->
+          <div id="jusoResultWrap" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
+              <span id="jusoResultCount" style="font-size:11px;color:var(--text3)"></span>
+              <div id="jusoPager" style="display:flex;gap:4px"></div>
+            </div>
+            <div id="jusoResultList"></div>
+          </div>
+          <!-- 결과 없음 -->
+          <div id="jusoEmpty" style="display:none;text-align:center;padding:48px 0;color:var(--text3);font-size:13px">
+            검색 결과가 없습니다.
+          </div>
         </div>
-        <div id="jusoResultList"></div>
-      </div>
-
-      <!-- 결과 없음 -->
-      <div id="jusoEmpty" style="display:none;text-align:center;padding:48px 0;color:var(--text3);font-size:13px">
-        검색 결과가 없습니다.
+        <!-- 최근 검색 -->
+        <div style="width:190px;flex-shrink:0">
+          <div id="jusoRecentBox" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:11px;color:var(--text3)">최근 검색 없음</div>
+        </div>
       </div>
       </div><!-- /max-width -->
     </div>
@@ -4596,6 +4604,7 @@ let _jusoTotal = 0;
 const _JUSO_PER_PAGE = 20;
 let _bldgAreaData  = [];   // building-info area 배열 (전유공용면적 상세)
 let _bldgExposData = [];   // building-info expos 배열 (전유부 목록)
+const _JUSO_RECENT_KEY = 'crm5_juso_recent';
 
 function renderJusoPage(){
   // 승인키 미설정 안내
@@ -4609,6 +4618,7 @@ function renderJusoPage(){
   } else {
     _renderJusoResults();
   }
+  renderJusoRecent();
 }
 
 async function searchJuso(page){
@@ -4643,6 +4653,7 @@ async function searchJuso(page){
     if(common.errorCode !== '0'){ toast(`주소 검색 오류: ${common.errorMessage}`); return; }
     _jusoTotal = parseInt(common.totalCount) || 0;
     _jusoList = result.juso || [];
+    if(_jusoList.length) _addJusoRecent(kw);
     _renderJusoResults();
   } catch(err){
     toast('주소 검색 중 오류가 발생했습니다.');
@@ -4745,6 +4756,57 @@ function copyJusoSelected(){
   navigator.clipboard.writeText(_jusoSelected.roadAddr)
     .then(() => toast('도로명주소가 복사되었습니다.'))
     .catch(() => toast('복사 실패. 직접 복사해 주세요.'));
+}
+
+function _addJusoRecent(kw){
+  let list = ld(_JUSO_RECENT_KEY) || [];
+  list = list.filter(k => k !== kw);
+  list.unshift(kw);
+  if(list.length > 10) list = list.slice(0, 10);
+  sv(_JUSO_RECENT_KEY, list);
+  renderJusoRecent();
+}
+
+function removeJusoRecent(idx){
+  let list = ld(_JUSO_RECENT_KEY) || [];
+  list.splice(idx, 1);
+  sv(_JUSO_RECENT_KEY, list);
+  renderJusoRecent();
+}
+
+function clearJusoRecent(){
+  sv(_JUSO_RECENT_KEY, []);
+  renderJusoRecent();
+}
+
+function searchJusoFromRecent(kw){
+  const inp = $('juso-keyword');
+  if(inp) inp.value = kw;
+  searchJuso(1);
+}
+
+function renderJusoRecent(){
+  const box = $('jusoRecentBox');
+  if(!box) return;
+  const list = ld(_JUSO_RECENT_KEY) || [];
+  if(!list.length){
+    box.innerHTML = '<div style="font-size:11px;color:var(--text3)">최근 검색 없음</div>';
+    return;
+  }
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:10px;font-weight:700;color:var(--text3)">최근 검색</span>
+    <button onclick="clearJusoRecent()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;padding:0">전체삭제</button>
+  </div>`;
+  list.forEach((kw, i) => {
+    html += `<div style="display:flex;align-items:center;gap:4px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span onclick="searchJusoFromRecent(this.dataset.kw)" data-kw="${escHtml(kw)}"
+        style="flex:1;font-size:12px;color:var(--text);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${escHtml(kw)}">${escHtml(kw)}</span>
+      <button onclick="removeJusoRecent(${i})"
+        style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;flex-shrink:0">×</button>
+    </div>`;
+  });
+  box.innerHTML = html;
 }
 
 async function fetchBuildingInfo(){
@@ -4850,13 +4912,13 @@ function _bldgInfoGrid(item){
     </div>`;
   // 주차·승강기: 값 있는 항목만 셀로 추가
   const optional = [
-    ['옥내주차(자주)', f(item?.indrAutoOkpCnt, '대')],
-    ['옥외주차(자주)', f(item?.oudrAutoOkpCnt, '대')],
-    ['옥내주차(기계)', f(item?.indrMechOkpCnt, '대')],
-    ['옥외주차(기계)', f(item?.oudrMechOkpCnt, '대')],
+    ['옥내주차(자주)', f(item?.indrAutoUtcnt, '대')],
+    ['옥외주차(자주)', f(item?.oudrAutoUtcnt, '대')],
+    ['옥내주차(기계)', f(item?.indrMechUtcnt, '대')],
+    ['옥외주차(기계)', f(item?.oudrMechUtcnt, '대')],
     ['승용승강기',     f(item?.rideUseElvtCnt,  '대')],
     ['비상용승강기',   f(item?.emgenUseElvtCnt, '대')],
-  ].filter(([, v]) => v !== '-');
+  ].filter(([, v]) => v !== '-' && v !== '0대');
 
   return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
     ${cell('주용도',   f(item?.mainPurpsCdNm))}
