@@ -1034,9 +1034,11 @@ html{overflow-x:hidden}
       </div>
 
       <!-- 건축물대장 결과 -->
-      <div id="jusoBldgWrap" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
-        <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
-        <div id="jusoBldgContent"></div>
+      <div id="jusoBldgWrap" style="display:none;max-width:700px;margin:0 0 12px">
+        <div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
+          <div id="jusoBldgContent"></div>
+        </div>
       </div>
 
       <!-- 결과 목록 -->
@@ -4807,7 +4809,7 @@ function _renderBldgResult(data, el){
 
   // ── 층별현황 (아코디언, 기본 접힘) ──
   if(floorItems.length){
-    html += _bldgSection('bldgSecFloor', `층별현황 (${floorItems.length}개층)`, false,
+    html += _bldgSection('bldgSecFloor', `층별현황 (${floorItems.length}개층)`, true,
       _bldgFloorTable(floorItems));
   }
 
@@ -4840,6 +4842,16 @@ function _bldgInfoGrid(item){
       <div style="font-size:9px;color:var(--text3);font-weight:600;margin-bottom:3px">${escHtml(label)}</div>
       <div style="font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(val))}">${escHtml(String(val))}</div>
     </div>`;
+  // 주차·승강기: 값 있는 항목만 셀로 추가
+  const optional = [
+    ['옥내주차(자주)', f(item?.indrAutoOkpCnt, '대')],
+    ['옥외주차(자주)', f(item?.oudrAutoOkpCnt, '대')],
+    ['옥내주차(기계)', f(item?.indrMechOkpCnt, '대')],
+    ['옥외주차(기계)', f(item?.oudrMechOkpCnt, '대')],
+    ['승용승강기',     f(item?.rideUseElvtCnt,  '대')],
+    ['비상용승강기',   f(item?.emgenUseElvtCnt, '대')],
+  ].filter(([, v]) => v !== '-');
+
   return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
     ${cell('주용도',   f(item?.mainPurpsCdNm))}
     ${cell('구조',     f(item?.strctCdNm))}
@@ -4850,6 +4862,7 @@ function _bldgInfoGrid(item){
     ${cell('건폐율',   f(item?.bcRat,   '%'))}
     ${cell('용적률',   f(item?.vlRat,   '%'))}
     ${cell('층수',     flrVal)}
+    ${optional.map(([l, v]) => cell(l, v)).join('')}
   </div>`;
 }
 
@@ -4928,7 +4941,7 @@ function onBldgExposChange(){
   if(matching.length){
     html += `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>${th('구분')}${th('용도')}${th('면적(m²)')}</tr></thead><tbody>`;
     matching.forEach(a => {
-      html += `<tr style="border-bottom:1px solid var(--border)">${td(a.exposPubuseClCdNm)}${td(a.mainPurpsCdNm || a.etcPurps)}${td(a.area != null ? Number(a.area).toLocaleString() : null)}</tr>`;
+      html += `<tr style="border-bottom:1px solid var(--border)">${td(a.exposPubuseClCdNm)}${td(a.etcPurps || a.mainPurpsCdNm)}${td(a.area != null ? Number(a.area).toLocaleString() : null)}</tr>`;
     });
     html += '</tbody></table>';
   }
