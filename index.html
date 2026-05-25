@@ -848,7 +848,7 @@ html{overflow-x:hidden}
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14V7.5L8 2l7 5.5V14a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><path d="M5 15V9h6v6"/></svg>매물관리
     </div>
     <div class="ni" onclick="go('contacts',this)">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>주소록
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>전화번호
     </div>
     <div class="ni" onclick="go('juso',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="6" r="3"/><path d="M8 9c0 0-5 4-5 7h10c0-3-5-7-5-7z"/><path d="M8 3v1M8 8v1"/></svg>주소검색
@@ -994,6 +994,7 @@ html{overflow-x:hidden}
           <thead>
             <tr>
               <th>구분</th>
+              <th>이름</th>
               <th>연락처</th>
               <th>메모</th>
               <th>관리</th>
@@ -1023,29 +1024,27 @@ html{overflow-x:hidden}
         ⚠ 도로명주소 API 승인키가 설정되지 않았습니다. <code>JUSO_API_KEY</code> 상수에 승인키를 입력해 주세요.
       </div>
 
-      <!-- 선택된 주소 표시 -->
-      <div id="jusoSelected" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);border-radius:10px;margin-bottom:12px">
-        <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:6px">✓ 선택된 주소</div>
-        <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
-        <div id="jusoSelJibun" style="font-size:11px;color:var(--text3)"></div>
-        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-          <button class="btn" style="font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
-          <button class="btn btn-gold" style="font-size:11px" onclick="fetchBuildingInfo()" id="btnBldgLookup">건축물대장 조회</button>
-        </div>
-      </div>
-
-      <!-- 건축물대장 결과 -->
-      <div id="jusoBldgWrap" style="display:none;margin:0 0 12px">
-        <div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
-          <div id="jusoBldgContent"></div>
-        </div>
-      </div>
-
-      <!-- 결과 + 최근검색 2열 -->
+      <!-- 선택+결과(왼쪽) / 최근검색(오른쪽 상단) 2열 -->
       <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
         <div style="flex:1;min-width:240px">
+          <!-- 선택된 주소 표시 -->
+          <div id="jusoSelected" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);border-radius:10px;margin-bottom:12px">
+            <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:6px">✓ 선택된 주소</div>
+            <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
+            <div id="jusoSelJibun" style="font-size:11px;color:var(--text3)"></div>
+            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+              <button class="btn" style="font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
+              <button class="btn btn-gold" style="font-size:11px" onclick="fetchBuildingInfo()" id="btnBldgLookup">건축물대장 조회</button>
+            </div>
+          </div>
+          <!-- 건축물대장 결과 -->
+          <div id="jusoBldgWrap" style="display:none;margin:0 0 12px">
+            <div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+              <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
+              <div id="jusoBldgContent"></div>
+            </div>
+          </div>
           <!-- 결과 목록 -->
           <div id="jusoResultWrap" style="display:none">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
@@ -1059,7 +1058,7 @@ html{overflow-x:hidden}
             검색 결과가 없습니다.
           </div>
         </div>
-        <!-- 최근 검색 -->
+        <!-- 최근 검색 (우측 상단 정렬) -->
         <div style="width:190px;flex-shrink:0">
           <div id="jusoRecentBox" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:11px;color:var(--text3)">최근 검색 없음</div>
         </div>
@@ -1241,7 +1240,7 @@ html{overflow-x:hidden}
             </div>
             <span id="changePwArrow" style="font-size:12px;color:var(--text3);margin-left:auto">▶</span>
           </div>
-          <div style="padding:0 16px 16px">
+          <div id="changePwBody" style="display:none;padding:0 16px 16px">
             <div id="changePwNotLoggedIn" style="font-size:11px;color:var(--text3);padding:8px 0">로그인 후 사용 가능합니다</div>
             <div id="changePwForm" style="display:none">
               <div class="fg"><label style="font-size:11px">현재 비밀번호</label><input type="password" id="chPwCurrent" placeholder="현재 비밀번호" autocomplete="current-password"></div>
@@ -2572,6 +2571,7 @@ function renderSettingsPage(){
   if(nlg)nlg.style.display=isLoggedIn?'none':'';
   if(cpf)cpf.style.display='none';
   if(arr)arr.textContent='▶';
+  const body=$('changePwBody'); if(body)body.style.display='none';
   const dab=$('deleteAccountBtn');
   if(dab)dab.style.display=isLoggedIn?'':'none';
   renderStorageSection();
@@ -2582,12 +2582,14 @@ function renderSettingsPage(){
 }
 
 function toggleChangePasswordSection(){
+  const body=$('changePwBody');
   const cpf=$('changePwForm');
   const arr=$('changePwArrow');
   if(!cpf)return;
   const isOpen=cpf.style.display!=='none';
   if(isOpen){
     cpf.style.display='none';
+    if(body)body.style.display='none';
     if(arr)arr.textContent='▶';
     $('chPwCurrent').value='';
     $('chPwNew').value='';
@@ -2596,6 +2598,7 @@ function toggleChangePasswordSection(){
     if(info)info.style.display='none';
   } else {
     if(!currentUser){ return; }
+    if(body)body.style.display='';
     cpf.style.display='';
     if(arr)arr.textContent='▼';
     setTimeout(()=>{ const el=$('chPwCurrent'); if(el)el.focus(); },50);
@@ -4268,10 +4271,10 @@ function _contactRowHtml(c){
   const label = _catLabel(c.category);
   const color = _catColor(c.category);
   const safeId = String(c.id).replace(/'/g, "\\'");
-  const phone = c.phone ? ` <span style="color:var(--text3);font-size:11px">${escHtml(c.phone)}</span>` : '';
   return `<tr onclick="openContactModal('${safeId}')">
     <td><span style="font-size:11px;font-weight:700;color:${color}">${escHtml(label)}</span></td>
-    <td class="td-name">${escHtml(c.name)}${phone}</td>
+    <td class="td-name">${escHtml(c.name)}</td>
+    <td>${escHtml(c.phone || '')}</td>
     <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.memo || '-')}</td>
     <td><button class="btn btn-sm" onclick="event.stopPropagation();openContactModal('${safeId}')">수정</button></td>
   </tr>`;
@@ -4302,7 +4305,7 @@ function renderContacts(){
   document.querySelector('.content')?.scrollTo(0, 0);
 
   if(!_contactFiltered.length){
-    tbody.innerHTML = '<tr><td colspan="4" class="empty">연락처가 없습니다</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">연락처가 없습니다</td></tr>';
     _contactShown = 0;
     return;
   }
