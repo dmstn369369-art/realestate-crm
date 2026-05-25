@@ -4589,6 +4589,8 @@ let _jusoPage = 1;
 let _jusoKeyword = '';
 let _jusoTotal = 0;
 const _JUSO_PER_PAGE = 20;
+let _bldgAreaData  = [];   // building-info area 배열 (전유공용면적 상세)
+let _bldgExposData = [];   // building-info expos 배열 (전유부 목록)
 
 function renderJusoPage(){
   // 승인키 미설정 안내
@@ -4773,8 +4775,8 @@ async function fetchBuildingInfo(){
       return;
     }
 
-    // 응답 형태: { title, floor, expos, recap }
-    if(!data || (!data.title && !data.floor && !data.expos && !data.recap)){
+    // 응답 형태: { title, recap, floor, expos, area }
+    if(!data || (!data.title && !data.floor && !data.expos && !data.recap && !data.area)){
       if(content) content.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:12px 0">조회된 건축물 정보가 없습니다.</div>';
       return;
     }
@@ -4788,55 +4790,78 @@ async function fetchBuildingInfo(){
 }
 
 function _renderBldgResult(data, el){
-  // data = { title, floor, expos, recap } — 각 값은 null/배열/객체 가능
   const toArr = v => !v ? [] : (Array.isArray(v) ? v : [v]);
   const titleItems = toArr(data.title);
   const floorItems = toArr(data.floor);
   const exposItems = toArr(data.expos);
   const recapItems = toArr(data.recap);
+  const areaItems  = toArr(data.area);
+
+  _bldgAreaData  = areaItems;
+  _bldgExposData = exposItems;
 
   let html = '';
 
-  // ── 표제부 ──
-  html += _bldgSection('bldgSecTitle', '표제부', true,
-    titleItems.length
-      ? titleItems.map(_bldgTitleTable).join('')
-      : '<div style="padding:8px 0;font-size:12px;color:var(--text3)">정보 없음</div>'
-  );
+  // ── 기본정보 그리드 ──
+  html += _bldgInfoGrid(titleItems[0] || {});
 
-  // ── 층별개요 ──
+  // ── 층별현황 (아코디언, 기본 접힘) ──
   if(floorItems.length){
-    html += _bldgSection('bldgSecFloor', `층별개요 (${floorItems.length}층)`, floorItems.length <= 5,
-      _bldgFloorTable(floorItems)
-    );
+    html += _bldgSection('bldgSecFloor', `층별현황 (${floorItems.length}개층)`, false,
+      _bldgFloorTable(floorItems));
   }
 
-  // ── 전유부 ──
+  // ── 전유부 (드롭다운) ──
   if(exposItems.length){
-    html += _bldgSection('bldgSecExpos', `전유부 (${exposItems.length}호)`, exposItems.length <= 5,
-      _bldgExposTable(exposItems)
-    );
+    html += _bldgExposPanel(exposItems);
   }
 
-  // ── 총괄표제부 ──
+  // ── 총괄표제부 (있을 때만, 접힘) ──
   if(recapItems.length){
     html += _bldgSection('bldgSecRecap', '총괄표제부', false,
-      recapItems.map(_bldgTitleTable).join('')
-    );
+      recapItems.map(_bldgInfoGrid).join(''));
   }
 
   el.innerHTML = html || '<div style="text-align:center;color:var(--text3);font-size:12px;padding:12px 0">조회된 정보가 없습니다.</div>';
 }
 
+function _bldgInfoGrid(item){
+  const f = (v, type) => {
+    if(v === undefined || v === null || v === '') return '-';
+    if(type === 'date') return String(v).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+    if(type) return Number(v).toLocaleString() + type;
+    return String(v);
+  };
+  const grnd  = f(item?.grndFlrCnt);
+  const ugrnd = f(item?.ugrndFlrCnt);
+  const flrVal = (grnd !== '-' || ugrnd !== '-') ? `지상 ${grnd}층 / 지하 ${ugrnd}층` : '-';
+  const cell = (label, val) =>
+    `<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;min-width:0">
+      <div style="font-size:9px;color:var(--text3);font-weight:600;margin-bottom:3px">${escHtml(label)}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(String(val))}">${escHtml(String(val))}</div>
+    </div>`;
+  return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px">
+    ${cell('주용도',   f(item?.mainPurpsCdNm))}
+    ${cell('구조',     f(item?.strctCdNm))}
+    ${cell('사용승인일', f(item?.useAprDay, 'date'))}
+    ${cell('대지면적', f(item?.platArea, 'm²'))}
+    ${cell('건축면적', f(item?.archArea, 'm²'))}
+    ${cell('연면적',   f(item?.totArea,  'm²'))}
+    ${cell('건폐율',   f(item?.bcRat,   '%'))}
+    ${cell('용적률',   f(item?.vlRat,   '%'))}
+    ${cell('층수',     flrVal)}
+  </div>`;
+}
+
 function _bldgSection(id, label, expanded, innerHtml){
   const arrow = expanded ? '▼' : '▶';
-  const display = expanded ? '' : 'display:none';
-  return `<div style="margin-bottom:10px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+  const disp  = expanded ? '' : 'display:none';
+  return `<div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
     <div onclick="toggleBldgSection('${id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg2);cursor:pointer;user-select:none">
       <span style="font-size:11px;font-weight:700;color:var(--text2)">${escHtml(label)}</span>
       <span id="${id}_arrow" style="font-size:10px;color:var(--text3)">${arrow}</span>
     </div>
-    <div id="${id}" style="padding:0 12px 10px;${display}">${innerHtml}</div>
+    <div id="${id}" style="padding:0 12px 10px;${disp}">${innerHtml}</div>
   </div>`;
 }
 
@@ -4847,34 +4872,6 @@ function toggleBldgSection(id){
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : '';
   if(arrow) arrow.textContent = open ? '▶' : '▼';
-}
-
-function _bldgTitleTable(item){
-  const fields = [
-    ['주용도',     'mainPurpsCdNm', null],
-    ['구조',       'strctCdNm',     null],
-    ['대지면적',   'platArea',      'm²'],
-    ['건축면적',   'archArea',      'm²'],
-    ['연면적',     'totArea',       'm²'],
-    ['건폐율',     'bcRat',         '%'],
-    ['용적률',     'vlRat',         '%'],
-    ['지상층수',   'grndFlrCnt',    '층'],
-    ['지하층수',   'ugrndFlrCnt',   '층'],
-    ['사용승인일', 'useAprDay',     null],
-  ];
-  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:6px">';
-  fields.forEach(([label, key, unit]) => {
-    let val = item?.[key];
-    if(val === undefined || val === null || val === '') val = '-';
-    else if(unit) val = Number(val).toLocaleString() + unit;
-    else if(key === 'useAprDay') val = String(val).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
-    html += `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:5px 8px;color:var(--text3);width:90px;font-weight:600;white-space:nowrap">${escHtml(label)}</td>
-      <td style="padding:5px 8px;color:var(--text)">${escHtml(String(val))}</td>
-    </tr>`;
-  });
-  html += '</table>';
-  return html;
 }
 
 function _bldgFloorTable(items){
@@ -4891,18 +4888,53 @@ function _bldgFloorTable(items){
   return html;
 }
 
-function _bldgExposTable(items){
+function _bldgExposPanel(exposItems){
+  const opts = exposItems.map((e, i) =>
+    `<option value="${i}">${escHtml(e?.hoNm || `호실 ${i + 1}`)}</option>`
+  ).join('');
+  return `<div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg2)">
+      <span style="font-size:11px;font-weight:700;color:var(--text2)">전유부 (${exposItems.length}호)</span>
+      <select id="bldgExposSelect" class="btn" style="font-size:11px;padding:3px 8px;height:auto" onchange="onBldgExposChange()">
+        <option value="">호실 선택...</option>
+        ${opts}
+      </select>
+    </div>
+    <div id="bldgExposDetail" style="padding:0 12px 10px;display:none"></div>
+  </div>`;
+}
+
+function onBldgExposChange(){
+  const sel    = $('bldgExposSelect');
+  const detail = $('bldgExposDetail');
+  if(!sel || !detail) return;
+  const idx = parseInt(sel.value);
+  if(isNaN(idx)){ detail.style.display = 'none'; return; }
+
+  const expos = _bldgExposData[idx];
+  if(!expos){ detail.style.display = 'none'; return; }
+
+  const hoNm    = expos.hoNm || '';
+  const matching = _bldgAreaData.filter(a => (a.hoNm || '') === hoNm);
   const th = s => `<th style="padding:5px 8px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${s}</th>`;
   const td = s => `<td style="padding:5px 8px;font-size:12px;color:var(--text)">${escHtml(String(s ?? '-'))}</td>`;
-  let html = `<table style="width:100%;border-collapse:collapse;margin-top:6px"><thead><tr>${th('호명칭')}${th('전용면적(m²)')}${th('용도')}</tr></thead><tbody>`;
-  items.forEach(item => {
-    const ho   = item?.hoNm ?? '-';
-    const area = item?.area != null ? Number(item.area).toLocaleString() : '-';
-    const purps = item?.mainPurpsCdNm ?? '-';
-    html += `<tr style="border-bottom:1px solid var(--border)">${td(ho)}${td(area)}${td(purps)}</tr>`;
-  });
-  html += '</tbody></table>';
-  return html;
+
+  const exposArea = expos.area != null ? Number(expos.area).toLocaleString() + 'm²' : '-';
+  let html = `<div style="display:flex;gap:16px;padding:8px 0 6px;font-size:12px;color:var(--text2)">
+    <span><span style="color:var(--text3);font-size:10px;margin-right:4px">전용면적</span><strong>${escHtml(exposArea)}</strong></span>
+    <span><span style="color:var(--text3);font-size:10px;margin-right:4px">용도</span><strong>${escHtml(expos.mainPurpsCdNm || '-')}</strong></span>
+  </div>`;
+
+  if(matching.length){
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>${th('구분')}${th('용도')}${th('면적(m²)')}</tr></thead><tbody>`;
+    matching.forEach(a => {
+      html += `<tr style="border-bottom:1px solid var(--border)">${td(a.exposPubuseClCdNm)}${td(a.mainPurpsCdNm || a.etcPurps)}${td(a.area != null ? Number(a.area).toLocaleString() : null)}</tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  detail.innerHTML = html;
+  detail.style.display = '';
 }
 
 // ═══════════════════════════════════════════════════════
