@@ -1027,7 +1027,16 @@ html{overflow-x:hidden}
         <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
         <div id="jusoSelJibun" style="font-size:11px;color:var(--text3)"></div>
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
-        <button class="btn" style="margin-top:8px;font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn" style="font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
+          <button class="btn btn-gold" style="font-size:11px" onclick="fetchBuildingInfo()" id="btnBldgLookup">건축물대장 조회</button>
+        </div>
+      </div>
+
+      <!-- 건축물대장 결과 -->
+      <div id="jusoBldgWrap" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:8px">건축물대장 정보</div>
+        <div id="jusoBldgContent"></div>
       </div>
 
       <!-- 결과 목록 -->
@@ -4696,8 +4705,14 @@ function _selectJusoItem(idx){
 function _renderJusoSelected(){
   const box = $('jusoSelected');
   if(!box) return;
-  if(!_jusoSelected){ box.style.display = 'none'; return; }
+  if(!_jusoSelected){
+    box.style.display = 'none';
+    const bw = $('jusoBldgWrap'); if(bw) bw.style.display = 'none';
+    return;
+  }
   box.style.display = '';
+  // 새 주소 선택 시 이전 건축물대장 결과 숨김
+  const bw = $('jusoBldgWrap'); if(bw) bw.style.display = 'none';
   const roadEl = $('jusoSelRoad');
   const jibunEl = $('jusoSelJibun');
   const metaEl = $('jusoSelMeta');
@@ -4720,6 +4735,97 @@ function copyJusoSelected(){
   navigator.clipboard.writeText(_jusoSelected.roadAddr)
     .then(() => toast('도로명주소가 복사되었습니다.'))
     .catch(() => toast('복사 실패. 직접 복사해 주세요.'));
+}
+
+async function fetchBuildingInfo(){
+  if(!_jusoSelected){ toast('주소를 먼저 선택해 주세요.'); return; }
+  if(!supabaseClient){ toast('Supabase가 초기화되지 않았습니다.'); return; }
+
+  const { admCd, lnbrMnnm, lnbrSlno } = _jusoSelected;
+  if(!admCd || admCd.length < 10){ toast('행정구역코드가 올바르지 않습니다.'); return; }
+
+  const sigunguCd = admCd.slice(0, 5);
+  const bjdongCd  = admCd.slice(5, 10);
+  const bun = String(lnbrMnnm || '0').padStart(4, '0');
+  const ji  = String(lnbrSlno  || '0').padStart(4, '0');
+
+  const wrap    = $('jusoBldgWrap');
+  const content = $('jusoBldgContent');
+  const btn     = $('btnBldgLookup');
+  if(wrap) wrap.style.display = '';
+  if(content) content.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">조회 중...</div>';
+  if(btn){ btn.disabled = true; btn.textContent = '조회 중...'; }
+
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('building-info', {
+      body: { sigunguCd, bjdongCd, bun, ji }
+    });
+
+    if(error){
+      // JWT 인증 오류 구분
+      const msg = error.message || '';
+      const isAuth = msg.includes('401') || msg.includes('JWT') || msg.includes('Unauthorized') || msg.toLowerCase().includes('auth');
+      const display = isAuth
+        ? '인증 오류입니다. Edge Function의 JWT 검증 설정을 확인해 주세요.'
+        : `오류: ${msg || '건축물대장 조회 실패'}`;
+      if(content) content.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px 0">${escHtml(display)}</div>`;
+      console.error('[building-info]', error);
+      return;
+    }
+
+    // 응답 경로 탐색: response.body.items.item (Edge Function이 원문 그대로 반환)
+    const raw = data?.response?.body?.items?.item
+             ?? data?.body?.items?.item
+             ?? data?.items?.item;
+
+    if(!raw){
+      if(content) content.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:12px 0">조회된 건축물 정보가 없습니다.</div>';
+      return;
+    }
+
+    const items = Array.isArray(raw) ? raw : [raw];
+    _renderBldgResult(items, content);
+  } catch(err){
+    if(content) content.innerHTML = `<div style="color:var(--red);font-size:12px;padding:4px 0">${escHtml(err.message || '건축물대장 조회 중 오류')}</div>`;
+    console.error('[building-info]', err);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '건축물대장 조회'; }
+  }
+}
+
+function _renderBldgResult(items, el){
+  const fields = [
+    ['주용도',     'mainPurpsCdNm',      null],
+    ['구조',       'strctCdNm',          null],
+    ['대지면적',   'platArea',           'm²'],
+    ['건축면적',   'archArea',           'm²'],
+    ['연면적',     'totArea',            'm²'],
+    ['건폐율',     'bcRat',              '%'],
+    ['용적률',     'vlRat',              '%'],
+    ['지상층수',   'grndFlrCnt',         '층'],
+    ['지하층수',   'ugrndFlrCnt',        '층'],
+    ['사용승인일', 'useAprDay',          null],
+  ];
+
+  let html = '';
+  items.forEach((item, i) => {
+    if(items.length > 1)
+      html += `<div style="font-size:11px;font-weight:700;color:var(--gold);margin:${i > 0 ? '14px' : '0'} 0 6px">건물 ${i + 1}</div>`;
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    fields.forEach(([label, key, unit]) => {
+      let val = item[key];
+      if(val === undefined || val === null || val === '') val = '-';
+      else if(unit) val = Number(val).toLocaleString() + unit;
+      else if(key === 'useAprDay') val = String(val).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3');
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:6px 8px;color:var(--text3);width:90px;font-weight:600;white-space:nowrap">${escHtml(label)}</td>
+        <td style="padding:6px 8px;color:var(--text)">${escHtml(String(val))}</td>
+      </tr>`;
+    });
+    html += '</table>';
+  });
+
+  el.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════════
