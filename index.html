@@ -1122,8 +1122,8 @@ html{overflow-x:hidden}
           <!-- 선택된 주소 표시 -->
           <div id="jusoSelected" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);border-radius:10px;margin-bottom:12px">
             <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:6px">✓ 선택된 주소</div>
-            <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
-            <div id="jusoSelJibun" style="font-size:11px;color:var(--text2)"></div>
+            <div id="jusoSelJibun" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
+            <div id="jusoSelRoad" style="font-size:11px;color:var(--text2)"></div>
             <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
               <button class="btn" style="font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
@@ -1133,7 +1133,7 @@ html{overflow-x:hidden}
           <!-- 카카오 지도 -->
           <div id="jusoMapWrap" style="display:none;margin-bottom:12px">
             <div style="position:relative">
-              <div id="jusoMap" style="width:100%;height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--border)"></div>
+              <div id="jusoMap" style="width:100%;height:340px;border-radius:10px;overflow:hidden;border:1px solid var(--border)"></div>
               <button id="btnCadastral" onclick="toggleCadastral()" style="position:absolute;top:8px;right:8px;z-index:10;font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;opacity:0.9">지적편집도</button>
             </div>
             <div id="jusoMapErr" style="display:none;padding:14px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:10px">지도 표시 불가 (좌표를 가져올 수 없습니다)</div>
@@ -4850,8 +4850,8 @@ function _renderJusoSelected(){
   const roadEl = $('jusoSelRoad');
   const jibunEl = $('jusoSelJibun');
   const metaEl = $('jusoSelMeta');
-  if(roadEl) roadEl.textContent = _jusoSelected.roadAddr;
-  if(jibunEl) jibunEl.textContent = '지번: ' + _jusoSelected.jibunAddr;
+  if(jibunEl) jibunEl.textContent = _jusoSelected.jibunAddr;
+  if(roadEl) roadEl.textContent = '도로명: ' + _jusoSelected.roadAddr;
   // admCd, lnbrMnnm, lnbrSlno는 건축물대장 조회에 사용되므로 _jusoSelected에 유지, 화면엔 미표시
 }
 
@@ -5152,10 +5152,19 @@ function toggleBldgSection(id){
 }
 
 function _bldgFloorTable(items){
+  // 지하→지상 정렬: 지하는 깊은 층이 위, 지상은 낮은 층부터
+  const floorKey = item => {
+    const raw = String(item?.flrNoNm ?? item?.flrNo ?? '');
+    const m = raw.match(/지하\s*(\d+)/);
+    if(m) return -(parseInt(m[1]) || 0);   // 지하3 → -3 (지하 깊을수록 앞)
+    const n = raw.match(/(\d+)/);
+    return n ? parseInt(n[1]) : 9999;       // 지상은 숫자 오름차순
+  };
+  const sorted = [...items].sort((a, b) => floorKey(a) - floorKey(b));
   const th = s => `<th style="padding:5px 8px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap">${s}</th>`;
   const td = s => `<td style="padding:5px 8px;font-size:12px;color:var(--text)">${escHtml(String(s ?? '-'))}</td>`;
   let html = `<table style="width:100%;border-collapse:collapse;margin-top:6px"><thead><tr>${th('층번호')}${th('층용도')}${th('면적(m²)')}</tr></thead><tbody>`;
-  items.forEach(item => {
+  sorted.forEach(item => {
     const flrNo = item?.flrNoNm ?? item?.flrNo ?? '-';
     const purps  = item?.mainPurpsCdNm ?? '-';
     const area   = item?.area != null ? Number(item.area).toLocaleString() : '-';
