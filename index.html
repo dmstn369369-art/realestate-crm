@@ -4718,6 +4718,8 @@ function renderJusoPage(){
   const noticeEl = $('jusoKeyNotice');
   if(noticeEl) noticeEl.style.display = JUSO_API_KEY ? 'none' : '';
   _renderJusoSelected();
+  // SDK를 미리 조용히 로드 (지오코딩 없음 — 나중에 경합 방지)
+  _loadKakaoSdk(() => {});
   // 결과 없으면 초기 상태 유지
   if(!_jusoList.length){
     const wrap = $('jusoResultWrap'); if(wrap) wrap.style.display = 'none';
@@ -4829,7 +4831,7 @@ function _selectJusoItem(idx){
     lnbrSlno: item.lnbrSlno
   };
   _renderJusoSelected();
-  renderJusoMap();
+  _scheduleMapRender();
   toast('주소가 선택되었습니다.');
 }
 
@@ -4879,6 +4881,15 @@ function _loadKakaoSdk(callback){
   s.onload = () => kakao.maps.load(() => { _kakaoSdkReady=true; callback(); });
   s.onerror = () => callback(new Error('sdk-load-fail'));
   document.head.appendChild(s);
+}
+
+let _jusoMapTimer = null;
+
+function _scheduleMapRender(){
+  if(_jusoMapTimer) clearTimeout(_jusoMapTimer);
+  // 2.5초 안에 건축물대장 조회가 시작되면 타이머가 취소되고
+  // 조회 완료 후 지도를 렌더링함 → 네트워크 경합 없음
+  _jusoMapTimer = setTimeout(() => { _jusoMapTimer = null; renderJusoMap(); }, 2500);
 }
 
 function renderJusoMap(){
@@ -4993,6 +5004,9 @@ async function fetchBuildingInfo(){
   if(!_jusoSelected){ toast('주소를 먼저 선택해 주세요.'); return; }
   if(!supabaseClient){ toast('Supabase가 초기화되지 않았습니다.'); return; }
 
+  // 지도 지연 타이머가 살아있으면 취소 → 조회 완료 후 지도를 렌더링해 경합 방지
+  if(_jusoMapTimer){ clearTimeout(_jusoMapTimer); _jusoMapTimer = null; }
+
   const { admCd, lnbrMnnm, lnbrSlno } = _jusoSelected;
   if(!admCd || admCd.length < 10){ toast('행정구역코드가 올바르지 않습니다.'); return; }
 
@@ -5036,6 +5050,8 @@ async function fetchBuildingInfo(){
     console.error('[building-info]', err);
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = '건축물대장 조회'; }
+    // 건축물대장 조회가 끝난 후에 지도 렌더링 (네트워크 경합 없음)
+    renderJusoMap();
   }
 }
 
