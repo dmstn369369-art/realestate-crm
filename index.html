@@ -4755,16 +4755,7 @@ function _renderJusoSelected(){
   const metaEl = $('jusoSelMeta');
   if(roadEl) roadEl.textContent = _jusoSelected.roadAddr;
   if(jibunEl) jibunEl.textContent = '지번: ' + _jusoSelected.jibunAddr;
-  if(metaEl){
-    const tags = [
-      ['행정구역코드', _jusoSelected.admCd],
-      ['지번본번', _jusoSelected.lnbrMnnm],
-      ['지번부번', _jusoSelected.lnbrSlno]
-    ].filter(([,v]) => v).map(([k,v]) =>
-      `<span style="font-size:10px;background:var(--bg3);border-radius:4px;padding:2px 6px;color:var(--text3)">${escHtml(k)}: ${escHtml(v)}</span>`
-    ).join('');
-    metaEl.innerHTML = tags;
-  }
+  // admCd, lnbrMnnm, lnbrSlno는 건축물대장 조회에 사용되므로 _jusoSelected에 유지, 화면엔 미표시
 }
 
 function copyJusoSelected(){
