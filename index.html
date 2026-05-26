@@ -4644,8 +4644,10 @@ async function searchJuso(page){
   _jusoKeyword = kw;
   _jusoPage = page || 1;
 
-  // 새 검색 시 이전 건축물대장 결과 자동 닫기
+  // 새 검색 시 이전 건축물대장 결과 + 지도 자동 닫기/초기화
   const _bw = $('jusoBldgWrap'); if(_bw) _bw.style.display = 'none';
+  const _mw = $('jusoMapWrap'); if(_mw) _mw.style.display = 'none';
+  _kakaoMapInst = null; _kakaoMarker = null;
 
   const params = new URLSearchParams({
     confmKey: JUSO_API_KEY,
@@ -4811,18 +4813,12 @@ function renderJusoMap(){
       }
       const {x,y}=result[0];
       const latlng=new kakao.maps.LatLng(parseFloat(y),parseFloat(x));
-      const infoContent=`<div style="padding:6px 10px;font-size:12px;max-width:220px;word-break:break-all;color:#111;background:#fff;font-weight:600">${escHtml(addr)}</div>`;
       if(!_kakaoMapInst){
         _kakaoMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
         _kakaoMarker=new kakao.maps.Marker({position:latlng,map:_kakaoMapInst});
-        _kakaoInfoWin=new kakao.maps.InfoWindow({content:infoContent,removable:false});
-        _kakaoInfoWin.open(_kakaoMapInst,_kakaoMarker);
         _kakaoDistOn=false; _syncCadastralBtn();
       } else {
         _kakaoMapInst.setCenter(latlng); _kakaoMarker.setPosition(latlng);
-        if(_kakaoInfoWin)_kakaoInfoWin.close();
-        _kakaoInfoWin=new kakao.maps.InfoWindow({content:infoContent,removable:false});
-        _kakaoInfoWin.open(_kakaoMapInst,_kakaoMarker);
         _kakaoMapInst.relayout();
       }
     });
