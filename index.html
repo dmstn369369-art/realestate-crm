@@ -1031,7 +1031,7 @@ html{overflow-x:hidden}
           <div id="jusoSelected" style="display:none;padding:14px 16px;background:var(--bg2);border:1px solid var(--gold);border-radius:10px;margin-bottom:12px">
             <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:6px">✓ 선택된 주소</div>
             <div id="jusoSelRoad" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px"></div>
-            <div id="jusoSelJibun" style="font-size:11px;color:var(--text3)"></div>
+            <div id="jusoSelJibun" style="font-size:11px;color:var(--text2)"></div>
             <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap" id="jusoSelMeta"></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
               <button class="btn" style="font-size:11px" onclick="copyJusoSelected()">주소 복사</button>
@@ -1040,7 +1040,10 @@ html{overflow-x:hidden}
           </div>
           <!-- 카카오 지도 -->
           <div id="jusoMapWrap" style="display:none;margin-bottom:12px">
-            <div id="jusoMap" style="width:100%;height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--border)"></div>
+            <div style="position:relative">
+              <div id="jusoMap" style="width:100%;height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--border)"></div>
+              <button id="btnCadastral" onclick="toggleCadastral()" style="position:absolute;top:8px;right:8px;z-index:10;font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;opacity:0.9">지적편집도</button>
+            </div>
             <div id="jusoMapErr" style="display:none;padding:14px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:10px">지도 표시 불가 (좌표를 가져올 수 없습니다)</div>
           </div>
           <!-- 건축물대장 결과 -->
@@ -4808,12 +4811,13 @@ function renderJusoMap(){
       }
       const {x,y}=result[0];
       const latlng=new kakao.maps.LatLng(parseFloat(y),parseFloat(x));
-      const infoContent=`<div style="padding:6px 10px;font-size:12px;max-width:220px;word-break:break-all">${escHtml(addr)}</div>`;
+      const infoContent=`<div style="padding:6px 10px;font-size:12px;max-width:220px;word-break:break-all;color:#111;background:#fff;font-weight:600">${escHtml(addr)}</div>`;
       if(!_kakaoMapInst){
         _kakaoMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
         _kakaoMarker=new kakao.maps.Marker({position:latlng,map:_kakaoMapInst});
         _kakaoInfoWin=new kakao.maps.InfoWindow({content:infoContent,removable:false});
         _kakaoInfoWin.open(_kakaoMapInst,_kakaoMarker);
+        _kakaoDistOn=false; _syncCadastralBtn();
       } else {
         _kakaoMapInst.setCenter(latlng); _kakaoMarker.setPosition(latlng);
         if(_kakaoInfoWin)_kakaoInfoWin.close();
@@ -4823,6 +4827,29 @@ function renderJusoMap(){
       }
     });
   });
+}
+
+let _kakaoDistOn = false;
+
+function _syncCadastralBtn(){
+  const btn = document.getElementById('btnCadastral');
+  if(!btn) return;
+  if(_kakaoDistOn){
+    btn.style.background='var(--gold)'; btn.style.color='#000'; btn.style.fontWeight='700';
+  } else {
+    btn.style.background='var(--bg2)'; btn.style.color='var(--text)'; btn.style.fontWeight='400';
+  }
+}
+
+function toggleCadastral(){
+  if(!_kakaoMapInst) return;
+  _kakaoDistOn = !_kakaoDistOn;
+  if(_kakaoDistOn){
+    _kakaoMapInst.addOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+  } else {
+    _kakaoMapInst.removeOverlayMapTypeId(kakao.maps.MapTypeId.USE_DISTRICT);
+  }
+  _syncCadastralBtn();
 }
 
 function _addJusoRecent(kw){
