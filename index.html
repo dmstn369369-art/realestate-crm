@@ -370,29 +370,60 @@ input[type="time"]::-webkit-datetime-edit-text{color:var(--text2);padding:0 2px}
 /* ═══════════════════════════════════════════════════════ */
 /* LANDING PAGE */
 /* ═══════════════════════════════════════════════════════ */
-.landing-wrap{display:flex;height:100vh;overflow:hidden}
-.landing-left{flex:6;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:48px 52px}
-.landing-right{flex:4;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;overflow-y:auto}
-.landing-logo{font-family:'Noto Serif KR',serif;font-size:26px;color:var(--gold);font-weight:700;margin-bottom:8px;line-height:1.3}
-.landing-tagline{font-size:15px;color:var(--text);font-weight:500;margin-bottom:6px}
-.landing-desc{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.7}
-.landing-divider{border:none;border-top:1px solid var(--border);margin:0 0 28px}
-.landing-features{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.landing-feat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;transition:all .2s;cursor:default}
-.landing-feat:not(.coming-soon):hover{transform:translateY(-2px);border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.35)}
-.landing-feat.coming-soon{opacity:.55}
-.landing-feat-icon{font-size:20px;margin-bottom:7px}
-.landing-feat-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px}
-.landing-feat-desc{font-size:11px;color:var(--text2);line-height:1.5}
-.landing-coming{display:inline-block;font-size:9px;font-weight:700;background:var(--gold-dim);color:var(--gold);padding:1px 5px;border-radius:4px;margin-left:5px;vertical-align:middle}
-.landing-auth-box{width:100%;max-width:360px}
+/* ── 랜딩 페이지 (스크롤형) ── */
+#landing{background:var(--bg);overflow-y:auto}
+.ld-nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(18,18,23,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.ld-nav-inner{max-width:960px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.ld-nav-logo{font-family:'Noto Serif KR',serif;font-size:19px;color:var(--gold);font-weight:700;letter-spacing:1px}
+.ld-btn-ghost{font-size:12px;font-weight:500;padding:7px 18px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;transition:all .2s}
+.ld-btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.ld-btn-primary{font-size:14px;font-weight:700;padding:13px 30px;border-radius:10px;border:none;background:var(--gold);color:#000;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.ld-btn-primary:hover{background:#e6b84a;transform:translateY(-2px);box-shadow:0 8px 24px rgba(212,162,76,.4)}
+.ld-hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 80px}
+.ld-badge{display:inline-block;font-size:11px;font-weight:600;color:var(--gold);border:1px solid rgba(212,162,76,.4);border-radius:20px;padding:5px 16px;margin-bottom:30px;letter-spacing:.5px}
+.ld-hero-title{font-family:'Noto Serif KR',serif;font-size:clamp(36px,7vw,62px);font-weight:700;color:var(--text);line-height:1.2;margin-bottom:22px}
+.ld-hero-title span{color:var(--gold)}
+.ld-hero-sub{font-size:clamp(14px,2vw,17px);color:var(--text2);line-height:1.8;max-width:460px;margin:0 auto 44px}
+.ld-container{max-width:860px;margin:0 auto;padding:0 24px}
+.ld-section{padding:96px 0}
+.ld-section-alt{padding:96px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.ld-sec-eyebrow{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;text-align:center}
+.ld-sec-title{font-family:'Noto Serif KR',serif;font-size:clamp(22px,4vw,34px);font-weight:700;color:var(--text);text-align:center;margin-bottom:48px;line-height:1.3}
+.ld-diff-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ld-diff-card{background:var(--bg3);border:1px solid var(--border);border-radius:16px;padding:32px 28px;transition:all .25s}
+.ld-diff-card:hover{border-color:rgba(212,162,76,.5);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.45)}
+.ld-diff-icon{font-size:32px;margin-bottom:16px}
+.ld-diff-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px}
+.ld-diff-desc{font-size:13px;color:var(--text2);line-height:1.75}
+.ld-feats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ld-feat-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 20px;text-align:center;transition:all .2s}
+.ld-feat-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.ld-feat-icon{font-size:26px;margin-bottom:10px}
+.ld-feat-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.ld-feat-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.ld-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.ld-step{position:relative;text-align:center;padding:28px 24px}
+.ld-step:not(:last-child)::after{content:'→';position:absolute;right:-1px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--gold);opacity:.4}
+.ld-step-num{width:42px;height:42px;border-radius:50%;background:rgba(212,162,76,.12);border:1px solid rgba(212,162,76,.4);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--gold);margin:0 auto 16px}
+.ld-step-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px}
+.ld-step-desc{font-size:12px;color:var(--text2);line-height:1.65}
+.ld-cta-section{padding:96px 0;text-align:center}
+.ld-cta-title{font-family:'Noto Serif KR',serif;font-size:clamp(22px,4vw,32px);font-weight:700;color:var(--text);margin-bottom:12px}
+.ld-cta-sub{font-size:14px;color:var(--text2);margin-bottom:36px}
+/* Auth modal */
+#ldAuthModal{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center}
+#ldAuthOverlay{position:absolute;inset:0;background:rgba(0,0,0,.65)}
+#ldAuthBox{position:relative;z-index:1;width:100%;max-width:400px;margin:16px;background:var(--bg);border:1px solid var(--border2);border-radius:18px;padding:32px 28px 24px;max-height:90vh;overflow-y:auto}
+.ld-auth-close{position:absolute;top:12px;right:16px;font-size:22px;line-height:1;color:var(--text3);cursor:pointer;background:none;border:none;padding:4px}
+.ld-auth-close:hover{color:var(--text)}
 .landing-auth-title{font-family:'Noto Serif KR',serif;font-size:22px;color:var(--gold);font-weight:700;margin-bottom:5px;text-align:center}
 .landing-auth-sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:22px}
-@media(max-width:800px){
-  .landing-wrap{flex-direction:column;height:auto;min-height:100vh}
-  .landing-left{flex:none;padding:32px 24px}
-  .landing-right{flex:none;padding:24px;justify-content:flex-start}
-  .landing-auth-box{max-width:100%}
+@media(max-width:640px){
+  .ld-diff-grid,.ld-feats-grid{grid-template-columns:1fr}
+  .ld-steps{grid-template-columns:1fr}
+  .ld-step:not(:last-child)::after{display:none}
+  .ld-section,.ld-section-alt,.ld-cta-section{padding:64px 0}
+  #ldAuthBox{padding:28px 20px 20px}
 }
 /* 비밀번호 재설정 모드: 랜딩/앱 강제 숨김, 모달 강제 표시 */
 html.password-recovery-mode #landing,html.password-recovery-mode #mainApp{display:none!important}
@@ -546,7 +577,6 @@ html{overflow-x:hidden}
 @media(max-width:480px){
   .content{padding:10px}
   .stat-val{font-size:16px}
-  .landing-features{grid-template-columns:1fr!important}
   .cal-layout{gap:8px}
 }
 
@@ -727,89 +757,151 @@ html{overflow-x:hidden}
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- LANDING PAGE (비로그인 상태) -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div class="landing-wrap" id="landing">
-  <!-- 좌측: 서비스 소개 -->
-  <div class="landing-left">
-    <div class="landing-logo">🏢 부동산 중개 보조 시스템</div>
-    <div class="landing-tagline">부동산 중개사를 위한 스마트한 업무 도구</div>
-    <div class="landing-desc">현직 5년차 중개사가 직접 만든 실무 최적화 CRM 솔루션</div>
-    <hr class="landing-divider">
-    <div class="landing-features">
-      <div class="landing-feat">
-        <div class="landing-feat-icon">📅</div>
-        <div class="landing-feat-title">일정 관리</div>
-        <div class="landing-feat-desc">달력 기반의 직관적인 일정 관리 시스템</div>
-      </div>
-      <div class="landing-feat">
-        <div class="landing-feat-icon">👥</div>
-        <div class="landing-feat-title">고객 관리</div>
-        <div class="landing-feat-desc">우선순위와 유형별 체계적인 고객 관리</div>
-      </div>
-      <div class="landing-feat">
-        <div class="landing-feat-icon">💰</div>
-        <div class="landing-feat-title">수수료 정산</div>
-        <div class="landing-feat-desc">계약별 자동 정산 시스템</div>
-      </div>
-      <div class="landing-feat">
-        <div class="landing-feat-icon">☁️</div>
-        <div class="landing-feat-title">자동 동기화</div>
-        <div class="landing-feat-desc">여러 기기에서 실시간 사용</div>
-      </div>
-      <div class="landing-feat">
-        <div class="landing-feat-icon">💾</div>
-        <div class="landing-feat-title">백업</div>
-        <div class="landing-feat-desc">데이터를 안전하게 보관</div>
-      </div>
-      <div class="landing-feat coming-soon">
-        <div class="landing-feat-icon">🤝</div>
-        <div class="landing-feat-title">팀 협업 <span class="landing-coming">Coming Soon</span></div>
-        <div class="landing-feat-desc">팀원과 데이터 공유</div>
+<div id="landing">
+  <!-- 고정 네비게이션 -->
+  <nav class="ld-nav">
+    <div class="ld-nav-inner">
+      <div class="ld-nav-logo">Brokid</div>
+      <button class="ld-btn-ghost" onclick="openLandingAuth('login')">로그인 / 회원가입</button>
+    </div>
+  </nav>
+
+  <!-- 히어로 -->
+  <section class="ld-hero">
+    <div class="ld-badge">현직 5년차 중개사가 직접 만든 실무 도구</div>
+    <h1 class="ld-hero-title">부동산 중개,<br><span>더 스마트하게</span></h1>
+    <p class="ld-hero-sub">실무에서 매일 쓰는 기능만. 복잡한 건 없애고 꼭 필요한 것만 담았습니다.</p>
+    <button class="ld-btn-primary" onclick="openLandingAuth('login')">지금 시작하기 →</button>
+  </section>
+
+  <!-- 차별점 -->
+  <section class="ld-section-alt">
+    <div class="ld-container">
+      <div class="ld-diff-grid">
+        <div class="ld-diff-card">
+          <div class="ld-diff-icon">🏡</div>
+          <div class="ld-diff-title">현직 중개사가 직접 만들었어요</div>
+          <div class="ld-diff-desc">5년 현장 경험을 그대로 담았습니다. 실제로 쓰이는 기능만, 군더더기 없이.</div>
+        </div>
+        <div class="ld-diff-card">
+          <div class="ld-diff-icon">⚡</div>
+          <div class="ld-diff-title">꼭 필요한 기능만 심플하게</div>
+          <div class="ld-diff-desc">복잡한 메뉴 대신, 매일 쓰는 핵심 기능만 빠르게. 배울 것도 없이 바로 쓸 수 있어요.</div>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- 우측: 로그인 / 회원가입 -->
-  <div class="landing-right">
-    <div class="landing-auth-box">
+  </section>
+
+  <!-- 핵심 기능 -->
+  <section class="ld-section">
+    <div class="ld-container">
+      <div class="ld-sec-eyebrow">핵심 기능</div>
+      <h2 class="ld-sec-title">필요한 건 다 있어요</h2>
+      <div class="ld-feats-grid">
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">📅</div>
+          <div class="ld-feat-name">일정 관리</div>
+          <div class="ld-feat-desc">달력 기반 직관적 일정</div>
+        </div>
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">👥</div>
+          <div class="ld-feat-name">고객 관리</div>
+          <div class="ld-feat-desc">유형별 체계적 고객 관리</div>
+        </div>
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">💰</div>
+          <div class="ld-feat-name">수수료 정산</div>
+          <div class="ld-feat-desc">계약별 자동 정산</div>
+        </div>
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">🔍</div>
+          <div class="ld-feat-name">주소 검색</div>
+          <div class="ld-feat-desc">도로명·지번 통합 검색</div>
+        </div>
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">🏢</div>
+          <div class="ld-feat-name">건축물대장</div>
+          <div class="ld-feat-desc">주소로 즉시 조회</div>
+        </div>
+        <div class="ld-feat-card">
+          <div class="ld-feat-icon">🗺️</div>
+          <div class="ld-feat-name">지도 연동</div>
+          <div class="ld-feat-desc">카카오맵 위치 확인</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 사용법 3단계 -->
+  <section class="ld-section-alt">
+    <div class="ld-container">
+      <div class="ld-sec-eyebrow">사용법</div>
+      <h2 class="ld-sec-title">시작까지 3단계면 충분해요</h2>
+      <div class="ld-steps">
+        <div class="ld-step">
+          <div class="ld-step-num">1</div>
+          <div class="ld-step-title">가입</div>
+          <div class="ld-step-desc">이메일로 30초 만에 가입. 별도 설치 없이 브라우저에서 바로 사용.</div>
+        </div>
+        <div class="ld-step">
+          <div class="ld-step-num">2</div>
+          <div class="ld-step-title">매물·고객 등록</div>
+          <div class="ld-step-desc">오늘 만난 고객, 진행 중인 매물을 바로 입력하세요.</div>
+        </div>
+        <div class="ld-step">
+          <div class="ld-step-num">3</div>
+          <div class="ld-step-title">주소 넣으면 끝</div>
+          <div class="ld-step-desc">주소 입력 한 번에 건축물대장·지도까지 자동으로 조회.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 마무리 CTA -->
+  <section class="ld-cta-section">
+    <div class="ld-container">
+      <div class="ld-cta-title">지금 바로 시작해 보세요</div>
+      <div class="ld-cta-sub">무료로 사용할 수 있어요</div>
+      <button class="ld-btn-primary" onclick="openLandingAuth('signup')">무료로 시작하기 →</button>
+    </div>
+  </section>
+
+  <!-- 로그인/회원가입 모달 -->
+  <div id="ldAuthModal" style="display:none">
+    <div id="ldAuthOverlay" onclick="closeLandingAuth()"></div>
+    <div id="ldAuthBox">
+      <button class="ld-auth-close" onclick="closeLandingAuth()">×</button>
       <div class="landing-auth-title">✨ 시작하기</div>
       <div class="landing-auth-sub">중개 보조 시스템에 오신 것을 환영합니다</div>
-      <!-- 탭 -->
       <div class="tabs" style="margin-bottom:18px;width:100%;display:flex">
         <div class="tab on" id="landTabLogin" onclick="switchLandingTab('login')" style="flex:1;text-align:center">로그인</div>
         <div class="tab" id="landTabSignup" onclick="switchLandingTab('signup')" style="flex:1;text-align:center">회원가입</div>
       </div>
-      <!-- 안내 메시지 -->
       <div class="info-box" id="landInfo" style="display:none"></div>
-      <!-- 이름 (회원가입 전용) -->
       <div class="fg" id="landNameGroup" style="display:none">
         <label>이름 *</label>
         <input type="text" id="land-name" placeholder="홍길동" autocomplete="name">
       </div>
-      <!-- 이메일 -->
       <div class="fg">
         <label>이메일 *</label>
         <input type="email" id="land-email" placeholder="example@email.com" autocomplete="email">
       </div>
-      <!-- 비밀번호 -->
       <div class="fg">
         <label>비밀번호 * <span style="color:var(--text3);font-weight:400" id="landPwHint"></span></label>
         <input type="password" id="land-password" placeholder="6자 이상" autocomplete="current-password">
       </div>
-      <!-- 비밀번호 확인 (회원가입 전용) -->
       <div class="fg" id="landPwConfirmGroup" style="display:none">
         <label>비밀번호 확인 *</label>
         <input type="password" id="land-pw-confirm" placeholder="비밀번호 확인" autocomplete="new-password">
       </div>
-      <!-- 전화번호 (회원가입 전용) -->
       <div class="fg" id="landPhoneGroup" style="display:none">
         <label>전화번호 (선택)</label>
         <input type="tel" id="land-phone" placeholder="010-0000-0000">
       </div>
-      <!-- 로그인 유지 -->
       <div id="landKeepLogin" style="margin:8px 0 12px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:6px">
         <input type="checkbox" id="land-remember" checked style="width:auto;margin:0">
         <label for="land-remember" style="cursor:pointer;margin:0;color:var(--text2)">로그인 유지 (7일)</label>
       </div>
-      <!-- 제출 버튼 -->
       <button class="btn btn-gold" id="landSubmitBtn" onclick="handleLandingAuthSubmit()" style="width:100%;justify-content:center;padding:10px 12px">로그인</button>
       <div id="landForgotWrap" style="text-align:right;margin-top:8px">
         <span onclick="openForgotPasswordModal()" style="font-size:11px;color:var(--gold);cursor:pointer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">비밀번호를 잊으셨나요?</span>
@@ -6382,15 +6474,32 @@ function handleSignedOut(){
 }
 
 function showLanding(){
-  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('landing').style.display = 'block';
   document.getElementById('mainApp').style.display = 'none';
-  document.body.style.overflow = 'auto'; // 모바일에서 랜딩 페이지 스크롤 허용
+  document.body.style.overflow = 'auto';
+}
+
+function openLandingAuth(mode){
+  const modal = document.getElementById('ldAuthModal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  switchLandingTab(mode || 'login');
+  setTimeout(() => { const el = document.getElementById('land-email'); if(el) el.focus(); }, 80);
+}
+
+function closeLandingAuth(){
+  const modal = document.getElementById('ldAuthModal');
+  if(modal) modal.style.display = 'none';
+  document.body.style.overflow = 'auto';
 }
 
 function showMain(){
+  const modal = document.getElementById('ldAuthModal');
+  if(modal) modal.style.display = 'none';
   document.getElementById('landing').style.display = 'none';
   document.getElementById('mainApp').style.display = 'flex';
-  document.body.style.overflow = 'hidden'; // 앱 모드: 내부 스크롤
+  document.body.style.overflow = 'hidden';
 }
 
 function updateAuthUI(user){
