@@ -1038,6 +1038,11 @@ html{overflow-x:hidden}
               <button class="btn btn-gold" style="font-size:11px" onclick="fetchBuildingInfo()" id="btnBldgLookup">건축물대장 조회</button>
             </div>
           </div>
+          <!-- 카카오 지도 -->
+          <div id="jusoMapWrap" style="display:none;margin-bottom:12px">
+            <div id="jusoMap" style="width:100%;height:260px;border-radius:10px;overflow:hidden;border:1px solid var(--border)"></div>
+            <div id="jusoMapErr" style="display:none;padding:14px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:10px">지도 표시 불가 (좌표를 가져올 수 없습니다)</div>
+          </div>
           <!-- 건축물대장 결과 -->
           <div id="jusoBldgWrap" style="display:none;margin:0 0 12px">
             <div style="padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
@@ -2423,6 +2428,7 @@ const KEY = {clients:'crm5_clients',events:'crm5_events',fees:'crm5_fees',uid:'c
 // 도로명주소 API (행정안전부) — 승인키를 아래에 입력하세요
 const JUSO_API_KEY = 'U01TX0FVVEgyMDI2MDUyMzIxNDI1NTExODIyNTU='; // 도로명주소 승인키
 const JUSO_API_URL = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
+const KAKAO_JS_KEY = ''; // 여기에 카카오 JavaScript 키 입력
 
 function ld(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch{return null}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
@@ -4723,6 +4729,7 @@ function _selectJusoItem(idx){
     lnbrSlno: item.lnbrSlno
   };
   _renderJusoSelected();
+  renderJusoMap();
   toast('주소가 선택되었습니다.');
 }
 
@@ -4732,6 +4739,7 @@ function _renderJusoSelected(){
   if(!_jusoSelected){
     box.style.display = 'none';
     const bw = $('jusoBldgWrap'); if(bw) bw.style.display = 'none';
+    const mw = $('jusoMapWrap'); if(mw) mw.style.display = 'none';
     return;
   }
   box.style.display = '';
@@ -4759,6 +4767,62 @@ function copyJusoSelected(){
   navigator.clipboard.writeText(_jusoSelected.roadAddr)
     .then(() => toast('도로명주소가 복사되었습니다.'))
     .catch(() => toast('복사 실패. 직접 복사해 주세요.'));
+}
+
+let _kakaoMapInst = null;
+let _kakaoMarker = null;
+let _kakaoInfoWin = null;
+let _kakaoSdkReady = false;
+
+function _loadKakaoSdk(callback){
+  if(_kakaoSdkReady){ callback(); return; }
+  if(!KAKAO_JS_KEY){ callback(new Error('no-key')); return; }
+  const existing = document.getElementById('kakaoSdkScript');
+  if(existing){
+    const poll = () => window.kakao?.maps ? (_kakaoSdkReady=true, callback()) : setTimeout(poll,100);
+    poll(); return;
+  }
+  const s = document.createElement('script');
+  s.id = 'kakaoSdkScript';
+  s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(KAKAO_JS_KEY)}&libraries=services&autoload=false`;
+  s.onload = () => kakao.maps.load(() => { _kakaoSdkReady=true; callback(); });
+  s.onerror = () => callback(new Error('sdk-load-fail'));
+  document.head.appendChild(s);
+}
+
+function renderJusoMap(){
+  if(!_jusoSelected) return;
+  const mapWrap=$('jusoMapWrap'), mapDiv=$('jusoMap'), mapErr=$('jusoMapErr');
+  if(!mapWrap) return;
+  _loadKakaoSdk(err => {
+    if(err){
+      if(err.message !== 'no-key'){ mapWrap.style.display=''; if(mapDiv)mapDiv.style.display='none'; if(mapErr)mapErr.style.display=''; }
+      return;
+    }
+    mapWrap.style.display=''; if(mapDiv)mapDiv.style.display=''; if(mapErr)mapErr.style.display='none';
+    const addr = _jusoSelected.roadAddr || _jusoSelected.jibunAddr;
+    const geocoder = new kakao.maps.services.Geocoder();
+    geocoder.addressSearch(addr, (result, status) => {
+      if(status!==kakao.maps.services.Status.OK||!result.length){
+        if(mapDiv)mapDiv.style.display='none'; if(mapErr)mapErr.style.display=''; return;
+      }
+      const {x,y}=result[0];
+      const latlng=new kakao.maps.LatLng(parseFloat(y),parseFloat(x));
+      const infoContent=`<div style="padding:6px 10px;font-size:12px;max-width:220px;word-break:break-all">${escHtml(addr)}</div>`;
+      if(!_kakaoMapInst){
+        _kakaoMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
+        _kakaoMarker=new kakao.maps.Marker({position:latlng,map:_kakaoMapInst});
+        _kakaoInfoWin=new kakao.maps.InfoWindow({content:infoContent,removable:false});
+        _kakaoInfoWin.open(_kakaoMapInst,_kakaoMarker);
+      } else {
+        _kakaoMapInst.setCenter(latlng); _kakaoMarker.setPosition(latlng);
+        if(_kakaoInfoWin)_kakaoInfoWin.close();
+        _kakaoInfoWin=new kakao.maps.InfoWindow({content:infoContent,removable:false});
+        _kakaoInfoWin.open(_kakaoMapInst,_kakaoMarker);
+        _kakaoMapInst.relayout();
+      }
+    });
+  });
 }
 
 function _addJusoRecent(kw){
