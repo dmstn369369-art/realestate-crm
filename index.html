@@ -1045,6 +1045,9 @@ html{overflow-x:hidden}
               <button id="btnCadastral" onclick="toggleCadastral()" style="position:absolute;top:8px;right:8px;z-index:10;font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;opacity:0.9">지적편집도</button>
             </div>
             <div id="jusoMapErr" style="display:none;padding:14px;text-align:center;font-size:12px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:10px">지도 표시 불가 (좌표를 가져올 수 없습니다)</div>
+            <div style="text-align:right;margin-top:5px">
+              <a id="kakaoMapLink" href="#" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text3)'">카카오맵에서 크게 보기 ↗</a>
+            </div>
           </div>
           <!-- 건축물대장 결과 -->
           <div id="jusoBldgWrap" style="display:none;margin:0 0 12px">
@@ -4797,13 +4800,17 @@ function renderJusoMap(){
     }
     mapWrap.style.display=''; if(mapDiv)mapDiv.style.display=''; if(mapErr)mapErr.style.display='none';
     const addr = _jusoSelected.roadAddr || _jusoSelected.jibunAddr;
+    const linkEl = document.getElementById('kakaoMapLink');
+    if(linkEl) linkEl.href = 'https://map.kakao.com/?q=' + encodeURIComponent(addr);
     const geocoder = new kakao.maps.services.Geocoder();
     geocoder.addressSearch(addr, (result, status) => {
       if(status!==kakao.maps.services.Status.OK||!result.length){
         if(mapDiv)mapDiv.style.display='none'; if(mapErr)mapErr.style.display=''; return;
       }
       const {x,y}=result[0];
-      const latlng=new kakao.maps.LatLng(parseFloat(y),parseFloat(x));
+      const lat=parseFloat(y), lng=parseFloat(x);
+      if(linkEl) linkEl.href = `https://map.kakao.com/link/map/${encodeURIComponent(addr)},${lat},${lng}`;
+      const latlng=new kakao.maps.LatLng(lat,lng);
       if(!_kakaoMapInst){
         _kakaoMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
         _kakaoMarker=new kakao.maps.Marker({position:latlng,map:_kakaoMapInst});
