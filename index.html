@@ -4741,7 +4741,11 @@ async function searchJuso(page){
   _jusoKeyword = kw;
   _jusoPage = page || 1;
 
-  // 새 검색 시 이전 건축물대장 결과 + 지도 자동 닫기/초기화
+  // 새 키워드 검색(page=1) 시: 이전 선택 해제 + 건축물대장 + 지도 초기화
+  if(!page || page === 1){
+    _jusoSelected = null;
+    _renderJusoSelected();
+  }
   const _bw = $('jusoBldgWrap'); if(_bw) _bw.style.display = 'none';
   const _mw = $('jusoMapWrap'); if(_mw) _mw.style.display = 'none';
   _kakaoMapInst = null; _kakaoMarker = null;
@@ -4795,8 +4799,8 @@ function _renderJusoResults(){
   listEl.innerHTML = _jusoList.map((item, i) => `
     <div onclick="_selectJusoItem(${i})" style="padding:11px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:background .15s"
          onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${escHtml(item.roadAddr)}</div>
-      <div style="font-size:11px;color:var(--text3)">${escHtml(item.jibunAddr)}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${escHtml(item.jibunAddr)}</div>
+      <div style="font-size:11px;color:var(--text3)">${escHtml(item.roadAddr)}</div>
       ${item.bdNm ? `<div style="font-size:10px;color:var(--gold);margin-top:2px">${escHtml(item.bdNm)}</div>` : ''}
     </div>`).join('');
 
