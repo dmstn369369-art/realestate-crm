@@ -7841,7 +7841,7 @@ async function searchPropJuso(page){
 }
 function _selectPropAddrItem(idx){
   const item=_propJusoList[idx];if(!item)return;
-  const addrEl=$('p-address');if(addrEl)addrEl.value=item.roadAddr;
+  const addrEl=$('p-address');if(addrEl)addrEl.value=item.jibunAddr;
   const resEl=$('propAddrResults');if(resEl)resEl.style.display='none';
   const selEl=$('propAddrSelected');
   if(selEl){
@@ -7849,7 +7849,7 @@ function _selectPropAddrItem(idx){
     selEl.innerHTML=`<div style="font-weight:600;color:var(--text);margin-bottom:1px">${escHtml(item.jibunAddr)}</div><div style="color:var(--text2)">${escHtml(item.roadAddr)}</div>`;
   }
   _propAddrLat=null;_propAddrLng=null;
-  _renderPropMap(item.roadAddr||item.jibunAddr);
+  _renderPropMap(item.jibunAddr||item.roadAddr);
 }
 function _renderPropMap(addr){
   if(!addr)return;
