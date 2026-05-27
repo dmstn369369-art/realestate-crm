@@ -751,6 +751,13 @@ html{overflow-x:hidden}
 @media(max-width:400px){.sv-info-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.sv-slide-wrap{aspect-ratio:4/3;max-height:70vw;width:100%;left:0;right:0}}
 .sv-map-box{border-radius:12px;overflow:hidden;border:1px solid var(--border);aspect-ratio:16/9;width:100%}
+.sv-agent-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sv-agent-avatar{width:48px;height:48px;border-radius:50%;flex-shrink:0;background:var(--bg3);border:2px solid var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:800;font-size:18px;font-family:'Noto Serif KR',serif}
+.sv-agent-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.sv-agent-info{flex:1;min-width:0}
+.sv-agent-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.sv-agent-org{font-size:12px;color:var(--gold);font-weight:600;margin-bottom:2px}
+.sv-agent-phone{font-size:12px;color:var(--text2)}
 </style>
 </head>
 <body>
@@ -2252,12 +2259,20 @@ html{overflow-x:hidden}
       <button type="button" class="modal-close" onclick="closeProfileModal()">✕</button>
     </div>
     <div class="modal-body">
-      <!-- 프로필 사진 placeholder -->
-      <div style="display:flex;justify-content:center;margin-bottom:20px">
-        <div style="width:72px;height:72px;border-radius:50%;background:var(--bg3);border:2px dashed var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-          <span id="profileAvatarPreview" style="font-size:26px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">?</span>
-          <span style="font-size:8px;color:var(--text3)">사진 추후 지원</span>
+      <!-- 프로필 사진 업로드 -->
+      <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:20px;gap:8px">
+        <div style="position:relative;display:inline-block">
+          <div id="profileAvatarWrap" onclick="$('avatarFileInput').click()" title="클릭해서 사진 변경"
+               style="width:72px;height:72px;border-radius:50%;background:var(--bg3);border:2px dashed var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s"
+               onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+            <img id="profileAvatarImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+            <span id="profileAvatarPreview" style="font-size:26px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">?</span>
+          </div>
+          <button id="avatarDeleteBtn" type="button" onclick="deleteAvatar()" title="사진 삭제"
+                  style="display:none;position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:10px;cursor:pointer;align-items:center;justify-content:center;line-height:1">✕</button>
+          <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="onAvatarFileChange(this)">
         </div>
+        <span style="font-size:10px;color:var(--text3)">클릭해서 사진 변경</span>
       </div>
       <!-- 개인 정보 -->
       <div style="margin-bottom:14px">
@@ -2511,6 +2526,10 @@ html{overflow-x:hidden}
       <div id="svMapWrap" style="display:none;margin-bottom:16px">
         <div class="sv-sec-title">위 치</div>
         <div id="svMap" class="sv-map-box"></div>
+      </div>
+      <div id="svAgentWrap" style="display:none">
+        <div class="sv-sec-title">담당 중개사</div>
+        <div id="svAgentCard" class="sv-agent-card"></div>
       </div>
       <div class="sv-foot" id="svFoot"></div>
     </div>
@@ -5475,8 +5494,37 @@ function saveRatio(){
 // ═══════════════════════════════════════════════════════
 // 내 정보 모달
 // ═══════════════════════════════════════════════════════
+let _avatarNewFile=null;     // 새로 선택한 파일
+let _avatarDeletePending=false; // 삭제 예약 여부
+
+function onAvatarFileChange(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>5*1024*1024){toast('사진은 5MB 이하만 업로드 가능합니다');input.value='';return;}
+  _avatarNewFile=file;_avatarDeletePending=false;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=$('profileAvatarImg'),prev=$('profileAvatarPreview'),del=$('avatarDeleteBtn');
+    if(img){img.src=e.target.result;img.style.display='';}
+    if(prev)prev.style.display='none';
+    if(del)del.style.display='flex';
+  };
+  reader.readAsDataURL(file);
+}
+function deleteAvatar(){
+  _avatarDeletePending=true;_avatarNewFile=null;
+  const img=$('profileAvatarImg'),prev=$('profileAvatarPreview'),del=$('avatarDeleteBtn');
+  if(img){img.src='';img.style.display='none';}
+  if(prev){
+    const fc=(currentProfile?.name||currentUser?.email||'?')[0];
+    prev.textContent=fc.toUpperCase();prev.style.display='';
+  }
+  if(del)del.style.display='none';
+  const inp=$('avatarFileInput');if(inp)inp.value='';
+}
+
 function openProfileModal(){
   if(!currentUser){toast('로그인이 필요합니다');return;}
+  _avatarNewFile=null;_avatarDeletePending=false;
   $('prof-name').value=currentProfile?.name||'';
   $('prof-job').value=currentProfile?.job_title||'공인중개사';
   $('prof-email').value=currentUser.email||'';
@@ -5484,8 +5532,19 @@ function openProfileModal(){
   $('prof-org-name').value=currentOrganization?.name||'';
   $('prof-org-address').value=currentOrganization?.address||'';
   $('prof-org-phone').value=currentOrganization?.phone||'';
-  const firstChar=(currentProfile?.name||currentUser.email||'?')[0];
-  $('profileAvatarPreview').textContent=firstChar.toUpperCase();
+  // 아바타 복원
+  const avatarUrl=currentProfile?.avatar_url||'';
+  const img=$('profileAvatarImg'),prev=$('profileAvatarPreview'),del=$('avatarDeleteBtn');
+  if(avatarUrl&&img){
+    img.src=avatarUrl;img.style.display='';
+    if(prev)prev.style.display='none';
+    if(del)del.style.display='flex';
+  }else{
+    if(img){img.src='';img.style.display='none';}
+    if(prev){const fc=(currentProfile?.name||currentUser.email||'?')[0];prev.textContent=fc.toUpperCase();prev.style.display='';}
+    if(del)del.style.display='none';
+  }
+  const inp=$('avatarFileInput');if(inp)inp.value='';
   $('mProfile').classList.add('open');
 }
 
@@ -5506,8 +5565,35 @@ async function saveProfile(){
   if(!name){alert('이름을 입력해주세요.');return;}
 
   try {
+    // ── 아바타 처리 ──
+    let newAvatarUrl=currentProfile.avatar_url||null;
+    const _delOldAvatar=async()=>{
+      const old=currentProfile.avatar_url;
+      if(!old)return;
+      try{
+        const part=old.split('/avatars/')[1];
+        if(part)await supabaseClient.storage.from('avatars').remove([part]);
+      }catch(e){console.error('[avatar del]',e);}
+    };
+    if(_avatarDeletePending){
+      await _delOldAvatar();
+      newAvatarUrl=null;
+    }else if(_avatarNewFile){
+      await _delOldAvatar(); // 교체 시 기존 삭제
+      const ext=_avatarNewFile.name.split('.').pop().toLowerCase()||'jpg';
+      const path=`${currentUser.id}/${Date.now()}.${ext}`;
+      const{error:upErr}=await supabaseClient.storage.from('avatars')
+        .upload(path,_avatarNewFile,{contentType:_avatarNewFile.type||'image/jpeg',upsert:false});
+      if(upErr){console.error('[avatar upload]',upErr);toast('사진 업로드 실패 (프로필은 저장됩니다)');}
+      else{
+        const{data:{publicUrl}}=supabaseClient.storage.from('avatars').getPublicUrl(path);
+        newAvatarUrl=publicUrl;
+      }
+    }
+
+    // ── 프로필 저장 ──
     const{error:pErr}=await supabaseClient.from('profiles')
-      .update({name,job_title:jobTitle||null,phone:phone||null})
+      .update({name,job_title:jobTitle||null,phone:phone||null,avatar_url:newAvatarUrl})
       .eq('id',currentUser.id);
     if(pErr)throw pErr;
 
@@ -5517,8 +5603,9 @@ async function saveProfile(){
       .eq('id',currentOrganization.id);
     if(oErr)throw oErr;
 
-    currentProfile={...currentProfile,name,job_title:jobTitle,phone};
+    currentProfile={...currentProfile,name,job_title:jobTitle,phone,avatar_url:newAvatarUrl};
     currentOrganization={...currentOrganization,name:finalOrgName,address:orgAddress,phone:orgPhone};
+    _avatarNewFile=null;_avatarDeletePending=false;
 
     closeProfileModal();
     updateAuthUI(currentUser);
@@ -8449,6 +8536,7 @@ async function generatePropertyPDF(propId,showAddr){
   const agentPhone=typeof currentProfile!=='undefined'&&currentProfile?currentProfile.phone||'':'';
   const agentOrg=typeof currentOrganization!=='undefined'&&currentOrganization?currentOrganization.name||'':'';
   const agentEmail=typeof currentUser!=='undefined'&&currentUser?currentUser.email||'':'';
+  const agentAvatarUrl=typeof currentProfile!=='undefined'&&currentProfile?currentProfile.avatar_url||'':'';
 
   const E=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -8456,9 +8544,12 @@ async function generatePropertyPDF(propId,showAddr){
   const coords=_loadPropCoords(targetId);
   const hasCoords=!!(coords&&coords.lat&&coords.lng);
 
-  // 담당자 박스
+  // 담당자 박스 — 사진 있으면 이미지, 없으면 'B' 이니셜
+  const _avatarCircle=agentAvatarUrl
+    ?`<div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1px solid #e5e7eb"><img src="${E(agentAvatarUrl)}" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous"></div>`
+    :`<div style="width:42px;height:42px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:17px;flex-shrink:0">B</div>`;
   const agentBox=`<div style="border-top:2px solid #d4a843;padding-top:12px;display:flex;align-items:center;gap:12px">
-    <div style="width:42px;height:42px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:17px;flex-shrink:0">B</div>
+    ${_avatarCircle}
     <div style="flex:1">
       ${agentName?`<div style="font-size:14px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:11px;font-weight:500;color:#555">${E(agentPosition)}</span>`:''}</div>`:''}
       ${agentOrg?`<div style="font-size:12px;color:#444;margin-top:1px;font-weight:600">${E(agentOrg)}</div>`:''}
@@ -8776,7 +8867,18 @@ async function initSharedView(){
     }catch(e){}
   }
 
-  renderSharedProperty(propData,photos,orgName);
+  // 담당 중개사 프로필 조회 (avatar_url 포함)
+  let agentProfile=null;
+  if(propData.user_id&&typeof supabaseClient!=='undefined'&&supabaseClient){
+    try{
+      const{data}=await supabaseClient.from('profiles')
+        .select('name,job_title,phone,avatar_url')
+        .eq('id',propData.user_id).maybeSingle();
+      if(data)agentProfile=data;
+    }catch(e){}
+  }
+
+  renderSharedProperty(propData,photos,orgName,agentProfile);
   // 키보드 화살표 지원
   document.addEventListener('keydown',e=>{
     if(e.key==='ArrowLeft')svPrev();
@@ -8784,7 +8886,7 @@ async function initSharedView(){
   });
 }
 
-function renderSharedProperty(p,photos,orgName){
+function renderSharedProperty(p,photos,orgName,agentProfile){
   orgName=orgName||'';
   const txL={monthly:'월세',yearly:'전세',sale:'매매'};
   const ptL={office:'사무실',store:'상가',warehouse:'창고',factory:'공장',land:'토지',building:'건물',other:'기타'};
@@ -8826,6 +8928,27 @@ function renderSharedProperty(p,photos,orgName){
 
   // 위치 지도: 비동기 로드 (페이지 표시를 막지 않음)
   _renderSvMap(p.address||'');
+
+  // 담당 중개사 카드
+  const svAgentWrap=$('svAgentWrap'),svAgentCard=$('svAgentCard');
+  if(svAgentWrap&&svAgentCard&&(agentProfile||orgName)){
+    const aName=escHtml(agentProfile?.name||'');
+    const aJob=escHtml(agentProfile?.job_title||'');
+    const aPhone=escHtml(agentProfile?.phone||'');
+    const aOrg=escHtml(orgName);
+    const aAvatar=agentProfile?.avatar_url||'';
+    const avatarEl=aAvatar
+      ?`<div class="sv-agent-avatar"><img src="${escHtml(aAvatar)}" alt="${aName}" onerror="this.parentElement.textContent='${aName?aName[0].toUpperCase():'B'}'"></div>`
+      :`<div class="sv-agent-avatar">${aName?aName[0].toUpperCase():'B'}</div>`;
+    svAgentCard.innerHTML=`
+      ${avatarEl}
+      <div class="sv-agent-info">
+        ${aName?`<div class="sv-agent-name">${aName}${aJob?` <span style="font-size:11px;color:var(--text3);font-weight:400">${aJob}</span>`:''}</div>`:''}
+        ${aOrg?`<div class="sv-agent-org">${aOrg}</div>`:''}
+        ${aPhone?`<div class="sv-agent-phone">📞 ${aPhone}</div>`:''}
+      </div>`;
+    svAgentWrap.style.display='';
+  }
 
   if($('svLogo'))$('svLogo').textContent=orgName;
   if($('svFoot'))$('svFoot').textContent='';
