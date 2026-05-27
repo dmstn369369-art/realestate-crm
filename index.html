@@ -2070,7 +2070,20 @@ html{overflow-x:hidden}
               </select>
             </div>
           </div>
-          <div class="fg" style="margin-bottom:10px"><label>주소 *</label><input type="text" id="p-address" placeholder="서울시 강남구 테헤란로 123"></div>
+          <div class="fg" style="margin-bottom:10px">
+            <label>주소 *</label>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <input type="text" id="p-addr-kw" placeholder="동·번지·건물명 검색..." style="flex:1"
+                     onkeydown="if(event.key==='Enter'){event.preventDefault();searchPropJuso(1);}">
+              <button type="button" class="btn btn-gold" style="padding:0 14px;white-space:nowrap" onclick="searchPropJuso(1)">검색</button>
+            </div>
+            <div id="propAddrResults" style="display:none;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12px"></div>
+            <input type="hidden" id="p-address">
+            <div id="propAddrSelected" style="display:none;padding:8px 10px;background:var(--bg2);border:1px solid var(--gold);border-radius:8px;margin-bottom:8px;font-size:12px"></div>
+            <div id="propMapWrap" style="display:none;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
+              <div id="propMap" style="width:100%;height:220px"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4712,6 +4725,13 @@ const _JUSO_PER_PAGE = 20;
 let _bldgAreaData  = [];   // building-info area 배열 (전유공용면적 상세)
 let _bldgExposData = [];   // building-info expos 배열 (전유부 목록)
 const _JUSO_RECENT_KEY = 'crm5_juso_recent';
+// 매물 주소검색 상태
+let _propJusoList = [];
+let _propAddrLat  = null;
+let _propAddrLng  = null;
+let _propMapInst  = null;
+let _propMarker   = null;
+const _PROP_COORDS_KEY = 'crm5_prop_coords';
 
 function renderJusoPage(){
   // 승인키 미설정 안내
@@ -7605,6 +7625,12 @@ async function openPropertyModal(id){
     $('p-ptype').value=p.property_type||'office';
     $('p-txtype').value=p.transaction_type||'monthly';
     $('p-address').value=p.address||'';
+    // 주소 선택 표시 복원
+    const _pSel=$('propAddrSelected');
+    if(_pSel){if(p.address){_pSel.style.display='';_pSel.innerHTML=`<div style="font-weight:600;color:var(--text)">${escHtml(p.address)}</div>`;}else{_pSel.style.display='none';}}
+    // 저장된 좌표 복원
+    const _pCoords=_loadPropCoords(id);
+    if(_pCoords){_propAddrLat=_pCoords.lat;_propAddrLng=_pCoords.lng;}
     $('p-area').value=p.area_pyeong||'';
     updateAreaSqm(p.area_pyeong);
     $('p-floor-cur').value=p.floor_current||'';
@@ -7649,6 +7675,7 @@ if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
     if($('p-movein-negotiable'))$('p-movein-negotiable').checked=false;
     if($('p-movein'))$('p-movein').disabled=false;
     onParkingChange();
+    _resetPropAddrUI();
   }
   onPropTxChange();
   $('mProperty').classList.add('open');
@@ -7659,6 +7686,9 @@ if($('p-movein-immediate'))$('p-movein-immediate').checked=false;
     await loadPropertyPhotos(id);
     renderPhotoGrid();
     renderGallery();
+    // 저장된 주소가 있으면 지도 표시 (모달 오픈 후 렌더)
+    const _existAddr=$('p-address')?.value;
+    if(_existAddr) _renderPropMap(_existAddr);
   }
 }
 
@@ -7667,13 +7697,14 @@ function closePropertyModal(){
   editPropertyId=null;
   propPhotos.forEach(p=>{if(p.isNew&&p.url)URL.revokeObjectURL(p.url);});
   propPhotos=[];_deletedPhotoIds=[];
+  _resetPropAddrUI();
 }
 
 async function saveProperty(){
   const title=$('p-title').value.trim();
   const address=$('p-address').value.trim();
   if(!title){toast('매물 제목을 입력해주세요');$('p-title').focus();return;}
-  if(!address){toast('주소를 입력해주세요');$('p-address').focus();return;}
+  if(!address){toast('주소를 검색하여 선택해주세요');$('p-addr-kw')?.focus();return;}
   const tx=$('p-txtype').value;
   const row={
     title, address,
@@ -7710,6 +7741,7 @@ async function saveProperty(){
         const i=properties.findIndex(x=>idEq(x.id,editPropertyId));
         if(i!==-1) properties[i]={...properties[i],...row};
         await uploadAllPhotos(editPropertyId);
+        _savePropCoords(editPropertyId,_propAddrLat,_propAddrLng);
         toast('매물 수정 완료');
       }else{
         const{data,error}=await supabaseClient.from('properties').insert({
@@ -7718,16 +7750,19 @@ async function saveProperty(){
         if(error){console.error('[saveProperty] 추가 에러:',{code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
         properties.unshift({...row,id:data.id,created_at:data.created_at,_supabase:true});
         await uploadAllPhotos(data.id);
+        _savePropCoords(data.id,_propAddrLat,_propAddrLng);
         toast('매물 등록 완료');
       }
     }else{
       if(editPropertyId){
         const i=properties.findIndex(x=>idEq(x.id,editPropertyId));
         if(i!==-1) properties[i]={...properties[i],...row,updated_at:new Date().toISOString()};
+        _savePropCoords(editPropertyId,_propAddrLat,_propAddrLng);
         toast('매물 수정 완료');
       }else{
         uid.p=(uid.p||500)+1;sv(KEY.uid,uid);
         properties.unshift({...row,id:uid.p,created_at:todayStr()});
+        _savePropCoords(uid.p,_propAddrLat,_propAddrLng);
         toast('매물 등록 완료');
       }
     }
@@ -7753,10 +7788,90 @@ async function deletePropertyFromModal(){
     }catch(err){toast('삭제 실패: '+err.message);return;}
   }
   delete _propThumbs[String(editPropertyId)];
+  _deletePropCoords(editPropertyId);
   properties=properties.filter(x=>!idEq(x.id,editPropertyId));
   persist();closePropertyModal();renderProperties();
   toast('매물이 삭제되었습니다');
   loadStorageUsage();
+}
+
+// ── 매물 주소검색 (주소검색 화면 코드 재사용) ──────────────
+function _savePropCoords(propId,lat,lng){
+  if(!propId||lat==null||lng==null)return;
+  const m=ld(_PROP_COORDS_KEY)||{};m[String(propId)]={lat,lng};sv(_PROP_COORDS_KEY,m);
+}
+function _loadPropCoords(propId){
+  if(!propId)return null;const m=ld(_PROP_COORDS_KEY)||{};return m[String(propId)]||null;
+}
+function _deletePropCoords(propId){
+  if(!propId)return;const m=ld(_PROP_COORDS_KEY)||{};delete m[String(propId)];sv(_PROP_COORDS_KEY,m);
+}
+function _resetPropAddrUI(){
+  const kw=$('p-addr-kw');if(kw)kw.value='';
+  const res=$('propAddrResults');if(res){res.style.display='none';res.innerHTML='';}
+  const sel=$('propAddrSelected');if(sel)sel.style.display='none';
+  const mw=$('propMapWrap');if(mw)mw.style.display='none';
+  const addr=$('p-address');if(addr)addr.value='';
+  _propJusoList=[];_propAddrLat=null;_propAddrLng=null;
+}
+async function searchPropJuso(page){
+  const kw=($('p-addr-kw')?.value||'').trim();
+  if(!kw){toast('검색어를 입력해 주세요.');return;}
+  if(!JUSO_API_KEY){toast('주소 승인키가 없습니다.');return;}
+  const params=new URLSearchParams({confmKey:JUSO_API_KEY,currentPage:String(page||1),countPerPage:'10',keyword:kw,resultType:'json'});
+  const el=$('propAddrResults');
+  if(el){el.style.display='';el.innerHTML='<div style="padding:8px 12px;color:var(--text3)">검색 중...</div>';}
+  try{
+    const res=await fetch(`${JUSO_API_URL}?${params.toString()}`);
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const json=await res.json();
+    const items=json?.results?.juso;
+    if(!items||!items.length){if(el)el.innerHTML='<div style="padding:8px 12px;color:var(--text3)">검색 결과 없음</div>';return;}
+    _propJusoList=items;
+    if(el){
+      el.innerHTML=items.map((item,i)=>`
+        <div onclick="_selectPropAddrItem(${i})" style="padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer"
+             onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+          <div style="font-weight:600;color:var(--text);margin-bottom:1px">${escHtml(item.jibunAddr)}</div>
+          <div style="color:var(--text3)">${escHtml(item.roadAddr)}</div>
+          ${item.bdNm?`<div style="font-size:10px;color:var(--gold)">${escHtml(item.bdNm)}</div>`:''}
+        </div>`).join('');
+    }
+  }catch(err){if(el)el.innerHTML=`<div style="padding:8px 12px;color:var(--red)">${escHtml(err.message)}</div>`;}
+}
+function _selectPropAddrItem(idx){
+  const item=_propJusoList[idx];if(!item)return;
+  const addrEl=$('p-address');if(addrEl)addrEl.value=item.roadAddr;
+  const resEl=$('propAddrResults');if(resEl)resEl.style.display='none';
+  const selEl=$('propAddrSelected');
+  if(selEl){
+    selEl.style.display='';
+    selEl.innerHTML=`<div style="font-weight:600;color:var(--text);margin-bottom:1px">${escHtml(item.jibunAddr)}</div><div style="color:var(--text2)">${escHtml(item.roadAddr)}</div>`;
+  }
+  _propAddrLat=null;_propAddrLng=null;
+  _renderPropMap(item.roadAddr||item.jibunAddr);
+}
+function _renderPropMap(addr){
+  if(!addr)return;
+  const mapWrap=$('propMapWrap'),mapDiv=$('propMap');
+  if(!mapWrap||!mapDiv)return;
+  _loadKakaoSdk(err=>{
+    if(err)return;
+    mapWrap.style.display='';
+    const geocoder=new kakao.maps.services.Geocoder();
+    geocoder.addressSearch(addr,(result,status)=>{
+      if(status!==kakao.maps.services.Status.OK||!result.length){mapWrap.style.display='none';return;}
+      const {x,y}=result[0];
+      _propAddrLat=parseFloat(y);_propAddrLng=parseFloat(x);
+      const latlng=new kakao.maps.LatLng(_propAddrLat,_propAddrLng);
+      if(!_propMapInst){
+        _propMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
+        _propMarker=new kakao.maps.Marker({position:latlng,map:_propMapInst});
+      }else{
+        _propMapInst.setCenter(latlng);_propMarker.setPosition(latlng);_propMapInst.relayout();
+      }
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════
