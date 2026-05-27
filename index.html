@@ -2204,9 +2204,9 @@ html{overflow-x:hidden}
           <div class="fg" style="margin-bottom:10px">
             <label style="display:flex;justify-content:space-between;align-items:center">
               <span>특이사항</span>
-              <span id="p-notes-counter" style="font-size:11px;color:var(--text3);font-weight:400">0 / 9줄</span>
+              <span id="p-notes-counter" style="font-size:11px;color:var(--text3);font-weight:400">0 / 8줄</span>
             </label>
-            <textarea id="p-notes" rows="9" placeholder="주차 가능, 엘리베이터 있음, 즉시 입주 가능..." oninput="limitPropNotes(this)"></textarea>
+            <textarea id="p-notes" rows="8" placeholder="주차 가능, 엘리베이터 있음, 즉시 입주 가능..." oninput="limitPropNotes(this)"></textarea>
           </div>
         </div>
       </div>
@@ -7723,10 +7723,10 @@ function closePropertyModal(){
   _resetPropAddrUI();
 }
 
-// 특이사항 9줄 제한 (oninput 전용 — 기존 데이터 로드 시에는 호출 안 함)
+// 특이사항 8줄 제한 (oninput 전용 — 기존 데이터 로드 시에는 호출 안 함)
 function limitPropNotes(el){
   const lines=el.value.split('\n');
-  if(lines.length>9) el.value=lines.slice(0,9).join('\n');
+  if(lines.length>8) el.value=lines.slice(0,8).join('\n');
   _syncNotesCounter(el);
 }
 // 줄 수 카운터 표시 갱신 (로드/입력 양쪽에서 호출)
@@ -7734,8 +7734,8 @@ function _syncNotesCounter(el){
   const cnt=$('p-notes-counter');
   if(!cnt)return;
   const n=(el&&el.value)?el.value.split('\n').length:0;
-  cnt.textContent=`${n} / 9줄`;
-  cnt.style.color=n>=9?'var(--gold)':'var(--text3)';
+  cnt.textContent=`${n} / 8줄`;
+  cnt.style.color=n>=8?'var(--gold)':'var(--text3)';
 }
 
 async function saveProperty(){
