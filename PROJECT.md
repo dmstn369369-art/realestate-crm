@@ -31,6 +31,46 @@
 | `contracts` | 계약 |
 | `payments` | 수수료 |
 | `transfers` | 이관 (팀 모드용) |
+| `properties` | 매물 |
+| `property_photos` | 매물 사진 (매물 1건당 여러 장, 별도 테이블) |
+| `contacts` | 전화번호부 (대량 연락처) |
+| `announcements` | 공지사항 |
+| `inquiries` | 문의 |
+| `admin_users` | 관리자 계정 |
+| `deletion_logs` | 삭제 로그 |
+| `team_notices` | 팀 공지 |
+
+### properties 테이블 주요 컬럼
+
+| 분류 | 컬럼 | 설명 |
+|------|------|------|
+| 기본 | `title` | 매물 제목 |
+| 기본 | `property_type` | 매물 유형 (`office` / `oneroom` / `commercial` 등) |
+| 기본 | `transaction_type` | 거래 유형 (`monthly` 월세 등) |
+| 기본 | `address` | 주소 (지번주소 우선 저장) |
+| 기본 | `status` | 매물 상태 (진행 중 / 완료 등) |
+| 가격 | `price_sale` | 매매가 |
+| 가격 | `price_deposit` | 보증금 |
+| 가격 | `price_monthly` | 월세 |
+| 가격 | `price_management` | 관리비 |
+| 정보 | `area_pyeong` | 면적 (평) |
+| 정보 | `floor_current` | 현재 층 |
+| 정보 | `floor_total` | 건물 전체 층 |
+| 정보 | `rooms` | 방 수 |
+| 정보 | `bathrooms` | 욕실 수 |
+| 정보 | `direction` | 향 |
+| 정보 | `move_in_date` | 입주 가능일 |
+| 정보 | `move_in_type` | 입주 유형 (즉시 / 협의 등) |
+| 주차/엘베 | `parking_type` | 주차 유형 |
+| 주차/엘베 | `parking_count` | 주차 가능 대수 |
+| 주차/엘베 | `elevator` | 엘리베이터 유무 |
+| 특이사항 | `notes` | 특이사항·메모 |
+
+> **주의**: `properties` 테이블에는 위도/경도 컬럼이 없음.
+> 매물소개서 지도는 `address` 값을 그때그때 카카오 SDK로 좌표 변환해 표시하는 방식.
+> 좌표는 별도로 localStorage (`crm5_prop_coords`, 매물 ID 키)에만 저장됨.
+
+---
 
 ## 핵심 기능
 
@@ -116,6 +156,13 @@ saveEvent  ↔ (고객인입 시 clients에도 저장)
 - 해결 패턴: 주소 선택 시 지도 렌더링을 2.5초 타이머로 지연 예약 → 건축물대장 조회 버튼 클릭 시 타이머 즉시 취소 → 조회 완료 후(`finally`) 지도 렌더링 순서로 분리
 - 추가로 주소검색 페이지 진입 시 SDK를 미리 조용히 사전 로딩(`_loadKakaoSdk(() => {})`)해 실사용 시점의 경합을 최소화
 - 관련 함수: `_scheduleMapRender()`, `renderJusoMap()`, `_loadKakaoSdk()`, `fetchBuildingInfo()`
+
+### 매물 데이터 누락 주의
+- 매물 모달에서 데이터를 불러올 때 **모든 컬럼을 명시적으로 누락 없이 읽을 것**
+  - 과거 `parking_type`, `parking_count`, `elevator` 등이 빠진 채 저장/표시된 사례 있음
+  - 매물소개서 PDF 생성 시에도 위 컬럼이 전부 포함되는지 반드시 확인
+- 매물소개서 지도(PDF 내 카카오 지도)는 Supabase 좌표 컬럼이 없으므로 `_loadPropCoords(propId)` → localStorage에서 좌표 조회 → 없으면 지도 미표시
+  - 관련 함수: `_savePropCoords()`, `_loadPropCoords()`, `_deletePropCoords()`
 
 ### 인증 초기화 순서
 - `_authInitialized`, `_dataLoaded` 플래그로 `handleSignedIn` 중복 실행 방지
