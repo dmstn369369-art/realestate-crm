@@ -8487,23 +8487,29 @@ async function generatePropertyPDF(propId,showAddr){
     }
   }
 
-  // 상단 사진 블록 — 가로 전폭, 그라디언트 오버레이로 배지·제목·주소 표시
+  // 상단 사진 블록 — 전폭, 그라디언트 오버레이(배지·제목·주소·가격 포함)
+  // 수정 2: 좌측 여백 18mm로 확대 / 수정 3: 가격을 사진 오버레이 안으로 이동
   const topOverlayText=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <span style="background:rgba(212,168,67,.3);border:1px solid #d4a843;color:#ffd166;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">${E(txL[p.transaction_type]||p.transaction_type||'')}</span>
       ${p.property_type?`<span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
     </div>
     <div style="font-size:24px;font-weight:800;line-height:1.25;color:#fff;margin-bottom:6px">${E(p.title||'제목 없음')}</div>
-    ${displayAddr?`<div style="font-size:12px;color:rgba(255,255,255,.82)">📍 ${E(displayAddr)}</div>`:''}`;
+    ${displayAddr?`<div style="font-size:12px;color:rgba(255,255,255,.8);margin-bottom:10px">📍 ${E(displayAddr)}</div>`:'<div style="margin-bottom:10px"></div>'}
+    <div style="border-top:1px solid rgba(212,168,67,.45);padding-top:10px">
+      <div style="font-size:10px;color:rgba(255,210,80,.8);font-weight:700;letter-spacing:.8px;margin-bottom:4px">거 래 가 격</div>
+      <div style="font-size:20px;font-weight:800;color:#ffd166;line-height:1.2">${E(priceText)}</div>
+    </div>`;
 
+  // 수정 1: 사진 높이 145mm (페이지 절반 수준) / 수정 2: 패딩 18mm
   const topPhotoBlock=photos[0]
-    ?`<div style="margin:-10mm -12mm 0;position:relative;height:125mm;flex-shrink:0">
+    ?`<div style="margin:-10mm -12mm 0;position:relative;height:145mm;flex-shrink:0">
         <img src="${photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
-        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 22%,rgba(0,0,0,.88) 100%)"></div>
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 12mm 20px">${topOverlayText}</div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 10%,rgba(0,0,0,.92) 100%)"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:18px 18mm 22px">${topOverlayText}</div>
       </div>`
-    :`<div style="margin:-10mm -12mm 0;height:125mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
-        <div style="padding:16px 12mm 20px;width:100%">${topOverlayText}</div>
+    :`<div style="margin:-10mm -12mm 0;height:145mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
+        <div style="padding:18px 18mm 22px;width:100%">${topOverlayText}</div>
       </div>`;
 
   // 지도 컬럼 (정사각형, hasCoords일 때만 표시)
@@ -8532,29 +8538,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-pr
 </style>
 </head><body>
 
-<!-- PAGE 1: 통합 (사진 + 핵심정보 + 지도) -->
+<!-- PAGE 1: 통합 (사진+가격 오버레이 / 정보+지도 / 담당자 하단 전폭 고정) -->
 <div class="page">
   ${topPhotoBlock}
-  <!-- 하단 2열: 왼쪽 정보 / 오른쪽 지도 -->
-  <div style="flex:1;display:flex;gap:16px;padding-top:14px">
+  <!-- 수정 4: 중단+담당자를 flex-col로 묶어 담당자를 페이지 전폭 최하단에 고정 -->
+  <div style="flex:1;display:flex;flex-direction:column;padding-top:12px;gap:12px">
 
-    <!-- 왼쪽: 가격·핵심정보·메모·담당자 -->
-    <div style="flex:1;display:flex;flex-direction:column">
-      <!-- 가격 박스 (연노랑) -->
-      <div style="background:#fffbf0;border:2px solid #d4a843;border-radius:12px;padding:13px 18px;margin-bottom:14px">
-        <div style="font-size:10px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:6px">거 래 가 격</div>
-        <div style="font-size:22px;font-weight:800;color:#7a5c10;line-height:1.15">${E(priceText)}</div>
+    <!-- 중단 2열: 왼쪽 정보 / 오른쪽 지도 -->
+    <div style="flex:1;display:flex;gap:16px;min-height:0">
+
+      <!-- 왼쪽: 핵심정보·메모 (가격 박스 제거 — 사진 오버레이로 이동) -->
+      <div style="flex:1;min-height:0;overflow:hidden">
+        ${keyInfoHtml?`<div style="margin-bottom:10px">${keyInfoHtml}</div>`:''}
+        ${p.notes?`<div style="background:#f9fafb;border-radius:10px;padding:10px 14px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap">${E(p.notes)}</div>`:''}
       </div>
-      <!-- 핵심 정보 목록 -->
-      ${keyInfoHtml?`<div style="margin-bottom:12px">${keyInfoHtml}</div>`:''}
-      <!-- 특이사항 -->
-      ${p.notes?`<div style="background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap">${E(p.notes)}</div>`:''}
-      <!-- 담당자 박스 (하단 고정) -->
-      <div style="margin-top:auto">${agentBox}</div>
+
+      <!-- 오른쪽: 카카오 지도 (정사각형 유지) -->
+      ${mapColHtml}
     </div>
 
-    <!-- 오른쪽: 카카오 지도 (정사각형) -->
-    ${mapColHtml}
+    <!-- 담당자 박스 — 페이지 전폭, 최하단 고정 -->
+    ${agentBox}
   </div>
 </div>
 
