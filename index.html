@@ -8492,6 +8492,7 @@ async function generatePropertyPDF(propId,showAddr){
     p.area_pyeong   ?['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]:null,
     (p.floor_current||p.floor_total)?['층수',`${p.floor_current||'-'}층 / 총 ${p.floor_total||'-'}층`]:null,
     p.direction     ?['방향', p.direction]:null,
+    p.bathrooms     ?['욕실', String(p.bathrooms)]:null,
     _pk()           ?['주차', _pk()]:null,
     _el()           ?['엘베', _el()]:null,
     _mi()           ?['입주', _mi()]:null,
