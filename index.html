@@ -8377,14 +8377,14 @@ function _buildPriceTxt(p){
   return '가격 미입력';
 }
 
-/* PDF — 새 탭 열고 인쇄 (2페이지) */
+/* PDF — 새 탭 열고 인쇄 (3페이지, 세로형) */
 async function generatePropertyPDF(propId,showAddr){
   const targetId=propId||editPropertyId;
   const p=properties.find(x=>idEq(x.id,targetId));
   if(!p){toast('매물 정보를 찾을 수 없습니다');return;}
   toast('소개서 준비 중...');
 
-  // 사진 수집: 카드에서 호출 시 항상 DB 조회, 모달에서 호출 시 propPhotos 우선
+  // 사진 수집 (기존 로직 유지)
   let photos=[];
   if(!propId&&propPhotos.length)photos=propPhotos.filter(ph=>ph.url).map(ph=>ph.url);
   if(!photos.length&&typeof supabaseClient!=='undefined'&&supabaseClient){
@@ -8396,8 +8396,7 @@ async function generatePropertyPDF(propId,showAddr){
   }
 
   const txL={monthly:'월세',yearly:'전세',jeonse:'전세',sale:'매매'};
-  const ptL={office:'사무실',store:'상가',warehouse:'창고',factory:'공장',land:'토지',building:'건물',other:'기타'};
-  const dateStr=new Date().toLocaleDateString('ko-KR');
+  const ptL={office:'사무실',commercial:'상가',oneroom:'원룸',apartment:'아파트',villa:'빌라',officetel:'오피스텔'};
   const priceText=_buildPriceTxt(p);
   const displayAddr=showAddr?(p.address||''):_maskAddr(p.address||'');
   const agentName=typeof currentProfile!=='undefined'&&currentProfile?currentProfile.name||'':'';
@@ -8408,90 +8407,162 @@ async function generatePropertyPDF(propId,showAddr){
 
   const E=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  const agentBoxHtml=`<div style="border-top:2px solid #d4a843;padding-top:12px;margin-top:16px;display:flex;align-items:center;gap:14px">
-    <div style="width:40px;height:40px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:700;font-size:16px;flex-shrink:0">B</div>
+  // 저장된 좌표 로드
+  const coords=_loadPropCoords(targetId);
+  const hasCoords=!!(coords&&coords.lat&&coords.lng);
+
+  // 담당자 박스
+  const agentBox=`<div style="border-top:2px solid #d4a843;padding-top:14px;display:flex;align-items:center;gap:14px">
+    <div style="width:44px;height:44px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:18px;flex-shrink:0">B</div>
     <div style="flex:1">
-      ${agentName?`<div style="font-size:13px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:11px;font-weight:400;color:#777">${E(agentPosition)}</span>`:''}</div>`:''}
-      ${agentOrg?`<div style="font-size:11px;color:#555">${E(agentOrg)}</div>`:''}
+      ${agentName?`<div style="font-size:14px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:12px;font-weight:400;color:#888">${E(agentPosition)}</span>`:''}</div>`:''}
+      ${agentOrg?`<div style="font-size:12px;color:#666;margin-top:2px">${E(agentOrg)}</div>`:''}
     </div>
-    <div style="text-align:right;font-size:11px;color:#555;line-height:1.7">
+    <div style="text-align:right;font-size:12px;color:#666;line-height:1.8">
       ${agentPhone?`<div>${E(agentPhone)}</div>`:''}
       ${agentEmail?`<div>${E(agentEmail)}</div>`:''}
     </div>
   </div>`;
 
-  const infoRows=[];
-  if(p.area_pyeong)infoRows.push(['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
-  if(p.floor_current||p.floor_total)infoRows.push(['층',`${p.floor_current||'-'}층 / ${p.floor_total||'-'}층`]);
-  if(p.rooms)infoRows.push(['방 수',`${p.rooms}개`]);
-  if(p.bathrooms)infoRows.push(['욕실',String(p.bathrooms)]);
-  if(p.direction)infoRows.push(['방향',p.direction]);
-  if(p.parking_type&&p.parking_type!=='unavailable'){
-    const pl={available:'가능',mechanical:'기계식'};
-    infoRows.push(['주차',pl[p.parking_type]||p.parking_type]);
-  }
-  if(p.elevator){const el={available:'유',unavailable:'무'};infoRows.push(['엘리베이터',el[p.elevator]||p.elevator]);}
-  if(p.move_in_type==='immediate')infoRows.push(['입주','즉시입주']);
-  else if(p.move_in_type==='negotiable')infoRows.push(['입주','협의가능']);
-  else if(p.move_in_type==='immediate_and_negotiable')infoRows.push(['입주','즉시/협의']);
-  else if(p.move_in_date)infoRows.push(['입주',p.move_in_date]);
+  // 매물 정보 카드
+  const infoItems=[];
+  if(p.area_pyeong)infoItems.push(['면적',`${p.area_pyeong}평\n(${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
+  if(p.floor_current||p.floor_total)infoItems.push(['층수',`${p.floor_current||'-'}층 / 총${p.floor_total||'-'}층`]);
+  if(p.rooms)infoItems.push(['방',`${p.rooms}개`]);
+  if(p.bathrooms)infoItems.push(['욕실',String(p.bathrooms)]);
+  if(p.direction)infoItems.push(['방향',p.direction]);
+  if(p.move_in_type==='immediate')infoItems.push(['입주','즉시입주']);
+  else if(p.move_in_type==='negotiable')infoItems.push(['입주','협의가능']);
+  else if(p.move_in_type==='immediate_and_negotiable')infoItems.push(['입주','즉시/협의']);
+  else if(p.move_in_date)infoItems.push(['입주',p.move_in_date]);
+  if(p.parking_type){const pl={available:'가능',unavailable:'불가',mechanical:'기계식'};const pv=pl[p.parking_type]||p.parking_type;infoItems.push(['주차',p.parking_count?`${pv} ${p.parking_count}대`:pv]);}
+  if(p.elevator){const el={available:'있음',unavailable:'없음'};infoItems.push(['엘리베이터',el[p.elevator]||p.elevator]);}
 
-  const infoCardsHtml=infoRows.map(([l,v])=>`
-    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px">
-      <div style="font-size:10px;color:#9ca3af;margin-bottom:3px">${l}</div>
-      <div style="font-size:13px;font-weight:600;color:#111">${v}</div>
+  const infoGrid=infoItems.map(([l,v])=>`
+    <div style="background:#f9fafb;border-radius:10px;padding:13px 10px;text-align:center">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:7px;font-weight:600">${l}</div>
+      <div style="font-size:13px;font-weight:700;color:#111;white-space:pre-line;line-height:1.35">${v}</div>
     </div>`).join('');
 
-  const mainPhotoHtml=photos[0]?`<div style="margin:0 -15mm;height:420px;overflow:hidden"><img src="${photos[0]}" alt="" style="width:100%;height:420px;object-fit:cover;display:block" crossorigin="anonymous"></div>`:'';
-  const photoGridHtml=photos.length>1?`
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-      ${photos.slice(0,15).map(u=>`<img src="${u}" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;display:block" crossorigin="anonymous">`).join('')}
-    </div>`:'';
+  // 사진 페이지 생성
+  const photoPages=[];
+  if(photos.length){
+    const small=(photos.length<=4);
+    const perPage=small?4:6;
+    for(let i=0;i<photos.length;i+=perPage){
+      const chunk=photos.slice(i,i+perPage);
+      const cols=2, aspectH=small?'55%':'40%';
+      const isLast=(i+perPage>=photos.length);
+      photoPages.push({
+        from:i+1, to:Math.min(i+perPage,photos.length), isLast,
+        html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${
+          chunk.map(u=>`<div style="width:100%;padding-bottom:${aspectH};position:relative;overflow:hidden;border-radius:10px">
+            <img src="${u}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
+          </div>`).join('')
+        }</div>`
+      });
+    }
+  }
+
+  // 표지 대표사진
+  const coverPhoto=photos[0]
+    ?`<div style="margin:-10mm -12mm 0;"><img src="${photos[0]}" alt="" style="width:calc(100% + 24mm);height:165mm;object-fit:cover;display:block" crossorigin="anonymous"></div>`
+    :`<div style="margin:-10mm -12mm 0;height:165mm;background:linear-gradient(135deg,#0d1117 60%,#1c2128);display:flex;align-items:center;justify-content:center"><span style="font-size:72px;opacity:.4">🏠</span></div>`;
 
   const html=`<!DOCTYPE html><html lang="ko"><head>
 <meta charset="UTF-8">
-<title>${E(p.title||'매물')} - 매물 소개서</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+<title>${E(p.title||'매물')} 소개서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-@page{margin:12mm 15mm;size:A4}
+@page{margin:10mm 12mm;size:A4 portrait}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-.pg1{page-break-after:always;break-after:page}
-.pg2{page-break-before:always;break-before:page}
+.page{min-height:277mm;display:flex;flex-direction:column;page-break-after:always;break-after:page}
+.page:last-of-type{page-break-after:auto;break-after:auto}
+.sec-label{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px}
+.page-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:2px solid #d4a843;margin-bottom:18px}
 </style>
 </head><body>
-<!-- Page 1 -->
-<div class="pg1">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid #e5e7eb;margin-bottom:4px">
-    <span style="font-size:18px;font-weight:700;color:#d4a843">${E(agentOrg)}</span>
-    <span style="font-size:10px;color:#666;border:1px solid #e5e7eb;padding:3px 10px;border-radius:20px">${E(ptL[p.property_type]||p.property_type||'')} · ${E(txL[p.transaction_type]||'')}</span>
-    <span style="font-size:10px;color:#9ca3af">${dateStr}</span>
-  </div>
-  ${mainPhotoHtml}
-  <div style="margin-top:18px">
-    <div style="font-size:19px;font-weight:700;margin-bottom:4px">${E(p.title||'제목 없음')}</div>
-    ${displayAddr?`<div style="font-size:12px;color:#666;margin-bottom:14px">📍 ${E(displayAddr)}</div>`:'<div style="margin-bottom:14px"></div>'}
-    <div style="background:#fffbf0;border:1.5px solid #d4a843;border-radius:10px;padding:12px 16px;margin-bottom:14px">
-      <div style="font-size:9px;color:#8a6820;letter-spacing:.5px;margin-bottom:3px">거래 가격</div>
-      <div style="font-size:20px;font-weight:700;color:#8a6820">${E(priceText)}</div>
+
+<!-- PAGE 1: 표지 -->
+<div class="page">
+  ${coverPhoto}
+  <div style="padding:16px 0 0;flex:1;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="background:#0d1117;color:#d4a843;font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px">${E(txL[p.transaction_type]||'')}</span>
+      ${p.property_type?`<span style="background:#f3f4f6;color:#555;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">${infoCardsHtml}</div>
-    ${p.notes?`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">특이사항</div><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:11px 14px;white-space:pre-wrap;font-size:12px;color:#444;line-height:1.6">${E(p.notes)}</div></div>`:''}
-    ${photos.length>1?`<div style="margin-top:8px;font-size:10px;color:#9ca3af;text-align:center;margin-bottom:8px">다음 페이지에 매물 사진 ${Math.min(photos.length,15)}장이 있습니다</div>`:''}
-    ${agentBoxHtml}
+    <div style="font-size:24px;font-weight:800;line-height:1.25;color:#0d1117">${E(p.title||'제목 없음')}</div>
+    ${displayAddr?`<div style="font-size:14px;color:#555">📍 ${E(displayAddr)}</div>`:''}
+    <div style="background:#fffbf0;border:2px solid #d4a843;border-radius:14px;padding:18px 22px;margin-top:4px">
+      <div style="font-size:11px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:8px">거 래 가 격</div>
+      <div style="font-size:26px;font-weight:800;color:#7a5c10;line-height:1.2">${E(priceText)}</div>
+    </div>
+    <div style="margin-top:auto">${agentBox}</div>
   </div>
 </div>
-${photos.length>1?`<!-- Page 2 -->
-<div class="pg2">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid #e5e7eb;margin-bottom:16px">
-    <span style="font-size:16px;font-weight:700;color:#d4a843">${E(agentOrg)}</span>
-    <span style="font-size:11px;color:#666">${E(p.title||'매물')} · 사진</span>
+
+<!-- PAGE 2: 상세정보 -->
+<div class="page">
+  <div class="page-header">
+    <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 상세')}</span>
+    <span style="font-size:12px;color:#888">${E(p.title||'매물')}</span>
   </div>
-  ${photoGridHtml}
-  ${agentBoxHtml}
-</div>`:''}
-<script>window.onload=function(){setTimeout(function(){window.print();},700);}<\/script>
+
+  <div style="background:#0d1117;border-radius:14px;padding:18px 22px;margin-bottom:22px">
+    <div style="font-size:11px;color:#d4a843;font-weight:700;letter-spacing:1px;margin-bottom:8px">거래 가격</div>
+    <div style="font-size:22px;font-weight:800;color:#fff">${E(priceText)}</div>
+  </div>
+
+  ${infoItems.length?`<div class="sec-label">매물 정보</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">${infoGrid}</div>`:''}
+
+  ${p.notes?`<div class="sec-label">특이사항</div>
+  <div style="background:#f9fafb;border-radius:12px;padding:15px 18px;margin-bottom:22px;white-space:pre-wrap;font-size:13px;color:#333;line-height:1.75">${E(p.notes)}</div>`:''}
+
+  <div style="margin-top:auto">
+    ${hasCoords?`<div class="sec-label">위치</div>
+    <div id="pdfMapWrap" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;height:140px;margin-bottom:18px">
+      <div id="pdfMap" style="width:100%;height:140px"></div>
+    </div>`:''}
+    ${agentBox}
+  </div>
+</div>
+
+${photoPages.map((pg,i)=>`<!-- PAGE ${3+i}: 사진 -->
+<div class="page">
+  <div class="page-header">
+    <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 사진')}</span>
+    <span style="font-size:12px;color:#888">사진 ${pg.from}–${pg.to} / ${photos.length}장</span>
+  </div>
+  ${pg.html}
+  ${pg.isLast?`<div style="margin-top:auto;padding-top:18px">${agentBox}</div>`:''}
+</div>`).join('\n')}
+
+<script>
+(function(){
+  var lat=${hasCoords?coords.lat:'null'};
+  var lng=${hasCoords?coords.lng:'null'};
+  var key='${KAKAO_JS_KEY}';
+  function doPrint(){setTimeout(function(){window.print();},700);}
+  if(!lat||!lng||!key){doPrint();return;}
+  var s=document.createElement('script');
+  s.src='//dapi.kakao.com/v2/maps/sdk.js?appkey='+encodeURIComponent(key)+'&autoload=false';
+  s.onload=function(){
+    kakao.maps.load(function(){
+      var mapDiv=document.getElementById('pdfMap');
+      if(!mapDiv){doPrint();return;}
+      var latlng=new kakao.maps.LatLng(lat,lng);
+      var map=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
+      new kakao.maps.Marker({position:latlng,map:map});
+      setTimeout(function(){map.relayout();doPrint();},900);
+    });
+  };
+  s.onerror=doPrint;
+  document.head.appendChild(s);
+})();
+<\/script>
 </body></html>`;
 
   const w=window.open('','_blank');
