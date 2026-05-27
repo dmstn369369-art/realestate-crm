@@ -2079,7 +2079,10 @@ html{overflow-x:hidden}
             </div>
             <div id="propAddrResults" style="display:none;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12px"></div>
             <input type="hidden" id="p-address">
-            <div id="propAddrSelected" style="display:none;padding:8px 10px;background:var(--bg2);border:1px solid var(--gold);border-radius:8px;margin-bottom:8px;font-size:12px"></div>
+            <div id="propAddrSelected" style="display:none;padding:8px 10px;background:var(--bg2);border:1px solid var(--gold);border-radius:8px;margin-bottom:6px;font-size:12px"></div>
+            <div id="p-unit-wrap" style="display:none;margin-bottom:8px">
+              <input type="text" id="p-unit" placeholder="호수 입력 (예: 502호, 3층 301호)" maxlength="30">
+            </div>
             <div id="propMapWrap" style="display:none;border-radius:10px;overflow:hidden;border:1px solid var(--border)">
               <div id="propMap" style="width:100%;height:220px"></div>
             </div>
@@ -7630,10 +7633,18 @@ async function openPropertyModal(id){
     $('p-title').value=p.title||'';
     $('p-ptype').value=p.property_type||'office';
     $('p-txtype').value=p.transaction_type||'monthly';
-    $('p-address').value=p.address||'';
-    // 주소 선택 표시 복원
+    // 주소 파싱: 마지막 ", " 기준으로 순수주소 / 호수 분리 (기존 호수 없는 매물도 정상 동작)
+    const _rawAddr=p.address||'';
+    const _commaIdx=_rawAddr.lastIndexOf(', ');
+    const _baseAddr=_commaIdx!==-1?_rawAddr.substring(0,_commaIdx):_rawAddr;
+    const _unitVal=_commaIdx!==-1?_rawAddr.substring(_commaIdx+2):'';
+    $('p-address').value=_baseAddr;
+    // 주소 선택 표시 복원 (순수주소만 표시)
     const _pSel=$('propAddrSelected');
-    if(_pSel){if(p.address){_pSel.style.display='';_pSel.innerHTML=`<div style="font-weight:600;color:var(--text)">${escHtml(p.address)}</div>`;}else{_pSel.style.display='none';}}
+    if(_pSel){if(_baseAddr){_pSel.style.display='';_pSel.innerHTML=`<div style="font-weight:600;color:var(--text)">${escHtml(_baseAddr)}</div>`;}else{_pSel.style.display='none';}}
+    // 호수 입력칸 복원
+    const _pUnitWrap=$('p-unit-wrap');if(_pUnitWrap)_pUnitWrap.style.display=_baseAddr?'':'none';
+    const _pUnit=$('p-unit');if(_pUnit)_pUnit.value=_unitVal;
     // 저장된 좌표 복원
     const _pCoords=_loadPropCoords(id);
     if(_pCoords){_propAddrLat=_pCoords.lat;_propAddrLng=_pCoords.lng;}
@@ -7724,9 +7735,11 @@ function _syncNotesCounter(el){
 
 async function saveProperty(){
   const title=$('p-title').value.trim();
-  const address=$('p-address').value.trim();
+  const _baseAddr=$('p-address').value.trim();
+  const _unit=($('p-unit')?.value||'').trim();
+  const address=_unit?`${_baseAddr}, ${_unit}`:_baseAddr;
   if(!title){toast('매물 제목을 입력해주세요');$('p-title').focus();return;}
-  if(!address){toast('주소를 검색하여 선택해주세요');$('p-addr-kw')?.focus();return;}
+  if(!_baseAddr){toast('주소를 검색하여 선택해주세요');$('p-addr-kw')?.focus();return;}
   const tx=$('p-txtype').value;
   const row={
     title, address,
@@ -7832,6 +7845,8 @@ function _resetPropAddrUI(){
   const kw=$('p-addr-kw');if(kw)kw.value='';
   const res=$('propAddrResults');if(res){res.style.display='none';res.innerHTML='';}
   const sel=$('propAddrSelected');if(sel)sel.style.display='none';
+  const uw=$('p-unit-wrap');if(uw)uw.style.display='none';
+  const unit=$('p-unit');if(unit)unit.value='';
   const mw=$('propMapWrap');if(mw)mw.style.display='none';
   const addr=$('p-address');if(addr)addr.value='';
   _propJusoList=[];_propAddrLat=null;_propAddrLng=null;
@@ -7870,6 +7885,9 @@ function _selectPropAddrItem(idx){
     selEl.style.display='';
     selEl.innerHTML=`<div style="font-weight:600;color:var(--text);margin-bottom:1px">${escHtml(item.jibunAddr)}</div><div style="color:var(--text2)">${escHtml(item.roadAddr)}</div>`;
   }
+  // 새 주소 선택 시 호수 입력칸 표시 (값 초기화)
+  const unitWrap=$('p-unit-wrap');if(unitWrap)unitWrap.style.display='';
+  const unitEl=$('p-unit');if(unitEl)unitEl.value='';
   _propAddrLat=null;_propAddrLng=null;
   _renderPropMap(item.jibunAddr||item.roadAddr);
 }
