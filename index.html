@@ -750,6 +750,7 @@ html{overflow-x:hidden}
 .sv-btn-copy{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:13px 16px;cursor:pointer;font-size:13px;white-space:nowrap}
 @media(max-width:400px){.sv-info-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.sv-slide-wrap{aspect-ratio:4/3;max-height:70vw;width:100%;left:0;right:0}}
+.sv-map-box{border-radius:12px;overflow:hidden;border:1px solid var(--border);aspect-ratio:16/9;width:100%}
 </style>
 </head>
 <body>
@@ -2506,6 +2507,10 @@ html{overflow-x:hidden}
       <div id="svNotesWrap" style="display:none">
         <div class="sv-sec-title">특이사항</div>
         <div class="sv-notes" id="svNotes"></div>
+      </div>
+      <div id="svMapWrap" style="display:none;margin-bottom:16px">
+        <div class="sv-sec-title">위 치</div>
+        <div id="svMap" class="sv-map-box"></div>
       </div>
       <div class="sv-foot" id="svFoot"></div>
     </div>
@@ -8718,6 +8723,7 @@ function doSharePDF(){
 
 /* ── 공개 소개서 뷰 ── */
 let _svPhotos=[],_svIdx=0,_svTouchX=0;
+let _svMapInst=null,_svMapMarker=null;
 
 async function initSharedView(){
   const urlp=new URLSearchParams(location.search);
@@ -8817,6 +8823,9 @@ function renderSharedProperty(p,photos,orgName){
     $('svNotes').textContent=p.notes;
   }
 
+  // 위치 지도: 비동기 로드 (페이지 표시를 막지 않음)
+  _renderSvMap(p.address||'');
+
   if($('svLogo'))$('svLogo').textContent=orgName;
   if($('svFoot'))$('svFoot').textContent='';
   const _pgTitle=orgName?`${p.title||'매물 소개서'} - ${orgName}`:(p.title||'매물 소개서');
@@ -8873,6 +8882,34 @@ function svSlideTo(idx){
 }
 function svPrev(){svSlideTo(_svIdx-1);}
 function svNext(){svSlideTo(_svIdx+1);}
+
+// 공유 링크 페이지 위치 지도 (비동기 — 페이지 표시를 막지 않음)
+function _renderSvMap(addr){
+  if(!addr)return;
+  // 호수 제거: 마지막 ", " 이후 — 지오코딩은 순수주소로
+  const ci=addr.lastIndexOf(', ');
+  const geoAddr=ci!==-1?addr.substring(0,ci):addr;
+  const mapWrap=$('svMapWrap'),mapDiv=$('svMap');
+  if(!mapWrap||!mapDiv)return;
+  _loadKakaoSdk(err=>{
+    if(err)return; // SDK 로드 실패 시 지도 없이 진행
+    const geocoder=new kakao.maps.services.Geocoder();
+    geocoder.addressSearch(geoAddr,(result,status)=>{
+      if(status!==kakao.maps.services.Status.OK||!result.length)return;
+      const{x,y}=result[0];
+      const latlng=new kakao.maps.LatLng(parseFloat(y),parseFloat(x));
+      mapWrap.style.display='';
+      if(!_svMapInst){
+        _svMapInst=new kakao.maps.Map(mapDiv,{center:latlng,level:3});
+        _svMapMarker=new kakao.maps.Marker({position:latlng,map:_svMapInst});
+      }else{
+        _svMapInst.setCenter(latlng);
+        _svMapMarker.setPosition(latlng);
+        _svMapInst.relayout();
+      }
+    });
+  });
+}
 function svTouchStart(e){_svTouchX=e.touches[0].clientX;}
 function svTouchEnd(e){const dx=e.changedTouches[0].clientX-_svTouchX;if(Math.abs(dx)>40)dx<0?svNext():svPrev();}
 function svCopyLink(){
