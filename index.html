@@ -8411,55 +8411,53 @@ async function generatePropertyPDF(propId,showAddr){
   const coords=_loadPropCoords(targetId);
   const hasCoords=!!(coords&&coords.lat&&coords.lng);
 
-  // ── 개선 6: 담당자 박스 — 글씨 크기·진하기 향상 ──
-  const agentBox=`<div style="border-top:2px solid #d4a843;padding-top:14px;display:flex;align-items:center;gap:14px">
-    <div style="width:46px;height:46px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:19px;flex-shrink:0">B</div>
+  // 담당자 박스
+  const agentBox=`<div style="border-top:2px solid #d4a843;padding-top:12px;display:flex;align-items:center;gap:12px">
+    <div style="width:42px;height:42px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:17px;flex-shrink:0">B</div>
     <div style="flex:1">
-      ${agentName?`<div style="font-size:15px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:12px;font-weight:500;color:#555">${E(agentPosition)}</span>`:''}</div>`:''}
-      ${agentOrg?`<div style="font-size:13px;color:#444;margin-top:2px;font-weight:600">${E(agentOrg)}</div>`:''}
+      ${agentName?`<div style="font-size:14px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:11px;font-weight:500;color:#555">${E(agentPosition)}</span>`:''}</div>`:''}
+      ${agentOrg?`<div style="font-size:12px;color:#444;margin-top:1px;font-weight:600">${E(agentOrg)}</div>`:''}
     </div>
-    <div style="text-align:right;font-size:13px;color:#444;line-height:1.8">
+    <div style="text-align:right;font-size:12px;color:#444;line-height:1.7">
       ${agentPhone?`<div>${E(agentPhone)}</div>`:''}
       ${agentEmail?`<div>${E(agentEmail)}</div>`:''}
     </div>
   </div>`;
 
-  // ── 개선 3: 매물 정보 8개 항목 항상 표시 (값 없으면 '-') ──
-  const getMoveIn=()=>{
-    if(p.move_in_type==='immediate')return '즉시입주';
-    if(p.move_in_type==='negotiable')return '협의가능';
-    if(p.move_in_type==='immediate_and_negotiable')return '즉시/협의';
-    if(p.move_in_date)return p.move_in_date;
-    return '-';
-  };
-  const getPark=()=>{
-    if(!p.parking_type)return '-';
+  // 핵심 정보 항목 (1쪽 좌측 컬럼용 — 값 없는 항목은 생략)
+  const _pk=()=>{
+    if(!p.parking_type)return null;
     const pl={available:'가능',unavailable:'불가',mechanical:'기계식'};
     const pv=pl[p.parking_type]||p.parking_type;
     return p.parking_count?`${pv} ${p.parking_count}대`:pv;
   };
-  const getElev=()=>{
-    if(!p.elevator)return '-';
+  const _el=()=>{
+    if(!p.elevator)return null;
     const el={available:'있음',unavailable:'없음'};
     return el[p.elevator]||p.elevator;
   };
-  const infoItems=[
-    ['면적',   p.area_pyeong?`${p.area_pyeong}평\n(${(p.area_pyeong*3.3058).toFixed(1)}㎡)`:'-'],
-    ['층수',   (p.floor_current||p.floor_total)?`${p.floor_current||'-'}층 / 총${p.floor_total||'-'}층`:'-'],
-    ['방',     p.rooms?`${p.rooms}개`:'-'],
-    ['욕실',   p.bathrooms?String(p.bathrooms):'-'],
-    ['방향',   p.direction||'-'],
-    ['입주',   getMoveIn()],
-    ['주차',   getPark()],
-    ['엘리베이터', getElev()],
-  ];
-  const infoGrid=infoItems.map(([l,v])=>`
-    <div style="background:#f9fafb;border-radius:10px;padding:13px 10px;text-align:center">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:7px;font-weight:600">${l}</div>
-      <div style="font-size:13px;font-weight:700;color:#111;white-space:pre-line;line-height:1.35">${v}</div>
+  const _mi=()=>{
+    if(p.move_in_type==='immediate')return '즉시입주';
+    if(p.move_in_type==='negotiable')return '협의가능';
+    if(p.move_in_type==='immediate_and_negotiable')return '즉시/협의';
+    if(p.move_in_date)return p.move_in_date;
+    return null;
+  };
+  const keyRows=[
+    p.area_pyeong   ?['면적',`${p.area_pyeong}평 (${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]:null,
+    (p.floor_current||p.floor_total)?['층수',`${p.floor_current||'-'}층 / 총 ${p.floor_total||'-'}층`]:null,
+    p.direction     ?['방향', p.direction]:null,
+    _pk()           ?['주차', _pk()]:null,
+    _el()           ?['엘베', _el()]:null,
+    _mi()           ?['입주', _mi()]:null,
+  ].filter(Boolean);
+  const keyInfoHtml=keyRows.map(([l,v])=>`
+    <div style="display:flex;align-items:baseline;padding:6px 0;border-bottom:1px solid #f0f0f0">
+      <span style="font-size:11px;font-weight:600;color:#9ca3af;width:40px;flex-shrink:0">${l}</span>
+      <span style="font-size:13px;font-weight:700;color:#111">${E(v)}</span>
     </div>`).join('');
 
-  // ── 개선 4+5: 사진 비율 통일 + 공간 채우기 (flex 기반) ──
+  // 사진 비율 통일 + 공간 채우기 (flex 기반, 기존 유지)
   function makePhotoGrid(chunk){
     const n=chunk.length;
     let rows;
@@ -8478,7 +8476,7 @@ async function generatePropertyPDF(propId,showAddr){
     }</div>`;
   }
 
-  // 사진 페이지 생성
+  // 사진 페이지 생성 (2쪽부터)
   const photoPages=[];
   if(photos.length){
     const perPage=photos.length<=4?4:6;
@@ -8489,30 +8487,34 @@ async function generatePropertyPDF(propId,showAddr){
     }
   }
 
-  // ── 개선 1: 표지 — 사진 위에 텍스트 오버레이로 여백 균형 ──
-  const coverText=`
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <span style="background:rgba(212,168,67,.3);border:1px solid #d4a843;color:#ffd166;font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px">${E(txL[p.transaction_type]||p.transaction_type||'')}</span>
-      ${p.property_type?`<span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
+  // 상단 사진 블록 — 가로 전폭, 그라디언트 오버레이로 배지·제목·주소 표시
+  const topOverlayText=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span style="background:rgba(212,168,67,.3);border:1px solid #d4a843;color:#ffd166;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px">${E(txL[p.transaction_type]||p.transaction_type||'')}</span>
+      ${p.property_type?`<span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
     </div>
-    <div style="font-size:28px;font-weight:800;line-height:1.25;color:#fff;margin-bottom:8px">${E(p.title||'제목 없음')}</div>
-    ${displayAddr?`<div style="font-size:13px;color:rgba(255,255,255,.82)">📍 ${E(displayAddr)}</div>`:''}`;
+    <div style="font-size:24px;font-weight:800;line-height:1.25;color:#fff;margin-bottom:6px">${E(p.title||'제목 없음')}</div>
+    ${displayAddr?`<div style="font-size:12px;color:rgba(255,255,255,.82)">📍 ${E(displayAddr)}</div>`:''}`;
 
-  const coverBlock=photos[0]
-    ?`<div style="margin:-10mm -12mm 0;position:relative;height:200mm;flex-shrink:0">
+  const topPhotoBlock=photos[0]
+    ?`<div style="margin:-10mm -12mm 0;position:relative;height:125mm;flex-shrink:0">
         <img src="${photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
-        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 28%,rgba(0,0,0,.85) 100%)"></div>
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:22px 12mm 26px">${coverText}</div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 22%,rgba(0,0,0,.88) 100%)"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 12mm 20px">${topOverlayText}</div>
       </div>`
-    :`<div style="margin:-10mm -12mm 0;height:200mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
-        <div style="padding:22px 12mm 26px;width:100%">${coverText}</div>
+    :`<div style="margin:-10mm -12mm 0;height:125mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
+        <div style="padding:16px 12mm 20px;width:100%">${topOverlayText}</div>
       </div>`;
 
-  // ── 개선 2: 가격 박스 — 연노랑 톤으로 통일 ──
-  const priceBoxHtml=(extraStyle)=>`<div style="background:#fffbf0;border:2px solid #d4a843;border-radius:14px;padding:16px 22px${extraStyle?';'+extraStyle:''}">
-    <div style="font-size:11px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:8px">거 래 가 격</div>
-    <div style="font-size:24px;font-weight:800;color:#7a5c10;line-height:1.2">${E(priceText)}</div>
-  </div>`;
+  // 지도 컬럼 (정사각형, hasCoords일 때만 표시)
+  const mapSide='90mm';
+  const mapColHtml=hasCoords?`
+    <div style="width:${mapSide};flex-shrink:0;display:flex;flex-direction:column">
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1px;margin-bottom:8px">위 치</div>
+      <div id="pdfMapWrap" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;width:${mapSide};height:${mapSide};flex-shrink:0">
+        <div id="pdfMap" style="width:100%;height:100%"></div>
+      </div>
+    </div>`:'';
 
   const html=`<!DOCTYPE html><html lang="ko"><head>
 <meta charset="UTF-8">
@@ -8530,40 +8532,33 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-pr
 </style>
 </head><body>
 
-<!-- PAGE 1: 표지 -->
+<!-- PAGE 1: 통합 (사진 + 핵심정보 + 지도) -->
 <div class="page">
-  ${coverBlock}
-  <div style="padding:16px 0 0;flex:1;display:flex;flex-direction:column;justify-content:space-between">
-    ${priceBoxHtml()}
-    <div>${agentBox}</div>
+  ${topPhotoBlock}
+  <!-- 하단 2열: 왼쪽 정보 / 오른쪽 지도 -->
+  <div style="flex:1;display:flex;gap:16px;padding-top:14px">
+
+    <!-- 왼쪽: 가격·핵심정보·메모·담당자 -->
+    <div style="flex:1;display:flex;flex-direction:column">
+      <!-- 가격 박스 (연노랑) -->
+      <div style="background:#fffbf0;border:2px solid #d4a843;border-radius:12px;padding:13px 18px;margin-bottom:14px">
+        <div style="font-size:10px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:6px">거 래 가 격</div>
+        <div style="font-size:22px;font-weight:800;color:#7a5c10;line-height:1.15">${E(priceText)}</div>
+      </div>
+      <!-- 핵심 정보 목록 -->
+      ${keyInfoHtml?`<div style="margin-bottom:12px">${keyInfoHtml}</div>`:''}
+      <!-- 특이사항 -->
+      ${p.notes?`<div style="background:#f9fafb;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap">${E(p.notes)}</div>`:''}
+      <!-- 담당자 박스 (하단 고정) -->
+      <div style="margin-top:auto">${agentBox}</div>
+    </div>
+
+    <!-- 오른쪽: 카카오 지도 (정사각형) -->
+    ${mapColHtml}
   </div>
 </div>
 
-<!-- PAGE 2: 상세정보 -->
-<div class="page">
-  <div class="page-header">
-    <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 상세')}</span>
-    <span style="font-size:13px;color:#555;font-weight:600">${E(p.title||'매물')}</span>
-  </div>
-
-  ${priceBoxHtml('margin-bottom:22px')}
-
-  <div class="sec-label" style="margin-top:4px">매물 정보</div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px">${infoGrid}</div>
-
-  ${p.notes?`<div class="sec-label">특이사항</div>
-  <div style="background:#f9fafb;border-radius:12px;padding:15px 18px;margin-bottom:22px;white-space:pre-wrap;font-size:13px;color:#333;line-height:1.75">${E(p.notes)}</div>`:''}
-
-  <div style="margin-top:auto">
-    ${hasCoords?`<div class="sec-label">위치</div>
-    <div id="pdfMapWrap" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;height:140px;margin-bottom:18px">
-      <div id="pdfMap" style="width:100%;height:140px"></div>
-    </div>`:''}
-    ${agentBox}
-  </div>
-</div>
-
-${photoPages.map((pg,i)=>`<!-- PAGE ${3+i}: 사진 -->
+${photoPages.map((pg,i)=>`<!-- PAGE ${2+i}: 사진 -->
 <div class="page">
   <div class="page-header">
     <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 사진')}</span>
