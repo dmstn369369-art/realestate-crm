@@ -6688,7 +6688,14 @@ function updateAuthUI(user){
     `;
     // 사이드바 하단 사용자 정보 갱신
     const firstChar = (displayName||'?')[0].toUpperCase();
-    if($('sfAvatar'))$('sfAvatar').textContent=firstChar;
+    const _sfAvatarUrl = currentProfile?.avatar_url||'';
+    if($('sfAvatar')){
+      if(_sfAvatarUrl){
+        $('sfAvatar').innerHTML=`<img src="${_sfAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" alt="" onerror="this.parentElement.innerHTML='';this.parentElement.textContent='${firstChar}'">`;
+      }else{
+        $('sfAvatar').textContent=firstChar;
+      }
+    }
     if($('sfName'))$('sfName').textContent=displayName;
     if($('sfJobTitle'))$('sfJobTitle').textContent=currentProfile?.job_title||'공인중개사';
     updateAdminMenu();
