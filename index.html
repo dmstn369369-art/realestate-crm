@@ -8411,63 +8411,108 @@ async function generatePropertyPDF(propId,showAddr){
   const coords=_loadPropCoords(targetId);
   const hasCoords=!!(coords&&coords.lat&&coords.lng);
 
-  // 담당자 박스
+  // ── 개선 6: 담당자 박스 — 글씨 크기·진하기 향상 ──
   const agentBox=`<div style="border-top:2px solid #d4a843;padding-top:14px;display:flex;align-items:center;gap:14px">
-    <div style="width:44px;height:44px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:18px;flex-shrink:0">B</div>
+    <div style="width:46px;height:46px;border-radius:50%;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#d4a843;font-weight:800;font-size:19px;flex-shrink:0">B</div>
     <div style="flex:1">
-      ${agentName?`<div style="font-size:14px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:12px;font-weight:400;color:#888">${E(agentPosition)}</span>`:''}</div>`:''}
-      ${agentOrg?`<div style="font-size:12px;color:#666;margin-top:2px">${E(agentOrg)}</div>`:''}
+      ${agentName?`<div style="font-size:15px;font-weight:700;color:#111">${E(agentName)}${agentPosition?` <span style="font-size:12px;font-weight:500;color:#555">${E(agentPosition)}</span>`:''}</div>`:''}
+      ${agentOrg?`<div style="font-size:13px;color:#444;margin-top:2px;font-weight:600">${E(agentOrg)}</div>`:''}
     </div>
-    <div style="text-align:right;font-size:12px;color:#666;line-height:1.8">
+    <div style="text-align:right;font-size:13px;color:#444;line-height:1.8">
       ${agentPhone?`<div>${E(agentPhone)}</div>`:''}
       ${agentEmail?`<div>${E(agentEmail)}</div>`:''}
     </div>
   </div>`;
 
-  // 매물 정보 카드
-  const infoItems=[];
-  if(p.area_pyeong)infoItems.push(['면적',`${p.area_pyeong}평\n(${(p.area_pyeong*3.3058).toFixed(1)}㎡)`]);
-  if(p.floor_current||p.floor_total)infoItems.push(['층수',`${p.floor_current||'-'}층 / 총${p.floor_total||'-'}층`]);
-  if(p.rooms)infoItems.push(['방',`${p.rooms}개`]);
-  if(p.bathrooms)infoItems.push(['욕실',String(p.bathrooms)]);
-  if(p.direction)infoItems.push(['방향',p.direction]);
-  if(p.move_in_type==='immediate')infoItems.push(['입주','즉시입주']);
-  else if(p.move_in_type==='negotiable')infoItems.push(['입주','협의가능']);
-  else if(p.move_in_type==='immediate_and_negotiable')infoItems.push(['입주','즉시/협의']);
-  else if(p.move_in_date)infoItems.push(['입주',p.move_in_date]);
-  if(p.parking_type){const pl={available:'가능',unavailable:'불가',mechanical:'기계식'};const pv=pl[p.parking_type]||p.parking_type;infoItems.push(['주차',p.parking_count?`${pv} ${p.parking_count}대`:pv]);}
-  if(p.elevator){const el={available:'있음',unavailable:'없음'};infoItems.push(['엘리베이터',el[p.elevator]||p.elevator]);}
-
+  // ── 개선 3: 매물 정보 8개 항목 항상 표시 (값 없으면 '-') ──
+  const getMoveIn=()=>{
+    if(p.move_in_type==='immediate')return '즉시입주';
+    if(p.move_in_type==='negotiable')return '협의가능';
+    if(p.move_in_type==='immediate_and_negotiable')return '즉시/협의';
+    if(p.move_in_date)return p.move_in_date;
+    return '-';
+  };
+  const getPark=()=>{
+    if(!p.parking_type)return '-';
+    const pl={available:'가능',unavailable:'불가',mechanical:'기계식'};
+    const pv=pl[p.parking_type]||p.parking_type;
+    return p.parking_count?`${pv} ${p.parking_count}대`:pv;
+  };
+  const getElev=()=>{
+    if(!p.elevator)return '-';
+    const el={available:'있음',unavailable:'없음'};
+    return el[p.elevator]||p.elevator;
+  };
+  const infoItems=[
+    ['면적',   p.area_pyeong?`${p.area_pyeong}평\n(${(p.area_pyeong*3.3058).toFixed(1)}㎡)`:'-'],
+    ['층수',   (p.floor_current||p.floor_total)?`${p.floor_current||'-'}층 / 총${p.floor_total||'-'}층`:'-'],
+    ['방',     p.rooms?`${p.rooms}개`:'-'],
+    ['욕실',   p.bathrooms?String(p.bathrooms):'-'],
+    ['방향',   p.direction||'-'],
+    ['입주',   getMoveIn()],
+    ['주차',   getPark()],
+    ['엘리베이터', getElev()],
+  ];
   const infoGrid=infoItems.map(([l,v])=>`
     <div style="background:#f9fafb;border-radius:10px;padding:13px 10px;text-align:center">
       <div style="font-size:11px;color:#9ca3af;margin-bottom:7px;font-weight:600">${l}</div>
       <div style="font-size:13px;font-weight:700;color:#111;white-space:pre-line;line-height:1.35">${v}</div>
     </div>`).join('');
 
+  // ── 개선 4+5: 사진 비율 통일 + 공간 채우기 (flex 기반) ──
+  function makePhotoGrid(chunk){
+    const n=chunk.length;
+    let rows;
+    if(n===1)       rows=[[chunk[0]]];
+    else if(n===2)  rows=[[chunk[0],chunk[1]]];
+    else if(n===3)  rows=[[chunk[0],chunk[1]],[chunk[2]]];
+    else if(n===4)  rows=[[chunk[0],chunk[1]],[chunk[2],chunk[3]]];
+    else if(n===5)  rows=[[chunk[0],chunk[1]],[chunk[2],chunk[3]],[chunk[4]]];
+    else            rows=[[chunk[0],chunk[1]],[chunk[2],chunk[3]],[chunk[4],chunk[5]]];
+    return `<div style="display:flex;flex-direction:column;gap:12px;flex:1;min-height:0">${
+      rows.map(row=>`<div style="display:flex;gap:12px;flex:1;min-height:0">${
+        row.map(u=>`<div style="flex:1;min-height:0;overflow:hidden;border-radius:10px;background:#e5e7eb">
+          <img src="${u}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
+        </div>`).join('')
+      }</div>`).join('')
+    }</div>`;
+  }
+
   // 사진 페이지 생성
   const photoPages=[];
   if(photos.length){
-    const small=(photos.length<=4);
-    const perPage=small?4:6;
+    const perPage=photos.length<=4?4:6;
     for(let i=0;i<photos.length;i+=perPage){
       const chunk=photos.slice(i,i+perPage);
-      const cols=2, aspectH=small?'55%':'40%';
       const isLast=(i+perPage>=photos.length);
-      photoPages.push({
-        from:i+1, to:Math.min(i+perPage,photos.length), isLast,
-        html:`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${
-          chunk.map(u=>`<div style="width:100%;padding-bottom:${aspectH};position:relative;overflow:hidden;border-radius:10px">
-            <img src="${u}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
-          </div>`).join('')
-        }</div>`
-      });
+      photoPages.push({from:i+1,to:Math.min(i+perPage,photos.length),isLast,html:makePhotoGrid(chunk)});
     }
   }
 
-  // 표지 대표사진
-  const coverPhoto=photos[0]
-    ?`<div style="margin:-10mm -12mm 0;"><img src="${photos[0]}" alt="" style="width:calc(100% + 24mm);height:165mm;object-fit:cover;display:block" crossorigin="anonymous"></div>`
-    :`<div style="margin:-10mm -12mm 0;height:165mm;background:linear-gradient(135deg,#0d1117 60%,#1c2128);display:flex;align-items:center;justify-content:center"><span style="font-size:72px;opacity:.4">🏠</span></div>`;
+  // ── 개선 1: 표지 — 사진 위에 텍스트 오버레이로 여백 균형 ──
+  const coverText=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <span style="background:rgba(212,168,67,.3);border:1px solid #d4a843;color:#ffd166;font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px">${E(txL[p.transaction_type]||p.transaction_type||'')}</span>
+      ${p.property_type?`<span style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
+    </div>
+    <div style="font-size:28px;font-weight:800;line-height:1.25;color:#fff;margin-bottom:8px">${E(p.title||'제목 없음')}</div>
+    ${displayAddr?`<div style="font-size:13px;color:rgba(255,255,255,.82)">📍 ${E(displayAddr)}</div>`:''}`;
+
+  const coverBlock=photos[0]
+    ?`<div style="margin:-10mm -12mm 0;position:relative;height:200mm;flex-shrink:0">
+        <img src="${photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 28%,rgba(0,0,0,.85) 100%)"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:22px 12mm 26px">${coverText}</div>
+      </div>`
+    :`<div style="margin:-10mm -12mm 0;height:200mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
+        <div style="padding:22px 12mm 26px;width:100%">${coverText}</div>
+      </div>`;
+
+  // ── 개선 2: 가격 박스 — 연노랑 톤으로 통일 ──
+  const priceBoxHtml=(extraStyle)=>`<div style="background:#fffbf0;border:2px solid #d4a843;border-radius:14px;padding:16px 22px${extraStyle?';'+extraStyle:''}">
+    <div style="font-size:11px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:8px">거 래 가 격</div>
+    <div style="font-size:24px;font-weight:800;color:#7a5c10;line-height:1.2">${E(priceText)}</div>
+  </div>`;
 
   const html=`<!DOCTYPE html><html lang="ko"><head>
 <meta charset="UTF-8">
@@ -8487,19 +8532,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-pr
 
 <!-- PAGE 1: 표지 -->
 <div class="page">
-  ${coverPhoto}
-  <div style="padding:16px 0 0;flex:1;display:flex;flex-direction:column;gap:12px">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <span style="background:#0d1117;color:#d4a843;font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px">${E(txL[p.transaction_type]||'')}</span>
-      ${p.property_type?`<span style="background:#f3f4f6;color:#555;font-size:13px;font-weight:600;padding:5px 14px;border-radius:20px">${E(ptL[p.property_type]||p.property_type)}</span>`:''}
-    </div>
-    <div style="font-size:24px;font-weight:800;line-height:1.25;color:#0d1117">${E(p.title||'제목 없음')}</div>
-    ${displayAddr?`<div style="font-size:14px;color:#555">📍 ${E(displayAddr)}</div>`:''}
-    <div style="background:#fffbf0;border:2px solid #d4a843;border-radius:14px;padding:18px 22px;margin-top:4px">
-      <div style="font-size:11px;color:#a07820;font-weight:700;letter-spacing:.8px;margin-bottom:8px">거 래 가 격</div>
-      <div style="font-size:26px;font-weight:800;color:#7a5c10;line-height:1.2">${E(priceText)}</div>
-    </div>
-    <div style="margin-top:auto">${agentBox}</div>
+  ${coverBlock}
+  <div style="padding:16px 0 0;flex:1;display:flex;flex-direction:column;justify-content:space-between">
+    ${priceBoxHtml()}
+    <div>${agentBox}</div>
   </div>
 </div>
 
@@ -8507,16 +8543,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-pr
 <div class="page">
   <div class="page-header">
     <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 상세')}</span>
-    <span style="font-size:12px;color:#888">${E(p.title||'매물')}</span>
+    <span style="font-size:13px;color:#555;font-weight:600">${E(p.title||'매물')}</span>
   </div>
 
-  <div style="background:#0d1117;border-radius:14px;padding:18px 22px;margin-bottom:22px">
-    <div style="font-size:11px;color:#d4a843;font-weight:700;letter-spacing:1px;margin-bottom:8px">거래 가격</div>
-    <div style="font-size:22px;font-weight:800;color:#fff">${E(priceText)}</div>
-  </div>
+  ${priceBoxHtml('margin-bottom:22px')}
 
-  ${infoItems.length?`<div class="sec-label">매물 정보</div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">${infoGrid}</div>`:''}
+  <div class="sec-label" style="margin-top:4px">매물 정보</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px">${infoGrid}</div>
 
   ${p.notes?`<div class="sec-label">특이사항</div>
   <div style="background:#f9fafb;border-radius:12px;padding:15px 18px;margin-bottom:22px;white-space:pre-wrap;font-size:13px;color:#333;line-height:1.75">${E(p.notes)}</div>`:''}
@@ -8534,10 +8567,10 @@ ${photoPages.map((pg,i)=>`<!-- PAGE ${3+i}: 사진 -->
 <div class="page">
   <div class="page-header">
     <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 사진')}</span>
-    <span style="font-size:12px;color:#888">사진 ${pg.from}–${pg.to} / ${photos.length}장</span>
+    <span style="font-size:13px;color:#555;font-weight:600">사진 ${pg.from}–${pg.to} / ${photos.length}장</span>
   </div>
   ${pg.html}
-  ${pg.isLast?`<div style="margin-top:auto;padding-top:18px">${agentBox}</div>`:''}
+  ${pg.isLast?`<div style="padding-top:18px">${agentBox}</div>`:''}
 </div>`).join('\n')}
 
 <script>
