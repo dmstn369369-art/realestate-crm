@@ -8501,23 +8501,23 @@ async function generatePropertyPDF(propId,showAddr){
       <div style="font-size:20px;font-weight:800;color:#ffd166;line-height:1.2">${E(priceText)}</div>
     </div>`;
 
-  // 수정 1: 사진 높이 145mm (페이지 절반 수준) / 수정 2: 패딩 18mm
+  // 사진 높이 145mm, 헤더가 위에 있으므로 상단 bleed 제거·좌우 bleed 유지
   const topPhotoBlock=photos[0]
-    ?`<div style="margin:-10mm -12mm 0;position:relative;height:145mm;flex-shrink:0">
+    ?`<div style="margin:0 -12mm;position:relative;height:145mm;flex-shrink:0">
         <img src="${photos[0]}" alt="" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous">
         <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 10%,rgba(0,0,0,.92) 100%)"></div>
         <div style="position:absolute;bottom:0;left:0;right:0;padding:18px 18mm 22px">${topOverlayText}</div>
       </div>`
-    :`<div style="margin:-10mm -12mm 0;height:145mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
+    :`<div style="margin:0 -12mm;height:145mm;background:linear-gradient(135deg,#0d1117 55%,#1c2128);display:flex;align-items:flex-end;flex-shrink:0">
         <div style="padding:18px 18mm 22px;width:100%">${topOverlayText}</div>
       </div>`;
 
-  // 지도 컬럼 (정사각형, hasCoords일 때만 표시)
-  const mapSide='90mm';
+  // 지도 컬럼 (너비 90mm 고정, 높이는 왼쪽 정보 영역과 맞춰 flex로 자동 확장)
+  const mapWidth='90mm';
   const mapColHtml=hasCoords?`
-    <div style="width:${mapSide};flex-shrink:0;display:flex;flex-direction:column">
+    <div style="width:${mapWidth};flex-shrink:0;display:flex;flex-direction:column;min-height:0">
       <div style="font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1px;margin-bottom:8px">위 치</div>
-      <div id="pdfMapWrap" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;width:${mapSide};height:${mapSide};flex-shrink:0">
+      <div id="pdfMapWrap" style="border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;flex:1;min-height:70mm">
         <div id="pdfMap" style="width:100%;height:100%"></div>
       </div>
     </div>`:'';
@@ -8531,35 +8531,35 @@ async function generatePropertyPDF(propId,showAddr){
 body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @page{margin:10mm 12mm;size:A4 portrait}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-.page{min-height:277mm;display:flex;flex-direction:column;page-break-after:always;break-after:page}
+.page{min-height:277mm;display:flex;flex-direction:column;page-break-after:always;break-after:page;position:relative}
 .page:last-of-type{page-break-after:auto;break-after:auto}
 .sec-label{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:10px}
 .page-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:2px solid #d4a843;margin-bottom:18px}
 </style>
 </head><body>
 
-<!-- PAGE 1: 통합 (사진+가격 오버레이 / 정보+지도 / 담당자 하단 전폭 고정) -->
+<!-- PAGE 1: 통합 (헤더 + 사진+가격 오버레이 + 정보/지도 + 담당자 절대 하단 고정) -->
 <div class="page">
+  <!-- 수정 1: 1쪽 헤더 — 2쪽과 동일 스타일 -->
+  <div class="page-header">
+    <span style="font-size:17px;font-weight:800;color:#d4a843">${E(agentOrg||'매물 소개')}</span>
+    <span style="font-size:13px;color:#555;font-weight:600">${E(p.title||'매물')}</span>
+  </div>
   ${topPhotoBlock}
-  <!-- 수정 4: 중단+담당자를 flex-col로 묶어 담당자를 페이지 전폭 최하단에 고정 -->
-  <div style="flex:1;display:flex;flex-direction:column;padding-top:12px;gap:12px">
+  <!-- 수정 2: 2열 flex:1 — 지도 높이 정보 영역에 맞게 자동 확장 -->
+  <div style="flex:1;display:flex;gap:16px;padding-top:12px;padding-bottom:22mm;min-height:0">
 
-    <!-- 중단 2열: 왼쪽 정보 / 오른쪽 지도 -->
-    <div style="flex:1;display:flex;gap:16px;min-height:0">
-
-      <!-- 왼쪽: 핵심정보·메모 (가격 박스 제거 — 사진 오버레이로 이동) -->
-      <div style="flex:1;min-height:0;overflow:hidden">
-        ${keyInfoHtml?`<div style="margin-bottom:10px">${keyInfoHtml}</div>`:''}
-        ${p.notes?`<div style="background:#f9fafb;border-radius:10px;padding:10px 14px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap">${E(p.notes)}</div>`:''}
-      </div>
-
-      <!-- 오른쪽: 카카오 지도 (정사각형 유지) -->
-      ${mapColHtml}
+    <!-- 왼쪽: 핵심정보·메모 -->
+    <div style="flex:1;min-height:0;overflow:hidden">
+      ${keyInfoHtml?`<div style="margin-bottom:10px">${keyInfoHtml}</div>`:''}
+      ${p.notes?`<div style="background:#f9fafb;border-radius:10px;padding:10px 14px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap">${E(p.notes)}</div>`:''}
     </div>
 
-    <!-- 담당자 박스 — 페이지 전폭, 최하단 고정 -->
-    ${agentBox}
+    <!-- 오른쪽: 카카오 지도 -->
+    ${mapColHtml}
   </div>
+  <!-- 수정 3: 담당자 박스 — position:absolute 페이지 완전 하단 고정 -->
+  <div style="position:absolute;bottom:0;left:0;right:0">${agentBox}</div>
 </div>
 
 ${photoPages.map((pg,i)=>`<!-- PAGE ${2+i}: 사진 -->
