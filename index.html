@@ -1339,6 +1339,31 @@ html{overflow-x:hidden}
           </div>
         </div>
 
+        <!-- 팀 초대 코드 카드 (owner만 표시) -->
+        <div class="panel" id="inviteCodePanel" style="margin-top:12px;display:none">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">👥</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">팀 초대 코드</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:2px">팀원을 초대할 6자리 코드를 생성합니다</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 16px 16px">
+            <div id="inviteCodeDisplay" style="display:none;margin-bottom:12px">
+              <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:8px">현재 초대 코드</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <div style="font-family:monospace;font-size:22px;font-weight:700;color:var(--gold);letter-spacing:6px;background:var(--bg);border:1px solid var(--gold3);border-radius:8px;padding:8px 16px" id="inviteCodeText">------</div>
+                <button class="btn" onclick="copyInviteCode()" style="font-size:11px;white-space:nowrap">🔗 복사</button>
+                <button class="btn" onclick="generateInviteCode(true)" style="font-size:11px;white-space:nowrap;color:var(--text3)">🔄 재생성</button>
+              </div>
+            </div>
+            <div id="inviteCodeEmpty" style="font-size:12px;color:var(--text3);margin-bottom:10px;display:none">아직 초대 코드가 없습니다. 버튼을 눌러 생성하세요.</div>
+            <button class="btn btn-gold" onclick="generateInviteCode(false)" id="inviteCodeGenBtn" style="font-size:12px;padding:6px 16px;display:none">코드 생성</button>
+          </div>
+        </div>
+
         <!-- 비밀번호 변경 카드 -->
         <div class="panel" style="margin-top:12px">
           <div class="panel-head" onclick="toggleChangePasswordSection()" style="cursor:pointer;user-select:none">
@@ -2724,11 +2749,72 @@ function renderSettingsPage(){
   const body=$('changePwBody'); if(body)body.style.display='none';
   const dab=$('deleteAccountBtn');
   if(dab)dab.style.display=isLoggedIn?'':'none';
+  renderInviteCodeSection();
   renderStorageSection();
   if(isLoggedIn)loadStorageUsage();
   const bkNotice=$('backupLoginNotice'), bkForm=$('backupForm');
   if(bkNotice)bkNotice.style.display=isLoggedIn?'none':'';
   if(bkForm)bkForm.style.display=isLoggedIn?'':'none';
+}
+
+// ── 팀 초대 코드 ──────────────────────────────────────
+function renderInviteCodeSection(){
+  const panel=$('inviteCodePanel');if(!panel)return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  const isOwner=currentProfile?.role==='owner';
+  panel.style.display=(isOwner&&canUseCloud)?'':'none';
+  if(!isOwner||!canUseCloud)return;
+  _showInviteCodeUI(currentOrganization?.invite_code||'');
+}
+function _showInviteCodeUI(code){
+  const disp=$('inviteCodeDisplay'),empty=$('inviteCodeEmpty'),text=$('inviteCodeText'),genBtn=$('inviteCodeGenBtn');
+  if(code){
+    if(disp)disp.style.display='';
+    if(empty)empty.style.display='none';
+    if(text)text.textContent=code;
+    if(genBtn)genBtn.style.display='none';
+  }else{
+    if(disp)disp.style.display='none';
+    if(empty)empty.style.display='';
+    if(genBtn)genBtn.style.display='';
+  }
+}
+async function generateInviteCode(isRegen){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  if(isRegen&&!confirm('기존 코드로는 가입할 수 없게 됩니다.\n재생성하시겠습니까?'))return;
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  try{
+    const{error}=await supabaseClient.from('organizations')
+      .update({invite_code:code}).eq('id',currentOrganization.id);
+    if(error)throw error;
+    currentOrganization={...currentOrganization,invite_code:code};
+    _showInviteCodeUI(code);
+    toast('초대 코드가 생성되었습니다');
+  }catch(err){
+    console.error('[generateInviteCode]',err);
+    toast('코드 생성 실패: '+(err.message?.substring(0,40)||''));
+  }
+}
+function copyInviteCode(){
+  const code=currentOrganization?.invite_code;
+  if(!code){toast('코드를 먼저 생성해주세요');return;}
+  navigator.clipboard.writeText(code)
+    .then(()=>toast('초대 코드가 복사되었습니다'))
+    .catch(()=>{
+      const t=$('inviteCodeText');
+      if(t){const r=document.createRange();r.selectNodeContents(t);const s=window.getSelection();s.removeAllRanges();s.addRange(r);}
+      toast('코드를 선택 후 직접 복사해주세요');
+    });
 }
 
 function toggleChangePasswordSection(){
