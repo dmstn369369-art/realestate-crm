@@ -2673,7 +2673,7 @@ function go(id,el){
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
-  else if(id==='properties')renderProperties();
+  else if(id==='properties'){renderProperties();syncPropertiesFromCloud();}
   else if(id==='contacts')renderContacts();
   else if(id==='juso')renderJusoPage();
   else if(id==='settings')renderSettingsPage();
@@ -6340,23 +6340,21 @@ async function loadDataFromSupabase(){
     
     if(clientErr){
       console.error('고객 로드 실패:', clientErr.message);
-      showSupabaseStatus('error', '고객 데이터 로드 실패');
-      return;
+      // 고객 로드 실패해도 다른 데이터(매물 등)는 계속 로드
+    } else {
+      // Supabase 데이터를 로컬 형식으로 변환
+      clients = (cloudClients || []).map(c => ({
+        id: c.id,  // UUID 그대로 사용
+        name: c.name,
+        phone: c.phone || '',
+        ctype: c.ctype || '주거',
+        priority: c.priority || 2,
+        memo: c.memo || '',
+        date: c.inquiry_date || c.created_at?.split('T')[0] || todayStr(),
+        _supabase: true  // Supabase 데이터 표시
+      }));
+      console.log(`✅ 고객 ${clients.length}명 로드 완료`);
     }
-    
-    // Supabase 데이터를 로컬 형식으로 변환
-    clients = (cloudClients || []).map(c => ({
-      id: c.id,  // UUID 그대로 사용
-      name: c.name,
-      phone: c.phone || '',
-      ctype: c.ctype || '주거',
-      priority: c.priority || 2,
-      memo: c.memo || '',
-      date: c.inquiry_date || c.created_at?.split('T')[0] || todayStr(),
-      _supabase: true  // Supabase 데이터 표시
-    }));
-    
-    console.log(`✅ 고객 ${clients.length}명 로드 완료`);
 
     // 일정 데이터 로드 (본인 조직 데이터만)
     const { data: cloudEvents, error: eventErr } = await supabaseClient
@@ -6471,6 +6469,7 @@ async function loadDataFromSupabase(){
         move_in_type: p.move_in_type || null,
         parking_type: p.parking_type || null,
         parking_count: p.parking_count || null,
+        elevator: p.elevator || null,
         notes: p.notes || '',
         status: p.status || 'active',
         created_at: p.created_at || '',
@@ -6504,6 +6503,52 @@ async function loadDataFromSupabase(){
     console.error('데이터 로드 중 오류:', err);
     showSupabaseStatus('error', '데이터 로드 오류');
   }
+}
+
+// 매물 단독 재조회 (페이지 진입 시 백그라운드 동기화용)
+async function syncPropertiesFromCloud(){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud)return;
+  try{
+    const{data,error}=await supabaseClient.from('properties')
+      .select('*')
+      .eq('organization_id',currentOrganization.id)
+      .order('created_at',{ascending:false})
+      .limit(10000);
+    if(error){console.warn('[syncProps] 조회 오류:',error.message);return;}
+    properties=(data||[]).map(p=>({
+      id:p.id,
+      title:p.title||'',
+      property_type:p.property_type||'office',
+      transaction_type:p.transaction_type||'monthly',
+      address:p.address||'',
+      price_sale:p.price_sale,
+      price_deposit:p.price_deposit,
+      price_monthly:p.price_monthly,
+      price_management:p.price_management,
+      area_pyeong:p.area_pyeong,
+      floor_current:p.floor_current,
+      floor_total:p.floor_total,
+      rooms:p.rooms,
+      bathrooms:p.bathrooms,
+      elevator:p.elevator||null,
+      direction:p.direction||'',
+      move_in_date:p.move_in_date||'',
+      move_in_type:p.move_in_type||null,
+      parking_type:p.parking_type||null,
+      parking_count:p.parking_count||null,
+      notes:p.notes||'',
+      status:p.status||'active',
+      created_at:p.created_at||'',
+      _supabase:true
+    }));
+    sv(KEY.properties,properties);
+    if(curPage==='properties')renderProperties();
+  }catch(e){console.warn('[syncProps] 예외:',e);}
 }
 
 // Supabase에 고객 추가
