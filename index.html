@@ -667,6 +667,9 @@ html{overflow-x:hidden}
 .prop-card-addr{font-size:11px;color:var(--text3);margin-bottom:6px}
 .prop-card-price{font-size:13px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif;margin-bottom:5px}
 .prop-card-meta{display:flex;gap:10px;font-size:10px;color:var(--text3)}
+.team-tab{background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;transition:all .15s;border-radius:0;line-height:1.4}
+.team-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.team-tab:hover:not(.on){color:var(--text2)}
 @media(max-width:480px){
   .prop-card-head{flex-direction:column;gap:6px}
   .gr3{grid-template-columns:1fr!important}
@@ -948,7 +951,7 @@ html{overflow-x:hidden}
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14V7.5L8 2l7 5.5V14a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><path d="M5 15V9h6v6"/></svg>매물관리
     </div>
     <div class="ni" id="navTeam" style="display:none" onclick="go('team',this)">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><path d="M0 14c0-2.8 2-4.5 5-4.5s5 1.7 5 4.5"/><path d="M11 4c1.8 0 3 1.2 3 3M11 7c1.2.5 3 1.8 3 5"/></svg>팀 매물
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><path d="M0 14c0-2.8 2-4.5 5-4.5s5 1.7 5 4.5"/><path d="M11 4c1.8 0 3 1.2 3 3M11 7c1.2.5 3 1.8 3 5"/></svg>팀 모드
     </div>
     <div class="ni" onclick="go('contacts',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>전화번호
@@ -1301,42 +1304,49 @@ html{overflow-x:hidden}
       </div>
     </div>
 
-    <!-- TEAM PROPERTIES -->
+    <!-- TEAM MODE -->
     <div class="page" id="p-team">
       <div style="max-width:900px;margin:0 auto">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-          <div>
-            <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">팀 매물</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">우리 팀 전체 매물을 조회합니다</div>
+        <!-- 헤더 -->
+        <div style="margin-bottom:20px">
+          <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">팀 모드</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">팀원과 함께 매물을 관리합니다</div>
+        </div>
+        <!-- 서브탭 바 -->
+        <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+          <button class="team-tab on" id="ttab-properties" onclick="switchTeamTab('properties')">팀 매물</button>
+          <!-- 다음 단계에서 추가: 공지사항, 팀원관리 -->
+        </div>
+        <!-- 팀 매물 패널 -->
+        <div class="team-panel" id="tpanel-properties">
+          <div class="filters" style="margin-bottom:12px">
+            <select class="btn" id="teamFilterAgent" onchange="renderTeamPage()" style="font-size:11px">
+              <option value="">담당자 전체</option>
+            </select>
+            <select class="btn" id="teamFilterType" onchange="renderTeamPage()" style="font-size:11px">
+              <option value="">종류 전체</option>
+              <option value="office">사무실</option>
+              <option value="commercial">상가</option>
+              <option value="oneroom">원룸</option>
+              <option value="apartment">아파트</option>
+              <option value="villa">빌라</option>
+              <option value="officetel">오피스텔</option>
+            </select>
+            <select class="btn" id="teamFilterTx" onchange="renderTeamPage()" style="font-size:11px">
+              <option value="">거래유형 전체</option>
+              <option value="monthly">월세</option>
+              <option value="jeonse">전세</option>
+              <option value="sale">매매</option>
+            </select>
+            <select class="btn" id="teamFilterStatus" onchange="renderTeamPage()" style="font-size:11px">
+              <option value="">상태 전체</option>
+              <option value="active">거래중</option>
+              <option value="pending">보류</option>
+              <option value="completed">완료</option>
+            </select>
           </div>
+          <div id="teamPropListWrap"><div class="empty">로딩 중...</div></div>
         </div>
-        <div class="filters" style="margin-bottom:12px">
-          <select class="btn" id="teamFilterAgent" onchange="renderTeamPage()" style="font-size:11px">
-            <option value="">담당자 전체</option>
-          </select>
-          <select class="btn" id="teamFilterType" onchange="renderTeamPage()" style="font-size:11px">
-            <option value="">종류 전체</option>
-            <option value="office">사무실</option>
-            <option value="commercial">상가</option>
-            <option value="oneroom">원룸</option>
-            <option value="apartment">아파트</option>
-            <option value="villa">빌라</option>
-            <option value="officetel">오피스텔</option>
-          </select>
-          <select class="btn" id="teamFilterTx" onchange="renderTeamPage()" style="font-size:11px">
-            <option value="">거래유형 전체</option>
-            <option value="monthly">월세</option>
-            <option value="jeonse">전세</option>
-            <option value="sale">매매</option>
-          </select>
-          <select class="btn" id="teamFilterStatus" onchange="renderTeamPage()" style="font-size:11px">
-            <option value="">상태 전체</option>
-            <option value="active">거래중</option>
-            <option value="pending">보류</option>
-            <option value="completed">완료</option>
-          </select>
-        </div>
-        <div id="teamPropListWrap"><div class="empty">로딩 중...</div></div>
       </div>
     </div>
 
@@ -2755,13 +2765,13 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',team:'팀 매물',contacts:'전화번호',juso:'주소검색',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',team:'팀 모드',contacts:'전화번호',juso:'주소검색',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='properties'){renderProperties();syncPropertiesFromCloud();}
-  else if(id==='team'){renderTeamPage();syncTeamPropertiesFromCloud();}
+  else if(id==='team'){switchTeamTab('properties');syncTeamPropertiesFromCloud();}
   else if(id==='contacts')renderContacts();
   else if(id==='juso')renderJusoPage();
   else if(id==='settings')renderSettingsPage();
@@ -6763,8 +6773,18 @@ async function syncPropertiesFromCloud(){
   }catch(e){console.warn('[syncProps] 예외:',e);}
 }
 
-// ── 팀 매물 ──────────────────────────────────────────
+// ── 팀 모드 ──────────────────────────────────────────
 let _teamMemberMap={}; // user_id → name 캐시
+let _curTeamTab='properties'; // 현재 활성 서브탭
+
+function switchTeamTab(tab){
+  _curTeamTab=tab;
+  document.querySelectorAll('.team-tab').forEach(t=>t.classList.remove('on'));
+  const activeTab=$('ttab-'+tab);if(activeTab)activeTab.classList.add('on');
+  document.querySelectorAll('.team-panel').forEach(p=>p.style.display='none');
+  const activePanel=$('tpanel-'+tab);if(activePanel)activePanel.style.display='';
+  if(tab==='properties')renderTeamPage();
+}
 
 function renderTeamPage(){
   const wrap=$('teamPropListWrap');if(!wrap)return;
