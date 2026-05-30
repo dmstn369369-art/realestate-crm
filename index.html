@@ -6660,6 +6660,8 @@ async function loadDataFromSupabase(){
         property_type: p.property_type || 'office',
         transaction_type: p.transaction_type || 'monthly',
         address: p.address || '',
+        latitude: p.latitude || null,
+        longitude: p.longitude || null,
         price_sale: p.price_sale,
         price_deposit: p.price_deposit,
         price_monthly: p.price_monthly,
@@ -6733,6 +6735,8 @@ async function syncPropertiesFromCloud(){
       property_type:p.property_type||'office',
       transaction_type:p.transaction_type||'monthly',
       address:p.address||'',
+      latitude:p.latitude||null,
+      longitude:p.longitude||null,
       price_sale:p.price_sale,
       price_deposit:p.price_deposit,
       price_monthly:p.price_monthly,
@@ -6793,7 +6797,7 @@ function renderTeamPage(){
     });
     const myId=currentUser?.id||'';
     agentSel.innerHTML='<option value="">담당자 전체</option>'+agents.map(a=>{
-      const label=a.id===myId?'나 ('+(a.name||'...')+')':(a.name||a.id.substring(0,8)+'…');
+      const label=a.id===myId?'나 ('+(a.name||'...')+')':(a.name||'담당자 미상');
       return `<option value="${escHtml(a.id)}"${a.id===selectedAgent?' selected':''}>${escHtml(label)}</option>`;
     }).join('');
     if(selectedAgent)list=list.filter(p=>p.user_id===selectedAgent);
@@ -6821,7 +6825,7 @@ function renderTeamPage(){
     const thumbUrl=_propThumbs[String(p.id)]||'';
     const thumbInner=thumbUrl?`<img src="${escHtml(thumbUrl)}" alt="">`:'🏠';
     const agentName=_teamMemberMap[p.user_id]||'';
-    const agentLabel=isMine?('나'+(agentName?' ('+agentName+')'  :'')):agentName;
+    const agentLabel=isMine?('나'+(agentName?' ('+agentName+')':'')):(agentName||'담당자 미상');
     const agentBadge=agentLabel
       ?`<div style="margin-bottom:5px"><span style="display:inline-flex;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--bg3);color:${isMine?'var(--gold)':'var(--text2)'};line-height:1.6">👤 ${escHtml(agentLabel)}</span></div>`
       :'';
@@ -8116,9 +8120,13 @@ async function openPropertyModal(id){
     // 호수 입력칸 복원
     const _pUnitWrap=$('p-unit-wrap');if(_pUnitWrap)_pUnitWrap.style.display=_baseAddr?'':'none';
     const _pUnit=$('p-unit');if(_pUnit)_pUnit.value=_unitVal;
-    // 저장된 좌표 복원
-    const _pCoords=_loadPropCoords(id);
-    if(_pCoords){_propAddrLat=_pCoords.lat;_propAddrLng=_pCoords.lng;}
+    // 저장된 좌표 복원: Supabase 우선, 없으면 localStorage
+    if(p.latitude&&p.longitude){
+      _propAddrLat=p.latitude;_propAddrLng=p.longitude;
+    }else{
+      const _pCoords=_loadPropCoords(id);
+      if(_pCoords){_propAddrLat=_pCoords.lat;_propAddrLng=_pCoords.lng;}
+    }
     $('p-area').value=p.area_pyeong||'';
     updateAreaSqm(p.area_pyeong);
     $('p-floor-cur').value=p.floor_current||'';
@@ -8232,7 +8240,9 @@ async function saveProperty(){
     parking_type: (()=>{const v=$('p-parking-type').value;return v==='custom'?($('p-parking-custom').value.trim()||null):v||null;})(),
     parking_count: $('p-parking-type').value==='available'?parseInt($('p-parking-count').value)||null:null,
     move_in_type: (()=>{const i=$('p-movein-immediate')?.checked,n=$('p-movein-negotiable')?.checked;return i&&n?'immediate_and_negotiable':i?'immediate':n?'negotiable':null;})(),
-    move_in_date: ($('p-movein-immediate')?.checked||$('p-movein-negotiable')?.checked)?null:($('p-movein').value||null)
+    move_in_date: ($('p-movein-immediate')?.checked||$('p-movein-negotiable')?.checked)?null:($('p-movein').value||null),
+    latitude: (typeof _propAddrLat!=='undefined'&&_propAddrLat!=null)?_propAddrLat:null,
+    longitude: (typeof _propAddrLng!=='undefined'&&_propAddrLng!=null)?_propAddrLng:null
   };
   const canUseCloud=(
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
@@ -8919,8 +8929,10 @@ async function generatePropertyPDF(propId,showAddr){
 
   const E=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // 저장된 좌표 로드
-  const coords=_loadPropCoords(targetId);
+  // 좌표 로드: Supabase 저장값 우선, 없으면 localStorage (기기 간 공유 목적)
+  let coords=null;
+  if(p.latitude&&p.longitude){coords={lat:p.latitude,lng:p.longitude};}
+  else{coords=_loadPropCoords(targetId);}
   const hasCoords=!!(coords&&coords.lat&&coords.lng);
 
   // 담당자 박스 — 사진 있으면 이미지, 없으면 'B' 이니셜
