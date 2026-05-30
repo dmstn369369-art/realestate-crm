@@ -947,6 +947,9 @@ html{overflow-x:hidden}
     <div class="ni" id="navProperties" onclick="go('properties',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 14V7.5L8 2l7 5.5V14a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><path d="M5 15V9h6v6"/></svg>매물관리
     </div>
+    <div class="ni" id="navTeam" style="display:none" onclick="go('team',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="2.5"/><path d="M0 14c0-2.8 2-4.5 5-4.5s5 1.7 5 4.5"/><path d="M11 4c1.8 0 3 1.2 3 3M11 7c1.2.5 3 1.8 3 5"/></svg>팀 매물
+    </div>
     <div class="ni" onclick="go('contacts',this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>전화번호
     </div>
@@ -1295,6 +1298,45 @@ html{overflow-x:hidden}
           </select>
         </div>
         <div id="propListWrap"><div class="empty">로딩 중...</div></div>
+      </div>
+    </div>
+
+    <!-- TEAM PROPERTIES -->
+    <div class="page" id="p-team">
+      <div style="max-width:900px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:'Noto Serif KR',serif;font-size:18px;font-weight:700;color:var(--gold)">팀 매물</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">우리 팀 전체 매물을 조회합니다</div>
+          </div>
+        </div>
+        <div class="filters" style="margin-bottom:12px">
+          <select class="btn" id="teamFilterAgent" onchange="renderTeamPage()" style="font-size:11px">
+            <option value="">담당자 전체</option>
+          </select>
+          <select class="btn" id="teamFilterType" onchange="renderTeamPage()" style="font-size:11px">
+            <option value="">종류 전체</option>
+            <option value="office">사무실</option>
+            <option value="commercial">상가</option>
+            <option value="oneroom">원룸</option>
+            <option value="apartment">아파트</option>
+            <option value="villa">빌라</option>
+            <option value="officetel">오피스텔</option>
+          </select>
+          <select class="btn" id="teamFilterTx" onchange="renderTeamPage()" style="font-size:11px">
+            <option value="">거래유형 전체</option>
+            <option value="monthly">월세</option>
+            <option value="jeonse">전세</option>
+            <option value="sale">매매</option>
+          </select>
+          <select class="btn" id="teamFilterStatus" onchange="renderTeamPage()" style="font-size:11px">
+            <option value="">상태 전체</option>
+            <option value="active">거래중</option>
+            <option value="pending">보류</option>
+            <option value="completed">완료</option>
+          </select>
+        </div>
+        <div id="teamPropListWrap"><div class="empty">로딩 중...</div></div>
       </div>
     </div>
 
@@ -2713,12 +2755,13 @@ function go(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   $('p-'+id).classList.add('on');
   if(el)el.classList.add('on');
-  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',contacts:'전화번호',juso:'주소검색',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
+  $('ptitle').textContent={schedule:'일정관리',clients:'고객관리',settlement:'정산관리',properties:'매물관리',team:'팀 매물',contacts:'전화번호',juso:'주소검색',settings:'설정',notices:'공지사항',inquiries:'문의하기',admin:'관리자'}[id]||id;
   curPage=id;
   if(id==='schedule')drawCal();
   else if(id==='clients'){buildMF();renderClients();}
   else if(id==='settlement')renderSettlement();
   else if(id==='properties'){renderProperties();syncPropertiesFromCloud();}
+  else if(id==='team'){renderTeamPage();syncTeamPropertiesFromCloud();}
   else if(id==='contacts')renderContacts();
   else if(id==='juso')renderJusoPage();
   else if(id==='settings')renderSettingsPage();
@@ -6612,6 +6655,7 @@ async function loadDataFromSupabase(){
     } else {
       properties = (cloudProperties || []).map(p => ({
         id: p.id,
+        user_id: p.user_id || null,
         title: p.title || '',
         property_type: p.property_type || 'office',
         transaction_type: p.transaction_type || 'monthly',
@@ -6657,6 +6701,7 @@ async function loadDataFromSupabase(){
     renderClients();
     if(typeof drawCal === 'function') drawCal();
     if(curPage === 'properties') renderProperties();
+    if(curPage === 'team') renderTeamPage();
     if(curPage === 'contacts') renderContacts();
 
     showSupabaseStatus('success', `고객 ${clients.length}명 · 일정 ${events.length}개 · 계약 ${contracts.length}건 동기화 완료`);
@@ -6683,6 +6728,7 @@ async function syncPropertiesFromCloud(){
     if(error){console.warn('[syncProps] 조회 오류:',error.message);return;}
     properties=(data||[]).map(p=>({
       id:p.id,
+      user_id:p.user_id||null,
       title:p.title||'',
       property_type:p.property_type||'office',
       transaction_type:p.transaction_type||'monthly',
@@ -6709,7 +6755,121 @@ async function syncPropertiesFromCloud(){
     }));
     sv(KEY.properties,properties);
     if(curPage==='properties')renderProperties();
+    if(curPage==='team')renderTeamPage();
   }catch(e){console.warn('[syncProps] 예외:',e);}
+}
+
+// ── 팀 매물 ──────────────────────────────────────────
+let _teamMemberMap={}; // user_id → name 캐시
+
+function renderTeamPage(){
+  const wrap=$('teamPropListWrap');if(!wrap)return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){
+    wrap.innerHTML='<div class="empty">로그인이 필요합니다</div>';
+    return;
+  }
+  let list=[...properties];
+
+  // 담당자 필터 드롭다운 재빌드 (현재 선택값 유지)
+  const agentSel=$('teamFilterAgent');
+  if(agentSel){
+    const selectedAgent=agentSel.value||'';
+    const seen=new Set();const agents=[];
+    list.forEach(p=>{
+      if(p.user_id&&!seen.has(p.user_id)){
+        seen.add(p.user_id);
+        agents.push({id:p.user_id,name:_teamMemberMap[p.user_id]||''});
+      }
+    });
+    agents.sort((a,b)=>{
+      const myId=currentUser?.id||'';
+      if(a.id===myId)return -1;if(b.id===myId)return 1;
+      return (a.name||a.id).localeCompare(b.name||b.id,'ko');
+    });
+    const myId=currentUser?.id||'';
+    agentSel.innerHTML='<option value="">담당자 전체</option>'+agents.map(a=>{
+      const label=a.id===myId?'나 ('+(a.name||'...')+')':(a.name||a.id.substring(0,8)+'…');
+      return `<option value="${escHtml(a.id)}"${a.id===selectedAgent?' selected':''}>${escHtml(label)}</option>`;
+    }).join('');
+    if(selectedAgent)list=list.filter(p=>p.user_id===selectedAgent);
+  }
+
+  const ft=$('teamFilterType')?.value||'';
+  const ftx=$('teamFilterTx')?.value||'';
+  const fs=$('teamFilterStatus')?.value||'';
+  if(ft)list=list.filter(p=>p.property_type===ft);
+  if(ftx)list=list.filter(p=>p.transaction_type===ftx);
+  if(fs)list=list.filter(p=>p.status===fs);
+  list.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+
+  if(!list.length){
+    wrap.innerHTML='<div class="empty">팀 매물이 없습니다</div>';
+    return;
+  }
+  const myId=currentUser?.id||'';
+  wrap.innerHTML=list.map(p=>{
+    const isMine=p.user_id===myId;
+    const area=p.area_pyeong?`${Number(p.area_pyeong)}평(${(Number(p.area_pyeong)*3.3058).toFixed(1)}㎡)`:null;
+    const floor=p.floor_current?`${p.floor_current}층`:null;
+    const rooms=p.rooms?`방${p.rooms}`:null;
+    const meta=[area,floor,rooms].filter(Boolean).join(' · ');
+    const thumbUrl=_propThumbs[String(p.id)]||'';
+    const thumbInner=thumbUrl?`<img src="${escHtml(thumbUrl)}" alt="">`:'🏠';
+    const agentName=_teamMemberMap[p.user_id]||'';
+    const agentLabel=isMine?('나'+(agentName?' ('+agentName+')'  :'')):agentName;
+    const agentBadge=agentLabel
+      ?`<div style="margin-bottom:5px"><span style="display:inline-flex;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--bg3);color:${isMine?'var(--gold)':'var(--text2)'};line-height:1.6">👤 ${escHtml(agentLabel)}</span></div>`
+      :'';
+    const editBtn=isMine?`<button class="prop-action-btn" onclick="openPropertyModal('${p.id}')" title="수정">✏️</button>`:'';
+    return `<div class="prop-card" style="cursor:default">
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="prop-thumb" id="pthumb-${p.id}" style="flex-shrink:0">${thumbInner}</div>
+        <div style="flex:1;min-width:0">
+          <div class="prop-card-head">
+            <div class="prop-card-title">${escHtml(p.title)}</div>
+            <div class="prop-card-badges">
+              <span class="prop-badge ${PROP_TYPE_CLS[p.property_type]||''}">${PROP_TYPE[p.property_type]||escHtml(p.property_type)}</span>
+              <span class="prop-badge ${PROP_TX_CLS[p.transaction_type]||''}">${PROP_TX[p.transaction_type]||escHtml(p.transaction_type)}</span>
+              <span class="prop-badge ${PROP_STATUS_CLS[p.status]||''}">${PROP_STATUS[p.status]||escHtml(p.status)}</span>
+            </div>
+          </div>
+          ${agentBadge}
+          <div class="prop-card-addr">${escHtml(p.address||'')}</div>
+          <div class="prop-card-price">${escHtml(formatPropertyPrice(p))}</div>
+          ${meta?`<div class="prop-card-meta"><span>${escHtml(meta)}</span></div>`:''}
+        </div>
+        <div class="prop-actions" onclick="event.stopPropagation()">
+          ${editBtn}
+          <button class="prop-action-btn" onclick="generatePropertyPDF('${p.id}')" title="PDF 소개서">📥</button>
+          <button class="prop-action-btn" onclick="sharePropertyLink('${p.id}')" title="링크 공유">🌐</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  loadPropertyThumbs();
+}
+
+async function syncTeamPropertiesFromCloud(){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){renderTeamPage();return;}
+  try{
+    // 팀원 프로필 (이름) 조회
+    const{data:memberProfiles}=await supabaseClient
+      .from('profiles').select('id,name').eq('organization_id',currentOrganization.id);
+    _teamMemberMap={};
+    (memberProfiles||[]).forEach(mp=>{_teamMemberMap[mp.id]=mp.name||'';});
+  }catch(e){console.warn('[teamMembers]',e);}
+  // 매물 재조회 (syncPropertiesFromCloud가 끝에 renderTeamPage 호출)
+  syncPropertiesFromCloud();
 }
 
 // Supabase에 고객 추가
@@ -6905,6 +7065,7 @@ function updateAuthUI(user){
     if($('sfName'))$('sfName').textContent=displayName;
     if($('sfJobTitle'))$('sfJobTitle').textContent=currentProfile?.job_title||'공인중개사';
     updateAdminMenu();
+    const navTeamEl=$('navTeam');if(navTeamEl)navTeamEl.style.display='';
   } else {
     showLanding();
     // 로그인 안 된 상태 (authArea는 메인 앱 topbar에 존재하므로 그대로 유지)
@@ -6918,6 +7079,7 @@ function updateAuthUI(user){
     if($('sfName'))$('sfName').textContent='로그인 필요';
     if($('sfJobTitle'))$('sfJobTitle').textContent='-';
     updateAdminMenu();
+    const navTeamEl=$('navTeam');if(navTeamEl)navTeamEl.style.display='none';
   }
 }
 
@@ -7860,6 +8022,10 @@ function _propSortPrice(p){
 function renderProperties(){
   const wrap=$('propListWrap');if(!wrap)return;
   let list=[...properties];
+  // 로그인 상태면 본인 매물만 표시 (user_id 없는 로컬 데이터는 통과)
+  if(typeof currentUser!=='undefined'&&currentUser){
+    list=list.filter(p=>!p.user_id||p.user_id===currentUser.id);
+  }
   const q=($('propSearch')?.value||'').toLowerCase();
   const ft=$('propFilterType')?.value||'';
   const ftx=$('propFilterTx')?.value||'';
