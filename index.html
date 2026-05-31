@@ -5623,12 +5623,12 @@ async function _fetchBackupData(items){
   }
   if(items.includes('clients')){
     const { data } = await _fetchAll(() =>
-      supabaseClient.from('clients').select('*').eq('organization_id', orgId).order('created_at', {ascending:false}));
+      supabaseClient.from('clients').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false}));
     out.clients = data || [];
   }
   if(items.includes('contracts')){
     const { data: cts } = await _fetchAll(() =>
-      supabaseClient.from('contracts').select('*').eq('organization_id', orgId).order('balance_date', {ascending:false}));
+      supabaseClient.from('contracts').select('*').eq('user_id', currentUser.id).order('balance_date', {ascending:false}));
     const { data: pays } = await _fetchAll(() =>
       supabaseClient.from('payments').select('*').eq('organization_id', orgId));
     out.contracts = cts || [];
@@ -6620,7 +6620,7 @@ async function loadDataFromSupabase(){
     const { data: cloudClients, error: clientErr } = await supabaseClient
       .from('clients')
       .select('*')
-      .eq('organization_id', currentOrganization.id)
+      .eq('user_id', currentUser.id)
       .order('created_at', { ascending: false })
       .limit(10000);
     
@@ -6646,7 +6646,7 @@ async function loadDataFromSupabase(){
     const { data: cloudEvents, error: eventErr } = await supabaseClient
       .from('events')
       .select('*')
-      .eq('organization_id', currentOrganization.id)
+      .eq('user_id', currentUser.id)
       .order('event_date', { ascending: true })
       .limit(10000);
 
@@ -6670,7 +6670,7 @@ async function loadDataFromSupabase(){
     const { data: cloudContracts, error: contractErr } = await supabaseClient
       .from('contracts')
       .select('*')
-      .eq('organization_id', currentOrganization.id)
+      .eq('user_id', currentUser.id)
       .order('balance_date', { ascending: false })
       .limit(10000);
 
