@@ -7410,21 +7410,60 @@ async function kickTeamMember(memberId){
   const member=_teamStatsCache?.members.find(m=>m.id===memberId);
   const memberName=member?.name||'팀원';
   if(!confirm(`${memberName}님을 팀에서 내보내시겠습니까?\n데이터는 유지되며 본인 소유로 남습니다.`))return;
+  toast('내보내는 중...');
   try{
-    // 1. 새 개인 조직 생성
+    // ① 새 개인 조직 생성
+    console.log('[kick] 1. 새 조직 생성 중...');
     const{data:newOrg,error:orgErr}=await supabaseClient
       .from('organizations').insert({name:`${memberName}의 사무실`}).select('id,name').single();
-    if(orgErr)throw orgErr;
-    // 2. 팀원 프로필 → 새 조직, role=owner
+    if(orgErr){console.error('[kick] 조직 생성 실패:',orgErr);throw new Error('새 조직 생성 실패: '+orgErr.message);}
+    const newOrgId=newOrg.id;
+    console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
+
+    // ② 팀원 프로필 → 새 조직, role=owner
+    console.log('[kick] 2. 프로필 업데이트 중...');
     const{error:profileErr}=await supabaseClient
-      .from('profiles').update({organization_id:newOrg.id,role:'owner'}).eq('id',memberId);
-    if(profileErr)throw profileErr;
-    toast(`${escHtml(memberName)}님을 내보냈습니다`);
+      .from('profiles').update({organization_id:newOrgId,role:'owner'}).eq('id',memberId);
+    if(profileErr){console.error('[kick] 프로필 업데이트 실패:',profileErr);throw new Error('프로필 업데이트 실패: '+profileErr.message);}
+    console.log('[kick] 프로필 업데이트 완료');
+
+    // ③ 매물 organization_id 이전 (user_id가 해당 팀원인 것만)
+    console.log('[kick] 3. 매물 organization_id 이전 중...');
+    const{error:propErr}=await supabaseClient
+      .from('properties').update({organization_id:newOrgId}).eq('user_id',memberId);
+    if(propErr)console.warn('[kick] 매물 이전 부분 실패(무시):',propErr.message);
+    else console.log('[kick] 매물 이전 완료');
+
+    // ④ 고객 organization_id 이전
+    console.log('[kick] 4. 고객 이전 중...');
+    const{error:clientErr}=await supabaseClient
+      .from('clients').update({organization_id:newOrgId}).eq('user_id',memberId);
+    if(clientErr)console.warn('[kick] 고객 이전 부분 실패(무시):',clientErr.message);
+    else console.log('[kick] 고객 이전 완료');
+
+    // ⑤ 일정 organization_id 이전
+    console.log('[kick] 5. 일정 이전 중...');
+    const{error:evErr}=await supabaseClient
+      .from('events').update({organization_id:newOrgId}).eq('user_id',memberId);
+    if(evErr)console.warn('[kick] 일정 이전 부분 실패(무시):',evErr.message);
+    else console.log('[kick] 일정 이전 완료');
+
+    // ⑥ 계약 organization_id 이전
+    console.log('[kick] 6. 계약 이전 중...');
+    const{error:ctErr}=await supabaseClient
+      .from('contracts').update({organization_id:newOrgId}).eq('user_id',memberId);
+    if(ctErr)console.warn('[kick] 계약 이전 부분 실패(무시):',ctErr.message);
+    else console.log('[kick] 계약 이전 완료');
+
+    console.log('[kick] 내보내기 완료');
+    toast(`${memberName}님을 팀에서 내보냈습니다`);
     _teamStatsCache=null;
+    // 팀 매물 캐시 무효화 후 재로드
+    await syncPropertiesFromCloud();
     await loadTeamMembers();
   }catch(err){
-    console.error('[kickTeamMember]',err);
-    toast('내보내기 실패: '+(err.message?.substring(0,50)||'오류'));
+    console.error('[kickTeamMember] 오류:',err);
+    toast('내보내기 실패: '+(err.message?.substring(0,60)||'오류'));
   }
 }
 
