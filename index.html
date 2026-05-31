@@ -7436,41 +7436,27 @@ async function kickTeamMember(memberId){
       console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
     }
 
-    // ② 팀원 프로필 → 새 조직, role=owner
-    console.log('[kick] 2. 프로필 업데이트 중...');
+    // ② 데이터 이전 먼저 (프로필 업데이트 전 - RLS 권한 유지 위해)
+    console.log('[kick] 2. 데이터 organization_id 이전 중 (병렬)...');
+    const moveTable=async(table)=>{
+      const{error:e}=await supabaseClient.from(table)
+        .update({organization_id:newOrgId}).eq('user_id',memberId);
+      if(e)console.warn(`[kick] ${table} 이전 실패:`,e.message);
+      else console.log(`[kick] ${table} 이전 완료`);
+    };
+    await Promise.all([
+      moveTable('properties'),
+      moveTable('clients'),
+      moveTable('events'),
+      moveTable('contracts')
+    ]);
+    console.log('[kick] 데이터 이전 완료');
+
+    // ③ 프로필 업데이트 (데이터 이전 완료 후 마지막에)
+    console.log('[kick] 3. 프로필 업데이트 중...');
     const{error:profileErr}=await supabaseClient
       .from('profiles').update({organization_id:newOrgId,role:'owner'}).eq('id',memberId);
     if(profileErr){console.error('[kick] 프로필 업데이트 실패:',profileErr);throw new Error('프로필 업데이트 실패: '+profileErr.message);}
-    console.log('[kick] 프로필 업데이트 완료');
-
-    // ③ 매물 organization_id 이전 (user_id가 해당 팀원인 것만)
-    console.log('[kick] 3. 매물 organization_id 이전 중...');
-    const{error:propErr}=await supabaseClient
-      .from('properties').update({organization_id:newOrgId}).eq('user_id',memberId);
-    if(propErr)console.warn('[kick] 매물 이전 부분 실패(무시):',propErr.message);
-    else console.log('[kick] 매물 이전 완료');
-
-    // ④ 고객 organization_id 이전
-    console.log('[kick] 4. 고객 이전 중...');
-    const{error:clientErr}=await supabaseClient
-      .from('clients').update({organization_id:newOrgId}).eq('user_id',memberId);
-    if(clientErr)console.warn('[kick] 고객 이전 부분 실패(무시):',clientErr.message);
-    else console.log('[kick] 고객 이전 완료');
-
-    // ⑤ 일정 organization_id 이전
-    console.log('[kick] 5. 일정 이전 중...');
-    const{error:evErr}=await supabaseClient
-      .from('events').update({organization_id:newOrgId}).eq('user_id',memberId);
-    if(evErr)console.warn('[kick] 일정 이전 부분 실패(무시):',evErr.message);
-    else console.log('[kick] 일정 이전 완료');
-
-    // ⑥ 계약 organization_id 이전
-    console.log('[kick] 6. 계약 이전 중...');
-    const{error:ctErr}=await supabaseClient
-      .from('contracts').update({organization_id:newOrgId}).eq('user_id',memberId);
-    if(ctErr)console.warn('[kick] 계약 이전 부분 실패(무시):',ctErr.message);
-    else console.log('[kick] 계약 이전 완료');
-
     console.log('[kick] 내보내기 완료');
     toast(`${memberName}님을 팀에서 내보냈습니다`);
     _teamStatsCache=null;
