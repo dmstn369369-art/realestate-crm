@@ -7136,9 +7136,16 @@ async function loadTeamSchedule(){
   if(monthList)monthList.innerHTML='<div class="empty">로딩 중...</div>';
   try{
     const {data,error}=await supabaseClient.from('events')
-      .select('*').in('user_id',teamIds).order('date',{ascending:true}).limit(10000);
+      .select('id,user_id,event_date,event_type')
+      .in('user_id',teamIds)
+      .in('event_type',['inip','meeting','deposit','sign','balance'])
+      .order('event_date',{ascending:true}).limit(10000);
     if(error)throw error;
-    _teamScheduleEvents=(data||[]).filter(e=>['inip','meeting','deposit','sign','balance'].includes(e.type));
+    _teamScheduleEvents=(data||[]).map(e=>({
+      ...e,
+      type:e.event_type,
+      date:e.event_date
+    })).filter(e=>['inip','meeting','deposit','sign','balance'].includes(e.type));
     teamCalY=TODAY.getFullYear();teamCalM=TODAY.getMonth();teamSelDate=null;
     teamMpYr=teamCalY;teamMpOpen=false;
     drawTeamCal();
