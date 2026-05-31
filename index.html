@@ -1369,33 +1369,23 @@ html{overflow-x:hidden}
               <option value="balance">잔금</option>
             </select>
           </div>
-          <div class="cal-layout" style="grid-template-columns:1fr 200px">
-            <div class="cal-main">
-              <div class="cal-nav">
-                <div class="cal-nav-left">
-                  <button class="cal-nav-btn" onclick="teamChangeMonth(-1)">‹</button>
-                  <button class="cal-month-btn" id="teamCalTitle" onclick="event.stopPropagation();teamToggleMP()"></button>
-                  <button class="cal-nav-btn" onclick="teamChangeMonth(1)">›</button>
-                  <button class="today-btn" onclick="teamGoToday()">오늘</button>
-                </div>
-                <div class="cal-legend" id="teamCalLegend"></div>
+          <div class="cal-main">
+            <div class="cal-nav">
+              <div class="cal-nav-left">
+                <button class="cal-nav-btn" onclick="teamChangeMonth(-1)">‹</button>
+                <button class="cal-month-btn" id="teamCalTitle" onclick="event.stopPropagation();teamToggleMP()"></button>
+                <button class="cal-nav-btn" onclick="teamChangeMonth(1)">›</button>
+                <button class="today-btn" onclick="teamGoToday()">오늘</button>
               </div>
-              <div class="month-picker" id="teamMonthPicker" onclick="event.stopPropagation()">
-                <div class="mp-year"><button onclick="teamMpY(-1)">‹</button><span id="teamMpYL"></span><button onclick="teamMpY(1)">›</button></div>
-                <div class="mp-grid" id="teamMpGrid"></div>
-              </div>
-              <div class="cal-body">
-                <div class="cal-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
-                <div class="cal-grid" id="teamCalGrid"></div>
-              </div>
+              <div class="cal-legend" id="teamCalLegend"></div>
             </div>
-            <div class="day-panel">
-              <div class="day-events panel">
-                <div class="panel-head">
-                  <span id="teamDayTitle">팀 일정</span>
-                </div>
-                <div id="teamDayEvList"><div class="empty">날짜를 클릭하면 일정 유형이 표시됩니다.</div></div>
-              </div>
+            <div class="month-picker" id="teamMonthPicker" onclick="event.stopPropagation()">
+              <div class="mp-year"><button onclick="teamMpY(-1)">‹</button><span id="teamMpYL"></span><button onclick="teamMpY(1)">›</button></div>
+              <div class="mp-grid" id="teamMpGrid"></div>
+            </div>
+            <div class="cal-body">
+              <div class="cal-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+              <div class="cal-grid" id="teamCalGrid"></div>
             </div>
           </div>
         </div>
