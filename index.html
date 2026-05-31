@@ -1359,7 +1359,17 @@ html{overflow-x:hidden}
           <div id="teamNoticeListWrap"><div class="empty">로딩 중...</div></div>
         </div>
         <div class="team-panel" id="tpanel-schedule" style="display:none">
-          <div class="cal-layout">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+            <select class="btn" id="teamSchedFilterMember" style="font-size:11px" onchange="onTeamSchedFilter()"><option value="">담당자 전체</option></select>
+            <select class="btn" id="teamSchedFilterType" style="font-size:11px" onchange="onTeamSchedFilter()">
+              <option value="">종류 전체</option>
+              <option value="inip">고객인입</option>
+              <option value="meeting">미팅</option>
+              <option value="contract">계약</option>
+              <option value="balance">잔금</option>
+            </select>
+          </div>
+          <div class="cal-layout" style="grid-template-columns:1fr 200px">
             <div class="cal-main">
               <div class="cal-nav">
                 <div class="cal-nav-left">
@@ -1385,10 +1395,6 @@ html{overflow-x:hidden}
                   <span id="teamDayTitle">팀 일정</span>
                 </div>
                 <div id="teamDayEvList"><div class="empty">날짜를 클릭하면 일정 유형이 표시됩니다.</div></div>
-              </div>
-              <div class="day-events panel">
-                <div class="panel-head">이달 팀 일정</div>
-                <div id="teamMonthEvList" style="max-height:280px;overflow-y:auto"><div class="empty">이달 일정 없음</div></div>
               </div>
             </div>
           </div>
@@ -7094,6 +7100,7 @@ async function ensureTeamMemberMap(){
 let _teamScheduleEvents=[];
 let teamCalY=TODAY.getFullYear(), teamCalM=TODAY.getMonth(), teamSelDate=null;
 let teamMpYr=teamCalY, teamMpOpen=false;
+let _teamFilterMember='', _teamFilterType='';
 
 function teamEventLabelType(type){
   if(type==='deposit'||type==='sign')return '계약';
@@ -7131,9 +7138,7 @@ async function loadTeamSchedule(){
     return;
   }
   const dayList=$('teamDayEvList');
-  const monthList=$('teamMonthEvList');
   if(dayList)dayList.innerHTML='<div class="empty">로딩 중...</div>';
-  if(monthList)monthList.innerHTML='<div class="empty">로딩 중...</div>';
   try{
     const {data,error}=await supabaseClient.from('events')
       .select('id,user_id,event_date,event_type')
@@ -7148,11 +7153,11 @@ async function loadTeamSchedule(){
     })).filter(e=>['inip','meeting','deposit','sign','balance'].includes(e.type));
     teamCalY=TODAY.getFullYear();teamCalM=TODAY.getMonth();teamSelDate=null;
     teamMpYr=teamCalY;teamMpOpen=false;
+    buildTeamFilterDropdowns();
     drawTeamCal();
   }catch(err){
     console.error('[loadTeamSchedule]',err);
     if(dayList)dayList.innerHTML='<div class="empty">팀 일정 로드 실패</div>';
-    if(monthList)monthList.innerHTML='<div class="empty">로딩 오류</div>';
   }
 }
 
@@ -7162,7 +7167,7 @@ function drawTeamCal(){
   const grid=$('teamCalGrid');
   if(title)title.textContent=`${teamCalY}년 ${teamCalM+1}월`;
   const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
-  const mev=_teamScheduleEvents.filter(e=>e.date.startsWith(ms));
+  const mev=_teamScheduleEvents.filter(e=>e.date.startsWith(ms)&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type));
   const counts={inip:0,meeting:0,contract:0,balance:0};
   mev.forEach(e=>{
     if(e.type==='deposit'||e.type==='sign')counts.contract++;
@@ -7191,7 +7196,7 @@ function drawTeamCal(){
     if(other)cls+=' other';
     if(!other&&d===TODAY.getDate()&&teamCalM===TODAY.getMonth()&&teamCalY===TODAY.getFullYear())cls+=' today';
     if(teamSelDate===ds)cls+=' sel';
-    const de=other?[]:_teamScheduleEvents.filter(e=>e.date===ds);
+    const de=other?[]:_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type));
     const evH=de.slice(0,3).map(e=>{const nm=_teamMemberMap[e.user_id]||'';return`<div class="cd-ev" style="background:${teamEventColor(e.type)}">${teamEventLabelType(e.type)}${nm?' '+nm:''}</div>`;}).join('');
     const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
     const dotsH=de.slice(0,5).map(e=>`<span class="cd-dot" style="background:${teamEventColor(e.type)}"></span>`).join('');
@@ -7199,7 +7204,6 @@ function drawTeamCal(){
   }
   if(grid)grid.innerHTML=html;
   renderTeamDayEv(teamSelDate||todayStr());
-  renderTeamMonthEv();
 }
 
 function teamOnCellClick(ev,ds){
@@ -7242,7 +7246,7 @@ function teamPickM(m){teamCalY=teamMpYr;teamCalM=m;teamSelDate=null;const title=
 
 function renderTeamDayEv(ds){
   const el=$('teamDayEvList');
-  const de=_teamScheduleEvents.filter(e=>e.date===ds).sort((a,b)=>(a.type||'').localeCompare(b.type||''));
+  const de=_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type)).sort((a,b)=>(a.type||'').localeCompare(b.type||''));
   if(!de.length){
     if(el)el.innerHTML='<div class="empty">일정이 없습니다</div>';
     return;
@@ -7275,6 +7279,32 @@ function renderTeamMonthEv(){
 function teamJumpToDate(ds){
   const p=ds.split('-');teamCalY=parseInt(p[0]);teamCalM=parseInt(p[1])-1;teamSelDate=ds;
   const title=$('teamDayTitle');if(title)title.textContent=`${fmtKorean(ds)} 일정`;
+  drawTeamCal();
+}
+
+function teamTypeMatchesFilter(type){
+  if(!_teamFilterType)return true;
+  if(_teamFilterType==='contract')return type==='deposit'||type==='sign';
+  return type===_teamFilterType;
+}
+
+function buildTeamFilterDropdowns(){
+  const sel=$('teamSchedFilterMember');
+  if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">담당자 전체</option>';
+  const ids=Object.keys(_teamMemberMap).sort((a,b)=>(_teamMemberMap[a]||'').localeCompare(_teamMemberMap[b]||''));
+  ids.forEach(uid=>{
+    const opt=document.createElement('option');
+    opt.value=uid;opt.textContent=_teamMemberMap[uid]||uid.slice(0,6);
+    if(uid===cur)opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+
+function onTeamSchedFilter(){
+  _teamFilterMember=$('teamSchedFilterMember')?.value||'';
+  _teamFilterType=$('teamSchedFilterType')?.value||'';
   drawTeamCal();
 }
 
