@@ -5630,7 +5630,7 @@ async function _fetchBackupData(items){
     const { data: cts } = await _fetchAll(() =>
       supabaseClient.from('contracts').select('*').eq('user_id', currentUser.id).order('balance_date', {ascending:false}));
     const { data: pays } = await _fetchAll(() =>
-      supabaseClient.from('payments').select('*').eq('organization_id', orgId));
+      supabaseClient.from('payments').select('*').eq('user_id', currentUser.id));
     out.contracts = cts || [];
     out.payments = pays || [];
   }
@@ -6702,7 +6702,7 @@ async function loadDataFromSupabase(){
     const { data: cloudPayments, error: paymentErr } = await supabaseClient
       .from('payments')
       .select('*')
-      .eq('organization_id', currentOrganization.id)
+      .eq('user_id', currentUser.id)
       .limit(10000);
 
     if(paymentErr){
