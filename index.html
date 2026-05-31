@@ -7192,7 +7192,7 @@ function drawTeamCal(){
     if(!other&&d===TODAY.getDate()&&teamCalM===TODAY.getMonth()&&teamCalY===TODAY.getFullYear())cls+=' today';
     if(teamSelDate===ds)cls+=' sel';
     const de=other?[]:_teamScheduleEvents.filter(e=>e.date===ds);
-    const evH=de.slice(0,3).map(e=>`<div class="cd-ev" style="background:${teamEventColor(e.type)}">${teamEventLabelType(e.type)}</div>`).join('');
+    const evH=de.slice(0,3).map(e=>{const nm=_teamMemberMap[e.user_id]||'';return`<div class="cd-ev" style="background:${teamEventColor(e.type)}">${teamEventLabelType(e.type)}${nm?' '+nm:''}</div>`;}).join('');
     const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
     const dotsH=de.slice(0,5).map(e=>`<span class="cd-dot" style="background:${teamEventColor(e.type)}"></span>`).join('');
     html+=`<div class="${cls}" data-date="${ds}" onclick="teamOnCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div><div class="cd-dots">${dotsH}</div></div>`;
@@ -7256,14 +7256,19 @@ function renderTeamDayEv(ds){
 function renderTeamMonthEv(){
   const el=$('teamMonthEvList');
   const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
-  const me=_teamScheduleEvents.filter(e=>e.date.startsWith(ms)).sort((a,b)=>a.date.localeCompare(b.date));
+  const me=_teamScheduleEvents.filter(e=>e.date.startsWith(ms));
   if(!me.length){
     if(el)el.innerHTML='<div class="empty">이달 일정 없음</div>';
     return;
   }
-  if(el)el.innerHTML=me.map(e=>{
-    const label=teamEventLabelType(e.type);
-    return `<div class="day-ev-item clickable" onclick="teamJumpToDate('${e.date}')"><div style="flex:1;min-width:0"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${e.date.slice(5)} ${label}</div></div></div>`;
+  const grouped={};
+  me.forEach(e=>{if(!grouped[e.user_id])grouped[e.user_id]=[];grouped[e.user_id].push(e);});
+  Object.values(grouped).forEach(arr=>arr.sort((a,b)=>a.date.localeCompare(b.date)));
+  const memberIds=Object.keys(grouped).sort((a,b)=>(_teamMemberMap[a]||'').localeCompare(_teamMemberMap[b]||''));
+  if(el)el.innerHTML=memberIds.map(uid=>{
+    const name=escHtml(_teamMemberMap[uid]||uid.slice(0,6));
+    const rows=grouped[uid].map(e=>`<div class="day-ev-item clickable" onclick="teamJumpToDate('${e.date}')" style="padding-left:12px"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${e.date.slice(5)} ${teamEventLabelType(e.type)}</div></div>`).join('');
+    return `<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px 0 2px;border-bottom:1px solid var(--border)">${name}</div>${rows}</div>`;
   }).join('');
 }
 
