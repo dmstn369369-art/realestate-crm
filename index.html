@@ -2965,9 +2965,8 @@ function renderJoinTeamSection(){
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
     typeof currentUser!=='undefined'&&currentUser!==null
   );
-  const isOwner=currentProfile?.role==='owner';
-  panel.style.display=(canUseCloud&&!isOwner)?'':'none';
-  if(!canUseCloud||isOwner)return;
+  panel.style.display=canUseCloud?'':'none';
+  if(!canUseCloud)return;
   const alreadyEl=$('joinTeamAlready');
   if(alreadyEl){
     const orgName=typeof currentOrganization!=='undefined'&&currentOrganization?.name||'';
