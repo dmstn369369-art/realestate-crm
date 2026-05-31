@@ -1391,12 +1391,12 @@ html{overflow-x:hidden}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
             <div class="panel">
-              <div class="panel-head"><span id="teamDayTitle">당일 일정</span></div>
-              <div id="teamDayEvList" style="max-height:260px;overflow-y:auto"><div class="empty">날짜를 클릭하면 일정이 표시됩니다.</div></div>
+              <div class="panel-head"><span id="teamDayTitle">당일 일정</span><span id="teamDayCount" style="font-size:11px;color:var(--text3);font-weight:400"></span></div>
+              <div id="teamDayEvList"><div class="empty">날짜를 클릭하면 일정이 표시됩니다.</div></div>
             </div>
             <div class="panel">
-              <div class="panel-head">당월 계약서·잔금</div>
-              <div id="teamMonthContractList" style="max-height:260px;overflow-y:auto"><div class="empty">이달 계약서·잔금 없음</div></div>
+              <div class="panel-head">당월 계약서·잔금<span id="teamMonthContractCount" style="font-size:11px;color:var(--text3);font-weight:400"></span></div>
+              <div id="teamMonthContractList"><div class="empty">이달 계약서·잔금 없음</div></div>
             </div>
           </div>
         </div>
@@ -7247,6 +7247,7 @@ function renderTeamDayEv(ds){
   const el=$('teamDayEvList');
   if(!el)return;
   const de=_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type)).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const cnt=$('teamDayCount');if(cnt)cnt.textContent=de.length?de.length+'건':'';
   if(!de.length){el.innerHTML='<div class="empty">일정이 없습니다</div>';return;}
   el.innerHTML=de.map(e=>{
     const nm=_teamMemberMap[e.user_id]||'';
@@ -7265,6 +7266,7 @@ function renderTeamMonthContracts(){
     (!_teamFilterMember||e.user_id===_teamFilterMember)&&
     teamTypeMatchesFilter(e.type)
   ).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+  const cnt=$('teamMonthContractCount');if(cnt)cnt.textContent=me.length?me.length+'건':'';
   if(!me.length){el.innerHTML='<div class="empty">이달 계약서·잔금 없음</div>';return;}
   el.innerHTML=me.map(e=>{
     const nm=_teamMemberMap[e.user_id]||'';
