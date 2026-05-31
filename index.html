@@ -7093,7 +7093,8 @@ let teamMpYr=teamCalY, teamMpOpen=false;
 let _teamFilterMember='', _teamFilterType='';
 
 function teamEventLabelType(type){
-  if(type==='deposit'||type==='sign')return '계약';
+  if(type==='deposit')return '계약금';
+  if(type==='sign')return '계약서';
   if(type==='inip')return '고객인입';
   if(type==='meeting')return '미팅';
   if(type==='balance')return '잔금';
@@ -7157,16 +7158,12 @@ function drawTeamCal(){
   if(title)title.textContent=`${teamCalY}년 ${teamCalM+1}월`;
   const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
   const mev=_teamScheduleEvents.filter(e=>e.date.startsWith(ms)&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type));
-  const counts={inip:0,meeting:0,contract:0,balance:0};
-  mev.forEach(e=>{
-    if(e.type==='deposit'||e.type==='sign')counts.contract++;
-    else if(e.type==='balance')counts.balance++;
-    else if(counts[e.type]!==undefined)counts[e.type]++;
-  });
+  const counts={inip:0,meeting:0,sign:0,balance:0};
+  mev.forEach(e=>{if(counts[e.type]!==undefined)counts[e.type]++;});
   if(legend)legend.innerHTML=[
     {key:'inip',label:'고객인입',color:teamEventColor('inip')},
     {key:'meeting',label:'미팅',color:teamEventColor('meeting')},
-    {key:'contract',label:'계약',color:teamEventColor('sign')},
+    {key:'sign',label:'계약서',color:teamEventColor('sign')},
     {key:'balance',label:'잔금',color:teamEventColor('balance')}
   ].map(item=>`<span class="leg-item"><span class="leg-dot" style="background:${item.color}"></span>${item.label}<span class="leg-count">${counts[item.key]||0}</span></span>`).join('');
   const first=new Date(teamCalY,teamCalM,1).getDay();
