@@ -1316,6 +1316,7 @@ html{overflow-x:hidden}
         <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
           <button class="team-tab on" id="ttab-properties" onclick="switchTeamTab('properties')">팀 매물</button>
           <button class="team-tab" id="ttab-notices" onclick="switchTeamTab('notices')">공지사항</button>
+          <button class="team-tab" id="ttab-schedule" style="display:none" onclick="switchTeamTab('schedule')">팀 일정</button>
           <button class="team-tab" id="ttab-members" style="display:none" onclick="switchTeamTab('members')">팀원관리</button>
         </div>
         <!-- 팀 매물 패널 -->
@@ -1356,6 +1357,41 @@ html{overflow-x:hidden}
         <div class="team-panel" id="tpanel-notices" style="display:none">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px" id="teamNoticeActionBar"></div>
           <div id="teamNoticeListWrap"><div class="empty">로딩 중...</div></div>
+        </div>
+        <div class="team-panel" id="tpanel-schedule" style="display:none">
+          <div class="cal-layout">
+            <div class="cal-main">
+              <div class="cal-nav">
+                <div class="cal-nav-left">
+                  <button class="cal-nav-btn" onclick="teamChangeMonth(-1)">‹</button>
+                  <button class="cal-month-btn" id="teamCalTitle" onclick="event.stopPropagation();teamToggleMP()"></button>
+                  <button class="cal-nav-btn" onclick="teamChangeMonth(1)">›</button>
+                  <button class="today-btn" onclick="teamGoToday()">오늘</button>
+                </div>
+                <div class="cal-legend" id="teamCalLegend"></div>
+              </div>
+              <div class="month-picker" id="teamMonthPicker" onclick="event.stopPropagation()">
+                <div class="mp-year"><button onclick="teamMpY(-1)">‹</button><span id="teamMpYL"></span><button onclick="teamMpY(1)">›</button></div>
+                <div class="mp-grid" id="teamMpGrid"></div>
+              </div>
+              <div class="cal-body">
+                <div class="cal-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+                <div class="cal-grid" id="teamCalGrid"></div>
+              </div>
+            </div>
+            <div class="day-panel">
+              <div class="day-events panel">
+                <div class="panel-head">
+                  <span id="teamDayTitle">팀 일정</span>
+                </div>
+                <div id="teamDayEvList"><div class="empty">날짜를 클릭하면 일정 유형이 표시됩니다.</div></div>
+              </div>
+              <div class="day-events panel">
+                <div class="panel-head">이달 팀 일정</div>
+                <div id="teamMonthEvList" style="max-height:280px;overflow-y:auto"><div class="empty">이달 일정 없음</div></div>
+              </div>
+            </div>
+          </div>
         </div>
         <!-- 팀원관리 패널 (owner 전용) -->
         <div class="team-panel" id="tpanel-members" style="display:none">
@@ -6850,6 +6886,10 @@ let _teamMemberMap={}; // user_id → name 캐시
 let _curTeamTab='properties'; // 현재 활성 서브탭
 
 function switchTeamTab(tab){
+  const isOwner=currentProfile?.role==='owner';
+  if((tab==='members'||tab==='schedule') && !isOwner){
+    tab='properties';
+  }
   _curTeamTab=tab;
   document.querySelectorAll('.team-tab').forEach(t=>t.classList.remove('on'));
   const activeTab=$('ttab-'+tab);if(activeTab)activeTab.classList.add('on');
@@ -6858,10 +6898,19 @@ function switchTeamTab(tab){
   if(tab==='properties')renderTeamPage();
   else if(tab==='notices')loadTeamNotices();
   else if(tab==='members')loadTeamMembers();
+  else if(tab==='schedule')loadTeamSchedule();
 }
 
 function renderTeamPage(){
   const wrap=$('teamPropListWrap');if(!wrap)return;
+  const isOwner=currentProfile?.role==='owner';
+  const scheduleTab=$('ttab-schedule');
+  const membersTab=$('ttab-members');
+  if(scheduleTab) scheduleTab.style.display=isOwner?'':'none';
+  if(membersTab) membersTab.style.display=isOwner?'':'none';
+  if(!isOwner && _curTeamTab==='schedule'){
+    return switchTeamTab('properties');
+  }
   const canUseCloud=(
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
     typeof currentUser!=='undefined'&&currentUser!==null&&
@@ -7023,6 +7072,198 @@ async function loadTeamNotices(){
     console.error('[loadTeamNotices]',err);
     if(wrap)wrap.innerHTML='<div class="empty">공지 로드 실패: '+(err.message?.substring(0,40)||'오류')+'</div>';
   }
+}
+
+async function ensureTeamMemberMap(){
+  if(Object.keys(_teamMemberMap).length)return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud)return;
+  try{
+    const {data,error}=await supabaseClient.from('profiles')
+      .select('id,name').eq('organization_id',currentOrganization.id);
+    if(error)throw error;
+    _teamMemberMap={};
+    (data||[]).forEach(mp=>{_teamMemberMap[mp.id]=mp.name||'';});
+  }catch(e){console.warn('[ensureTeamMemberMap]',e);}
+}
+
+let _teamScheduleEvents=[];
+let teamCalY=TODAY.getFullYear(), teamCalM=TODAY.getMonth(), teamSelDate=null;
+let teamMpYr=teamCalY, teamMpOpen=false;
+
+function teamEventLabelType(type){
+  if(type==='deposit'||type==='sign')return '계약';
+  if(type==='inip')return '고객인입';
+  if(type==='meeting')return '미팅';
+  if(type==='balance')return '잔금';
+  return EV[type]?.label||type;
+}
+
+function teamEventColor(type){
+  if(type==='deposit'||type==='sign')return EV.sign?.color||'var(--c-sign)';
+  return EV[type]?.color||'var(--text3)';
+}
+
+async function loadTeamSchedule(){
+  const panel=$('tpanel-schedule');if(!panel)return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){
+    panel.innerHTML='<div class="empty">로그인이 필요합니다</div>';
+    return;
+  }
+  const isOwner=currentProfile?.role==='owner';
+  if(!isOwner){
+    panel.innerHTML='<div class="empty">접근 권한이 없습니다</div>';
+    return;
+  }
+  await ensureTeamMemberMap();
+  const teamIds=Object.keys(_teamMemberMap).filter(Boolean);
+  if(!teamIds.length){
+    panel.innerHTML='<div class="empty">팀원 정보를 불러올 수 없습니다</div>';
+    return;
+  }
+  const dayList=$('teamDayEvList');
+  const monthList=$('teamMonthEvList');
+  if(dayList)dayList.innerHTML='<div class="empty">로딩 중...</div>';
+  if(monthList)monthList.innerHTML='<div class="empty">로딩 중...</div>';
+  try{
+    const {data,error}=await supabaseClient.from('events')
+      .select('*').in('user_id',teamIds).order('date',{ascending:true}).limit(10000);
+    if(error)throw error;
+    _teamScheduleEvents=(data||[]).filter(e=>['inip','meeting','deposit','sign','balance'].includes(e.type));
+    teamCalY=TODAY.getFullYear();teamCalM=TODAY.getMonth();teamSelDate=null;
+    teamMpYr=teamCalY;teamMpOpen=false;
+    drawTeamCal();
+  }catch(err){
+    console.error('[loadTeamSchedule]',err);
+    if(dayList)dayList.innerHTML='<div class="empty">팀 일정 로드 실패</div>';
+    if(monthList)monthList.innerHTML='<div class="empty">로딩 오류</div>';
+  }
+}
+
+function drawTeamCal(){
+  const title=$('teamCalTitle');
+  const legend=$('teamCalLegend');
+  const grid=$('teamCalGrid');
+  if(title)title.textContent=`${teamCalY}년 ${teamCalM+1}월`;
+  const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
+  const mev=_teamScheduleEvents.filter(e=>e.date.startsWith(ms));
+  const counts={inip:0,meeting:0,contract:0,balance:0};
+  mev.forEach(e=>{
+    if(e.type==='deposit'||e.type==='sign')counts.contract++;
+    else if(e.type==='balance')counts.balance++;
+    else if(counts[e.type]!==undefined)counts[e.type]++;
+  });
+  if(legend)legend.innerHTML=[
+    {key:'inip',label:'고객인입',color:teamEventColor('inip')},
+    {key:'meeting',label:'미팅',color:teamEventColor('meeting')},
+    {key:'contract',label:'계약',color:teamEventColor('sign')},
+    {key:'balance',label:'잔금',color:teamEventColor('balance')}
+  ].map(item=>`<span class="leg-item"><span class="leg-dot" style="background:${item.color}"></span>${item.label}<span class="leg-count">${counts[item.key]||0}</span></span>`).join('');
+  const first=new Date(teamCalY,teamCalM,1).getDay();
+  const days=new Date(teamCalY,teamCalM+1,0).getDate();
+  const prev=new Date(teamCalY,teamCalM,0).getDate();
+  let html='';
+  for(let i=0;i<42;i++){
+    let d,other=false;
+    if(i<first){d=prev-first+i+1;other=true;}
+    else if(i>=first+days){d=i-first-days+1;other=true;}
+    else d=i-first+1;
+    const cM=other?(i<first?teamCalM:teamCalM+2):teamCalM+1;
+    const cY=other?(i<first?(teamCalM===0?teamCalY-1:teamCalY):(teamCalM===11?teamCalY+1:teamCalY)):teamCalY;
+    const ds=`${cY}-${String(cM).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    let cls='cd';
+    if(other)cls+=' other';
+    if(!other&&d===TODAY.getDate()&&teamCalM===TODAY.getMonth()&&teamCalY===TODAY.getFullYear())cls+=' today';
+    if(teamSelDate===ds)cls+=' sel';
+    const de=other?[]:_teamScheduleEvents.filter(e=>e.date===ds);
+    const evH=de.slice(0,3).map(e=>`<div class="cd-ev" style="background:${teamEventColor(e.type)}">${teamEventLabelType(e.type)}</div>`).join('');
+    const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
+    const dotsH=de.slice(0,5).map(e=>`<span class="cd-dot" style="background:${teamEventColor(e.type)}"></span>`).join('');
+    html+=`<div class="${cls}" data-date="${ds}" onclick="teamOnCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div><div class="cd-dots">${dotsH}</div></div>`;
+  }
+  if(grid)grid.innerHTML=html;
+  renderTeamDayEv(teamSelDate||todayStr());
+  renderTeamMonthEv();
+}
+
+function teamOnCellClick(ev,ds){
+  ev.stopPropagation();
+  teamSelDate=ds;
+  const title=$('teamDayTitle');
+  if(title)title.textContent=`${fmtKorean(ds)} 일정`;
+  drawTeamCal();
+}
+
+function teamChangeMonth(d){
+  teamCalM+=d;if(teamCalM<0){teamCalM=11;teamCalY--;}if(teamCalM>11){teamCalM=0;teamCalY++;}
+  teamSelDate=null;
+  const title=$('teamDayTitle');
+  if(title)title.textContent='팀 일정';
+  teamCloseMP();
+  drawTeamCal();
+}
+
+function teamGoToday(){
+  teamCalY=TODAY.getFullYear();teamCalM=TODAY.getMonth();
+  teamSelDate=todayStr();
+  const title=$('teamDayTitle');
+  if(title)title.textContent=`${fmtKorean(teamSelDate)} 일정`;
+  teamCloseMP();
+  drawTeamCal();
+}
+
+function teamToggleMP(){teamMpOpen=!teamMpOpen;teamMpYr=teamCalY;teamRenderMP();$('teamMonthPicker').classList.toggle('open',teamMpOpen);}
+function teamCloseMP(){teamMpOpen=false;$('teamMonthPicker').classList.remove('open');}
+function teamMpY(d){teamMpYr+=d;teamRenderMP();}
+function teamRenderMP(){
+  const el=$('teamMpYL');
+  if(el)el.textContent=`${teamMpYr}년`;
+  const M=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const grid=$('teamMpGrid');
+  if(grid)grid.innerHTML=M.map((m,i)=>`<div class="mp-m${teamMpYr===teamCalY&&i===teamCalM?' on':''}" onclick="teamPickM(${i})">${m}</div>`).join('');
+}
+function teamPickM(m){teamCalY=teamMpYr;teamCalM=m;teamSelDate=null;const title=$('teamDayTitle');if(title)title.textContent='팀 일정';teamCloseMP();drawTeamCal();}
+
+function renderTeamDayEv(ds){
+  const el=$('teamDayEvList');
+  const de=_teamScheduleEvents.filter(e=>e.date===ds).sort((a,b)=>(a.type||'').localeCompare(b.type||''));
+  if(!de.length){
+    if(el)el.innerHTML='<div class="empty">일정이 없습니다</div>';
+    return;
+  }
+  if(el)el.innerHTML=de.map(e=>{
+    const label=teamEventLabelType(e.type);
+    return `<div class="day-ev-item"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${label}</div></div>`;
+  }).join('');
+}
+
+function renderTeamMonthEv(){
+  const el=$('teamMonthEvList');
+  const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
+  const me=_teamScheduleEvents.filter(e=>e.date.startsWith(ms)).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!me.length){
+    if(el)el.innerHTML='<div class="empty">이달 일정 없음</div>';
+    return;
+  }
+  if(el)el.innerHTML=me.map(e=>{
+    const label=teamEventLabelType(e.type);
+    return `<div class="day-ev-item clickable" onclick="teamJumpToDate('${e.date}')"><div style="flex:1;min-width:0"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${e.date.slice(5)} ${label}</div></div></div>`;
+  }).join('');
+}
+
+function teamJumpToDate(ds){
+  const p=ds.split('-');teamCalY=parseInt(p[0]);teamCalM=parseInt(p[1])-1;teamSelDate=ds;
+  const title=$('teamDayTitle');if(title)title.textContent=`${fmtKorean(ds)} 일정`;
+  drawTeamCal();
 }
 
 function renderTeamNotices(){
