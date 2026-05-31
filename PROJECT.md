@@ -30,11 +30,11 @@
 | `events` | 일정 |
 | `contracts` | 계약 |
 | `payments` | 수수료 |
-| `transfers` | 이관 (팀 모드용) _(삭제 후보: 현재 미사용 가능성)_ |
+| `transfers` | 이관 (팀 모드용) — 현재 미사용, 팀 모드 확장 시 사용 예정 (유지) |
 | `properties` | 매물 |
 | `property_photos` | 매물 사진 (매물 1건당 여러 장, 별도 테이블) |
 | `contacts` | 전화번호부 (대량 연락처) |
-| `announcements` | 공지사항 _(삭제 후보: 서비스 공지는 `notices`/`inquiries` 화면 사용, 팀 공지는 `team_notices` 사용)_ |
+| `announcements` | 공지사항 (사용 중) |
 | `inquiries` | 문의 |
 | `admin_users` | 관리자 계정 |
 | `deletion_logs` | 삭제 로그 |
