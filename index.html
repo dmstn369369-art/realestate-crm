@@ -7412,13 +7412,21 @@ async function kickTeamMember(memberId){
   if(!confirm(`${memberName}님을 팀에서 내보내시겠습니까?\n데이터는 유지되며 본인 소유로 남습니다.`))return;
   toast('내보내는 중...');
   try{
-    // ① 새 개인 조직 생성
-    console.log('[kick] 1. 새 조직 생성 중...');
-    const{data:newOrg,error:orgErr}=await supabaseClient
-      .from('organizations').insert({name:`${memberName}의 사무실`}).select('id,name').single();
-    if(orgErr){console.error('[kick] 조직 생성 실패:',orgErr);throw new Error('새 조직 생성 실패: '+orgErr.message);}
-    const newOrgId=newOrg.id;
-    console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
+    // ① 기존 개인 조직 확인 후 없으면 신규 생성 (중복 방지)
+    console.log('[kick] 1. 개인 조직 확인/생성 중...');
+    let newOrgId;
+    const{data:existingOrg}=await supabaseClient
+      .from('organizations').select('id,name').eq('owner_id',memberId).maybeSingle();
+    if(existingOrg){
+      newOrgId=existingOrg.id;
+      console.log('[kick] 기존 개인 조직 재사용, id=',newOrgId,', name=',existingOrg.name);
+    }else{
+      const{data:newOrg,error:orgErr}=await supabaseClient
+        .from('organizations').insert({name:`${memberName}의 사무실`,owner_id:memberId}).select('id,name').single();
+      if(orgErr){console.error('[kick] 조직 생성 실패:',orgErr);throw new Error('새 조직 생성 실패: '+orgErr.message);}
+      newOrgId=newOrg.id;
+      console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
+    }
 
     // ② 팀원 프로필 → 새 조직, role=owner
     console.log('[kick] 2. 프로필 업데이트 중...');
