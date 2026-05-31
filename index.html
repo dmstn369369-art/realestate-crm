@@ -7277,10 +7277,13 @@ function renderTeamStats({members,events}){
     const meBadge=isMe?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--bg3);color:var(--text3);margin-left:4px;vertical-align:middle">나</span>`:'';
     const roleBadge=isOwnerRow?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:var(--gold-dim);color:var(--gold);font-weight:700;margin-left:4px;vertical-align:middle">팀장</span>`:'';
     const cn=clientMap[m.id]||0,en=eventMap[m.id]||0,ctn=contractMap[m.id]||0,bn=balanceMap[m.id]||0;
+    const canKick=currentProfile?.role==='owner'&&!isMe;
+    const kickBtn=canKick?`<button class="btn btn-sm" onclick="event.stopPropagation();kickTeamMember('${m.id}')" style="font-size:10px;color:var(--red);border-color:var(--red);margin-left:auto;flex-shrink:0">내보내기</button>`:'';
     html+=`<div class="panel" style="margin-bottom:10px;padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <div style="width:40px;height:40px;border-radius:50%;background:${circleBg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${circleColor};font-family:'Noto Serif KR',serif;flex-shrink:0">${initial}</div>
-        <div><div style="font-size:13px;font-weight:700;color:${circleColor}">${escHtml(name)}${meBadge}${roleBadge}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:${circleColor}">${escHtml(name)}${meBadge}${roleBadge}</div></div>
+        ${kickBtn}
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
         <div><div style="font-size:9px;font-weight:600;color:var(--c-inip);margin-bottom:4px">고객 인입</div><div style="font-size:20px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif;line-height:1">${cn}</div></div>
@@ -7391,6 +7394,37 @@ function _drawDonutChart(members,contractMap,tct){
         <span style="font-size:11px;font-weight:700;color:${bgColors[i]};margin-left:auto;padding-left:4px;flex-shrink:0">${cnt}건 ${pct}%</span>
       </div>`;
     }).join('');
+  }
+}
+
+// ── 팀원 내보내기 ─────────────────────────────────────
+async function kickTeamMember(memberId){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  if(currentProfile?.role!=='owner'){toast('팀장만 내보내기 가능합니다');return;}
+  if(memberId===currentUser.id){toast('본인은 내보낼 수 없습니다');return;}
+  const member=_teamStatsCache?.members.find(m=>m.id===memberId);
+  const memberName=member?.name||'팀원';
+  if(!confirm(`${memberName}님을 팀에서 내보내시겠습니까?\n데이터는 유지되며 본인 소유로 남습니다.`))return;
+  try{
+    // 1. 새 개인 조직 생성
+    const{data:newOrg,error:orgErr}=await supabaseClient
+      .from('organizations').insert({name:`${memberName}의 사무실`}).select('id,name').single();
+    if(orgErr)throw orgErr;
+    // 2. 팀원 프로필 → 새 조직, role=owner
+    const{error:profileErr}=await supabaseClient
+      .from('profiles').update({organization_id:newOrg.id,role:'owner'}).eq('id',memberId);
+    if(profileErr)throw profileErr;
+    toast(`${escHtml(memberName)}님을 내보냈습니다`);
+    _teamStatsCache=null;
+    await loadTeamMembers();
+  }catch(err){
+    console.error('[kickTeamMember]',err);
+    toast('내보내기 실패: '+(err.message?.substring(0,50)||'오류'));
   }
 }
 
