@@ -2998,15 +2998,11 @@ async function joinTeam(){
     const{error:updateErr}=await supabaseClient
       .from('profiles').update({organization_id:orgData.id}).eq('id',currentUser.id);
     if(updateErr)throw updateErr;
-    // 본인 데이터의 organization_id도 새 조직으로 이전 (재합류 시 데이터 복귀)
-    const newOrgId=orgData.id;
-    const uid=currentUser.id;
-    const moveData=async(table)=>{
-      const{error:e}=await supabaseClient.from(table).update({organization_id:newOrgId}).eq('user_id',uid);
-      if(e)console.warn(`[joinTeam] ${table} 이전 실패(무시):`,e.message);
-      else console.log(`[joinTeam] ${table} organization_id 이전 완료`);
-    };
-    await Promise.all([moveData('properties'),moveData('clients'),moveData('events'),moveData('contracts')]);
+    // 매물만 새 조직으로 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
+    const{error:propMoveErr}=await supabaseClient.from('properties')
+      .update({organization_id:orgData.id}).eq('user_id',currentUser.id);
+    if(propMoveErr)console.warn('[joinTeam] 매물 이전 실패(무시):',propMoveErr.message);
+    else console.log('[joinTeam] 매물 organization_id 이전 완료');
     currentProfile={...currentProfile,organization_id:orgData.id};
     currentOrganization={id:orgData.id,name:orgData.name,invite_code:orgData.invite_code};
     const inp=$('joinTeamCodeInput');if(inp)inp.value='';
@@ -7197,10 +7193,16 @@ async function loadTeamMembers(){
     try{const r=await q;if(r.error)console.warn(`[loadTeamMembers] ${label} 오류:`,r.error.message);return r.data||[];}
     catch(e){console.warn(`[loadTeamMembers] ${label} 예외:`,e.message);return [];}
   };
-  const[members,rawEvents]=await Promise.all([
-    safe(supabaseClient.from('profiles').select('id,name,role,created_at').eq('organization_id',orgId).order('created_at',{ascending:true}),'profiles'),
-    safe(supabaseClient.from('events').select('user_id,event_date,event_type').eq('organization_id',orgId).in('event_type',['inip','meeting','sign','balance']),'events')
-  ]);
+  // 1단계: 현재 조직 소속 프로필 조회
+  const members=await safe(supabaseClient.from('profiles').select('id,name,role,created_at')
+    .eq('organization_id',orgId).order('created_at',{ascending:true}),'profiles');
+  // 2단계: 소속 팀원 user_id 목록 기준으로 events 집계 (organization_id 아닌 user_id IN)
+  const memberIds=members.map(m=>m.id).filter(Boolean);
+  let rawEvents=[];
+  if(memberIds.length>0){
+    rawEvents=await safe(supabaseClient.from('events').select('user_id,event_date,event_type')
+      .in('user_id',memberIds).in('event_type',['inip','meeting','sign','balance']),'events');
+  }
   console.log(`[loadTeamMembers] 프로필 ${members.length}명, 실적 이벤트 ${rawEvents.length}건`);
   _teamMemberMap={};members.forEach(m=>{_teamMemberMap[m.id]=m.name||'';});
   _teamStatsCache={members,events:rawEvents};
@@ -7436,21 +7438,12 @@ async function kickTeamMember(memberId){
       console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
     }
 
-    // ② 데이터 이전 먼저 (프로필 업데이트 전 - RLS 권한 유지 위해)
-    console.log('[kick] 2. 데이터 organization_id 이전 중 (병렬)...');
-    const moveTable=async(table)=>{
-      const{error:e}=await supabaseClient.from(table)
-        .update({organization_id:newOrgId}).eq('user_id',memberId);
-      if(e)console.warn(`[kick] ${table} 이전 실패:`,e.message);
-      else console.log(`[kick] ${table} 이전 완료`);
-    };
-    await Promise.all([
-      moveTable('properties'),
-      moveTable('clients'),
-      moveTable('events'),
-      moveTable('contracts')
-    ]);
-    console.log('[kick] 데이터 이전 완료');
+    // ② 매물만 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
+    console.log('[kick] 2. 매물 organization_id 이전 중...');
+    const{error:propErr}=await supabaseClient.from('properties')
+      .update({organization_id:newOrgId}).eq('user_id',memberId);
+    if(propErr)console.warn('[kick] 매물 이전 실패:',propErr.message);
+    else console.log('[kick] 매물 이전 완료');
 
     // ③ 프로필 업데이트 (데이터 이전 완료 후 마지막에)
     console.log('[kick] 3. 프로필 업데이트 중...');
