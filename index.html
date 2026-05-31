@@ -7170,10 +7170,10 @@ function renderTeamStats({members,clients,events,contracts}){
   let html=`<div class="panel" style="margin-bottom:14px;padding:16px">
     <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:12px">📊 ${escHtml(periodLabel)} 팀 전체 실적</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
-      <div><div style="font-size:22px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">${tc}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">고객 인입</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--text2);font-family:'Noto Serif KR',serif">${te}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">미팅</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">${tct}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">계약</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--text2);font-family:'Noto Serif KR',serif">${tb}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">잔금</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif">${tc}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">고객 인입</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--c-meeting);font-family:'Noto Serif KR',serif">${te}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">미팅</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif">${tct}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">계약</div></div>
+      <div><div style="font-size:22px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif">${tb}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">잔금</div></div>
     </div>
   </div>`;
 
@@ -7185,10 +7185,10 @@ function renderTeamStats({members,clients,events,contracts}){
         <thead>
           <tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
             <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text3);text-align:left">팀원</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--text3);text-align:center">고객 인입</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--text3);text-align:center">미팅</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--text3);text-align:center">계약</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--text3);text-align:center">잔금</th>
+            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-inip);text-align:center">고객 인입</th>
+            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-meeting);text-align:center">미팅</th>
+            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-sign);text-align:center">계약</th>
+            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-balance);text-align:center">잔금</th>
           </tr>
         </thead>
         <tbody>`;
@@ -7202,10 +7202,10 @@ function renderTeamStats({members,clients,events,contracts}){
           <div style="font-size:12px;font-weight:700;color:${nameColor}">${escHtml(m.name||'이름 없음')}${meBadge}</div>
           <div style="font-size:10px;color:var(--text3);margin-top:2px">${isOwnerRow?'팀장':'팀원'}</div>
         </td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">${clientMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--text2);font-family:'Noto Serif KR',serif">${eventMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">${contractMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--text2);font-family:'Noto Serif KR',serif">${balanceMap[m.id]||0}</td>
+        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif">${clientMap[m.id]||0}</td>
+        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-meeting);font-family:'Noto Serif KR',serif">${eventMap[m.id]||0}</td>
+        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif">${contractMap[m.id]||0}</td>
+        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif">${balanceMap[m.id]||0}</td>
       </tr>`;
     });
     html+=`</tbody></table></div>`;
