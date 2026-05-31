@@ -2996,7 +2996,7 @@ async function joinTeam(){
       toast('이미 해당 팀의 멤버입니다');return;
     }
     const{error:updateErr}=await supabaseClient
-      .from('profiles').update({organization_id:orgData.id}).eq('id',currentUser.id);
+      .from('profiles').update({organization_id:orgData.id,role:'member'}).eq('id',currentUser.id);
     if(updateErr)throw updateErr;
     // 매물만 새 조직으로 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
     const{error:propMoveErr}=await supabaseClient.from('properties')
@@ -4857,7 +4857,7 @@ async function saveContact(){
     try {
       const { data: created, error } = await supabaseClient
         .from('contacts')
-        .insert({ organization_id: currentOrganization.id, name, category, phone: phone || null, memo: memo || null })
+        .insert({ organization_id: currentOrganization.id, user_id: currentUser.id, name, category, phone: phone || null, memo: memo || null })
         .select()
         .single();
       if(error){ alert('추가 실패: ' + error.message); return; }
@@ -5618,7 +5618,7 @@ async function _fetchBackupData(items){
 
   if(items.includes('contacts')){
     const { data } = await _fetchAll(() =>
-      supabaseClient.from('contacts').select('*').eq('organization_id', orgId).order('name'));
+      supabaseClient.from('contacts').select('*').eq('user_id', currentUser.id).order('name'));
     out.contacts = data || [];
   }
   if(items.includes('clients')){
@@ -6770,7 +6770,7 @@ async function loadDataFromSupabase(){
     // 주소록 데이터 로드 (페이지네이션으로 전체 조회)
     const orgId = currentOrganization.id;
     const { data: cloudContacts, error: contactErr } = await _fetchAll(() =>
-      supabaseClient.from('contacts').select('*').eq('organization_id', orgId).order('name', { ascending: true })
+      supabaseClient.from('contacts').select('*').eq('user_id', currentUser.id).order('name', { ascending: true })
     );
     if(contactErr){
       console.warn('주소록 로드 실패 (무시):', contactErr.message);
