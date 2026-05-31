@@ -7169,7 +7169,7 @@ async function loadTeamMembers(){
   const[members,rawClients,rawEvents,rawContracts]=await Promise.all([
     safe(supabaseClient.from('profiles').select('id,name,role,created_at').eq('organization_id',orgId).order('created_at',{ascending:true}),'profiles'),
     safe(supabaseClient.from('clients').select('user_id,inquiry_date').eq('organization_id',orgId),'clients'),
-    safe(supabaseClient.from('events').select('user_id,event_date').eq('organization_id',orgId),'events'),
+    safe(supabaseClient.from('events').select('user_id,event_date').eq('organization_id',orgId).eq('event_type','meeting'),'events'),
     safe(supabaseClient.from('contracts').select('user_id,sign_date,balance_date').eq('organization_id',orgId),'contracts')
   ]);
   console.log(`[loadTeamMembers] 프로필 ${members.length}명, 고객 ${rawClients.length}건, 일정 ${rawEvents.length}건, 계약 ${rawContracts.length}건`);
