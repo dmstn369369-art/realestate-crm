@@ -1359,10 +1359,19 @@ html{overflow-x:hidden}
         </div>
         <!-- 팀원관리 패널 (owner 전용) -->
         <div class="team-panel" id="tpanel-members" style="display:none">
-          <div style="display:flex;gap:6px;margin-bottom:14px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
             <button class="btn" id="tsp-month" onclick="setTeamStatsPeriod('month')" style="font-size:11px">이번 달</button>
             <button class="btn btn-gold" id="tsp-year" onclick="setTeamStatsPeriod('year')" style="font-size:11px">올해</button>
             <button class="btn" id="tsp-all" onclick="setTeamStatsPeriod('all')" style="font-size:11px">전체</button>
+            <div style="width:1px;height:16px;background:var(--border);margin:0 2px;flex-shrink:0"></div>
+            <select id="tspYear" class="btn" style="font-size:11px" onchange="onTeamStatsCustomChange()"></select>
+            <select id="tspMonth" class="btn" style="font-size:11px" onchange="onTeamStatsCustomChange()">
+              <option value="0">전체 월</option>
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
           </div>
           <div id="teamMemberListWrap"><div class="empty">로딩 중...</div></div>
         </div>
@@ -7090,8 +7099,10 @@ async function deleteTeamNotice(id){
 }
 
 // ── 팀원관리 통계 숫자판 (보기 전용) ──────────────────
-let _teamStatsPeriod='year'; // 'month'|'year'|'all'
-let _teamStatsCache=null;    // 원시 데이터 캐시
+let _teamStatsPeriod='year'; // 'month'|'year'|'all'|'custom'
+let _teamStatsCache=null;
+let _teamStatsYear=new Date().getFullYear();
+let _teamStatsMonth=0; // 0=전체, 1-12
 
 function setTeamStatsPeriod(period){
   _teamStatsPeriod=period;
@@ -7099,6 +7110,28 @@ function setTeamStatsPeriod(period){
     const b=$('tsp-'+p);if(!b)return;
     b.className=p===period?'btn btn-gold':'btn';
     b.style.fontSize='11px';
+  });
+  // 드롭다운 동기화
+  if(period==='month'){
+    const n=new Date();_teamStatsYear=n.getFullYear();_teamStatsMonth=n.getMonth()+1;
+    const yr=$('tspYear');if(yr)yr.value=String(_teamStatsYear);
+    const mo=$('tspMonth');if(mo)mo.value=String(_teamStatsMonth);
+  }else if(period==='year'){
+    _teamStatsYear=new Date().getFullYear();_teamStatsMonth=0;
+    const yr=$('tspYear');if(yr)yr.value=String(_teamStatsYear);
+    const mo=$('tspMonth');if(mo)mo.value='0';
+  }
+  if(_teamStatsCache)renderTeamStats(_teamStatsCache);
+  else loadTeamMembers();
+}
+function onTeamStatsCustomChange(){
+  const yr=$('tspYear');const mo=$('tspMonth');
+  if(yr)_teamStatsYear=parseInt(yr.value)||new Date().getFullYear();
+  if(mo)_teamStatsMonth=parseInt(mo.value)||0;
+  _teamStatsPeriod='custom';
+  ['month','year','all'].forEach(p=>{
+    const b=$('tsp-'+p);if(!b)return;
+    b.className='btn';b.style.fontSize='11px';
   });
   if(_teamStatsCache)renderTeamStats(_teamStatsCache);
   else loadTeamMembers();
@@ -7115,6 +7148,17 @@ async function loadTeamMembers(){
   if(!canUseCloud){wrap.innerHTML='<div class="empty">로그인이 필요합니다</div>';return;}
   if(currentProfile?.role!=='owner'){wrap.innerHTML='<div class="empty">팀장만 접근 가능합니다</div>';return;}
   wrap.innerHTML='<div class="empty">로딩 중...</div>';
+  // 연도 드롭다운 초기화 (처음 한 번만)
+  const yrSel=$('tspYear');
+  if(yrSel&&!yrSel.options.length){
+    const curYr=new Date().getFullYear();
+    for(let y=curYr+1;y>=curYr-3;y--){
+      const opt=document.createElement('option');
+      opt.value=String(y);opt.textContent=y+'년';
+      if(y===_teamStatsYear)opt.selected=true;
+      yrSel.appendChild(opt);
+    }
+  }
   const orgId=currentOrganization.id;
   console.log('[loadTeamMembers] 시작, orgId=',orgId);
   // 각 쿼리 개별 실행 (하나 실패해도 나머지 표시)
@@ -7143,73 +7187,95 @@ async function loadTeamMembers(){
 function renderTeamStats({members,clients,events,contracts}){
   const wrap=$('teamMemberListWrap');if(!wrap)return;
 
-  // 기간 범위
-  const now=new Date();
-  const yr=now.getFullYear();
-  const mo=String(now.getMonth()+1).padStart(2,'0');
+  // 기간 범위 (custom 포함 전체 케이스 처리)
   let dateFrom=null,dateTo=null;
-  if(_teamStatsPeriod==='month'){dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;}
-  else if(_teamStatsPeriod==='year'){dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;}
-  // 날짜 범위 체크: d는 반드시 존재 + 기간 내
+  if(_teamStatsPeriod==='month'){
+    const n=new Date();const yr=n.getFullYear(),mo=String(n.getMonth()+1).padStart(2,'0');
+    dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;
+  }else if(_teamStatsPeriod==='year'){
+    const yr=new Date().getFullYear();dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;
+  }else if(_teamStatsPeriod==='custom'){
+    const yr=_teamStatsYear;
+    if(_teamStatsMonth===0){dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;}
+    else{const mo=String(_teamStatsMonth).padStart(2,'0');dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;}
+  }
   const inRange=d=>d&&(!dateFrom||(d>=dateFrom&&d<=dateTo));
 
-  // 팀원별 집계
+  // 집계 (로직 불변)
   const buildMap=(arr,dateKey)=>{const m={};arr.forEach(r=>{if(inRange(r[dateKey])&&r.user_id)m[r.user_id]=(m[r.user_id]||0)+1;});return m;};
   const clientMap=buildMap(clients,'inquiry_date');
   const eventMap=buildMap(events,'event_date');
   const contractMap=buildMap(contracts,'sign_date');
   const balanceMap=buildMap(contracts,'balance_date');
-
-  // 팀 전체 합계
   const sum=m=>Object.values(m).reduce((a,b)=>a+b,0);
   const [tc,te,tct,tb]=[sum(clientMap),sum(eventMap),sum(contractMap),sum(balanceMap)];
-  const periodLabel=_teamStatsPeriod==='month'?'이번 달':_teamStatsPeriod==='year'?'올해':'전체';
+
+  // 기간 라벨
+  let periodLabel;
+  if(_teamStatsPeriod==='month') periodLabel='이번 달';
+  else if(_teamStatsPeriod==='year') periodLabel=`${new Date().getFullYear()}년`;
+  else if(_teamStatsPeriod==='custom') periodLabel=_teamStatsMonth===0?`${_teamStatsYear}년`:`${_teamStatsYear}년 ${_teamStatsMonth}월`;
+  else periodLabel='전체 기간';
+
   const myId=currentUser?.id||'';
 
-  // 팀 전체 요약 카드
-  let html=`<div class="panel" style="margin-bottom:14px;padding:16px">
-    <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:12px">📊 ${escHtml(periodLabel)} 팀 전체 실적</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
-      <div><div style="font-size:22px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif">${tc}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">고객 인입</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--c-meeting);font-family:'Noto Serif KR',serif">${te}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">미팅</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif">${tct}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">계약</div></div>
-      <div><div style="font-size:22px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif">${tb}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">잔금</div></div>
-    </div>
-  </div>`;
+  // ── 팀 전체 요약 (4개 카드) ──────────────────────────
+  const summaryItems=[
+    {label:'고객 인입',val:tc,c:'inip'},
+    {label:'미팅',val:te,c:'meeting'},
+    {label:'계약',val:tct,c:'sign'},
+    {label:'잔금',val:tb,c:'balance'}
+  ];
+  let html=`
+    <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:10px">📊 ${escHtml(periodLabel)} 팀 전체 실적</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+      ${summaryItems.map(({label,val,c})=>`
+        <div class="panel" style="padding:14px 8px;text-align:center">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--c-${c}-dim);margin:0 auto 8px;display:flex;align-items:center;justify-content:center">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--c-${c})"></div>
+          </div>
+          <div style="font-size:22px;font-weight:700;color:var(--c-${c});font-family:'Noto Serif KR',serif;line-height:1">${val}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:5px">${escHtml(label)}</div>
+        </div>
+      `).join('')}
+    </div>`;
 
-  // 팀원별 테이블
+  // ── 팀원별 카드 ──────────────────────────────────────
   if(!members.length){html+='<div class="empty">팀원이 없습니다</div>';}
-  else{
-    html+=`<div class="panel" style="padding:0;overflow:hidden">
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
-            <th style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text3);text-align:left">팀원</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-inip);text-align:center">고객 인입</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-meeting);text-align:center">미팅</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-sign);text-align:center">계약</th>
-            <th style="padding:10px 10px;font-size:11px;font-weight:600;color:var(--c-balance);text-align:center">잔금</th>
-          </tr>
-        </thead>
-        <tbody>`;
-    members.forEach((m,i)=>{
-      const isMe=m.id===myId;
-      const isOwnerRow=m.role==='owner';
-      const nameColor=isOwnerRow?'var(--gold)':'var(--text)';
-      const meBadge=isMe?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--bg3);color:var(--text3);margin-left:4px;vertical-align:middle">나</span>`:'';
-      html+=`<tr style="${i>0?'border-top:1px solid var(--border)':''}">
-        <td style="padding:12px 14px">
-          <div style="font-size:12px;font-weight:700;color:${nameColor}">${escHtml(m.name||'이름 없음')}${meBadge}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">${isOwnerRow?'팀장':'팀원'}</div>
-        </td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif">${clientMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-meeting);font-family:'Noto Serif KR',serif">${eventMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif">${contractMap[m.id]||0}</td>
-        <td style="padding:12px 10px;text-align:center;font-size:17px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif">${balanceMap[m.id]||0}</td>
-      </tr>`;
-    });
-    html+=`</tbody></table></div>`;
-  }
+  else members.forEach(m=>{
+    const isMe=m.id===myId;
+    const isOwnerRow=m.role==='owner';
+    const name=m.name||'이름 없음';
+    const initial=escHtml((name[0]||'?').toUpperCase());
+    const circleBg=isOwnerRow?'var(--gold-dim)':'var(--bg3)';
+    const circleColor=isOwnerRow?'var(--gold)':'var(--text2)';
+    const meBadge=isMe?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--bg3);color:var(--text3);margin-left:4px;vertical-align:middle">나</span>`:'';
+    const roleBadge=isOwnerRow?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:var(--gold-dim);color:var(--gold);font-weight:700;margin-left:4px;vertical-align:middle">팀장</span>`:'';
+    const cn=clientMap[m.id]||0,en=eventMap[m.id]||0,ctn=contractMap[m.id]||0,bn=balanceMap[m.id]||0;
+    const pct=tct>0?Math.round(ctn/tct*100):0;
+    const barHtml=tct>0?`
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px">
+          <span>계약 비중</span><span style="color:var(--c-sign);font-weight:700">${pct}%</span>
+        </div>
+        <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--c-sign);border-radius:2px"></div>
+        </div>
+      </div>`:'';
+    html+=`<div class="panel" style="margin-bottom:10px;padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${circleBg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${circleColor};font-family:'Noto Serif KR',serif;flex-shrink:0">${initial}</div>
+        <div><div style="font-size:13px;font-weight:700;color:${circleColor}">${escHtml(name)}${meBadge}${roleBadge}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
+        <div><div style="font-size:9px;font-weight:600;color:var(--c-inip);margin-bottom:4px">고객 인입</div><div style="font-size:20px;font-weight:700;color:var(--c-inip);font-family:'Noto Serif KR',serif;line-height:1">${cn}</div></div>
+        <div><div style="font-size:9px;font-weight:600;color:var(--c-meeting);margin-bottom:4px">미팅</div><div style="font-size:20px;font-weight:700;color:var(--c-meeting);font-family:'Noto Serif KR',serif;line-height:1">${en}</div></div>
+        <div><div style="font-size:9px;font-weight:600;color:var(--c-sign);margin-bottom:4px">계약</div><div style="font-size:20px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif;line-height:1">${ctn}</div></div>
+        <div><div style="font-size:9px;font-weight:600;color:var(--c-balance);margin-bottom:4px">잔금</div><div style="font-size:20px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif;line-height:1">${bn}</div></div>
+      </div>
+      ${barHtml}
+    </div>`;
+  });
   wrap.innerHTML=html;
 }
 
