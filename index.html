@@ -1320,6 +1320,10 @@ html{overflow-x:hidden}
         <!-- 팀 매물 패널 -->
         <div class="team-panel" id="tpanel-properties">
           <div class="filters" style="margin-bottom:12px">
+            <div class="sbar" style="flex:1;min-width:120px">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="5" cy="5" r="4"/><path d="M9 9l2.5 2.5"/></svg>
+              <input type="text" id="teamSearch" placeholder="제목/주소/담당자 검색..." oninput="renderTeamPage()" style="font-size:12px">
+            </div>
             <select class="btn" id="teamFilterAgent" onchange="renderTeamPage()" style="font-size:11px">
               <option value="">담당자 전체</option>
             </select>
@@ -6823,6 +6827,15 @@ function renderTeamPage(){
     if(selectedAgent)list=list.filter(p=>p.user_id===selectedAgent);
   }
 
+  const q=($('teamSearch')?.value||'').trim().toLowerCase();
+  if(q){
+    list=list.filter(p=>{
+      const agentName=(_teamMemberMap[p.user_id]||'').toLowerCase();
+      return (p.title||'').toLowerCase().includes(q)||
+             (p.address||'').toLowerCase().includes(q)||
+             agentName.includes(q);
+    });
+  }
   const ft=$('teamFilterType')?.value||'';
   const ftx=$('teamFilterTx')?.value||'';
   const fs=$('teamFilterStatus')?.value||'';
