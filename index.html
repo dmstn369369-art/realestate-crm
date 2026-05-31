@@ -7166,15 +7166,13 @@ async function loadTeamMembers(){
     try{const r=await q;if(r.error)console.warn(`[loadTeamMembers] ${label} 오류:`,r.error.message);return r.data||[];}
     catch(e){console.warn(`[loadTeamMembers] ${label} 예외:`,e.message);return [];}
   };
-  const[members,rawClients,rawEvents,rawContracts]=await Promise.all([
+  const[members,rawEvents]=await Promise.all([
     safe(supabaseClient.from('profiles').select('id,name,role,created_at').eq('organization_id',orgId).order('created_at',{ascending:true}),'profiles'),
-    safe(supabaseClient.from('clients').select('user_id,inquiry_date').eq('organization_id',orgId),'clients'),
-    safe(supabaseClient.from('events').select('user_id,event_date').eq('organization_id',orgId).eq('event_type','meeting'),'events'),
-    safe(supabaseClient.from('contracts').select('user_id,sign_date,balance_date').eq('organization_id',orgId),'contracts')
+    safe(supabaseClient.from('events').select('user_id,event_date,event_type').eq('organization_id',orgId).in('event_type',['inip','meeting','sign','balance']),'events')
   ]);
-  console.log(`[loadTeamMembers] 프로필 ${members.length}명, 고객 ${rawClients.length}건, 일정 ${rawEvents.length}건, 계약 ${rawContracts.length}건`);
+  console.log(`[loadTeamMembers] 프로필 ${members.length}명, 실적 이벤트 ${rawEvents.length}건`);
   _teamMemberMap={};members.forEach(m=>{_teamMemberMap[m.id]=m.name||'';});
-  _teamStatsCache={members,clients:rawClients,events:rawEvents,contracts:rawContracts};
+  _teamStatsCache={members,events:rawEvents};
   try{
     renderTeamStats(_teamStatsCache);
     console.log('[loadTeamMembers] renderTeamStats 완료');
@@ -7184,7 +7182,7 @@ async function loadTeamMembers(){
   }
 }
 
-function renderTeamStats({members,clients,events,contracts}){
+function renderTeamStats({members,events}){
   const wrap=$('teamMemberListWrap');if(!wrap)return;
 
   // 기간 범위 (custom 포함 전체 케이스 처리)
@@ -7201,12 +7199,16 @@ function renderTeamStats({members,clients,events,contracts}){
   }
   const inRange=d=>d&&(!dateFrom||(d>=dateFrom&&d<=dateTo));
 
-  // 집계 (로직 불변)
-  const buildMap=(arr,dateKey)=>{const m={};arr.forEach(r=>{if(inRange(r[dateKey])&&r.user_id)m[r.user_id]=(m[r.user_id]||0)+1;});return m;};
-  const clientMap=buildMap(clients,'inquiry_date');
-  const eventMap=buildMap(events,'event_date');
-  const contractMap=buildMap(contracts,'sign_date');
-  const balanceMap=buildMap(contracts,'balance_date');
+  // 집계 — 달력과 동일 기준: events.event_type별 카운트
+  const typeMap=(type)=>{
+    const m={};
+    events.forEach(r=>{if(r.event_type===type&&inRange(r.event_date)&&r.user_id)m[r.user_id]=(m[r.user_id]||0)+1;});
+    return m;
+  };
+  const clientMap=typeMap('inip');
+  const eventMap=typeMap('meeting');
+  const contractMap=typeMap('sign');
+  const balanceMap=typeMap('balance');
   const sum=m=>Object.values(m).reduce((a,b)=>a+b,0);
   const [tc,te,tct,tb]=[sum(clientMap),sum(eventMap),sum(contractMap),sum(balanceMap)];
 
