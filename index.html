@@ -1376,7 +1376,12 @@ html{overflow-x:hidden}
           <!-- 차트 영역 -->
           <div id="teamChartsWrap" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
             <div class="panel" style="flex:1;min-width:220px;padding:14px">
-              <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">월별 추이</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+                <div style="font-size:11px;font-weight:600;color:var(--text3)">월별 추이</div>
+                <select id="barChartMemberSel" class="btn" style="font-size:10px;padding:2px 8px;height:24px" onchange="onBarChartMemberChange()">
+                  <option value="">전체</option>
+                </select>
+              </div>
               <div style="position:relative;height:170px"><canvas id="teamBarCanvas"></canvas></div>
             </div>
             <div class="panel" style="flex:0 0 auto;min-width:220px;padding:14px">
@@ -7289,7 +7294,14 @@ function renderTeamStats({members,events}){
   // 차트 그리기
   const chartYear=(_teamStatsPeriod==='custom'||_teamStatsPeriod==='year')?_teamStatsYear:new Date().getFullYear();
   requestAnimationFrame(()=>{
-    _drawBarChart(events,chartYear);
+    // 드롭다운 멤버 목록 갱신 (현재 선택값 유지)
+    const barSel=$('barChartMemberSel');
+    if(barSel){
+      const prev=barSel.value;
+      barSel.innerHTML='<option value="">전체</option>'+
+        members.map(m=>`<option value="${escHtml(m.id)}"${m.id===prev?' selected':''}>${escHtml(m.name||'이름 없음')}</option>`).join('');
+    }
+    _drawBarChart(events,chartYear,barSel?.value||'');
     _drawDonutChart(members,contractMap,tct);
   });
 }
@@ -7299,10 +7311,16 @@ function renderTeamStats({members,events}){
 const _CC={text3:'#484f58',text2:'#8b949e',border:'#2d3748',bg2:'#161b22',
   inip:'#9ca3af',meeting:'#58a6ff',sign:'#e3814a',balance:'#3fb950'};
 
-function _drawBarChart(events,chartYear){
+function onBarChartMemberChange(){
+  if(!_teamStatsCache)return;
+  const chartYear=(_teamStatsPeriod==='custom'||_teamStatsPeriod==='year')?_teamStatsYear:new Date().getFullYear();
+  _drawBarChart(_teamStatsCache.events,chartYear,$('barChartMemberSel')?.value||'');
+}
+function _drawBarChart(events,chartYear,userId){
   const el=document.getElementById('teamBarCanvas');
   if(!el||typeof Chart==='undefined')return;
   if(_barChart){_barChart.destroy();_barChart=null;}
+  const filtered=userId?events.filter(e=>e.user_id===userId):events;
   const months=Array.from({length:12},(_,i)=>i+1);
   const types=['inip','meeting','sign','balance'];
   const seriesLabels=['고객인입','미팅','계약','잔금'];
@@ -7312,7 +7330,7 @@ function _drawBarChart(events,chartYear){
     data:months.map(mo=>{
       const from=`${chartYear}-${String(mo).padStart(2,'0')}-01`;
       const to=`${chartYear}-${String(mo).padStart(2,'0')}-31`;
-      return events.filter(e=>e.event_type===type&&e.event_date>=from&&e.event_date<=to).length;
+      return filtered.filter(e=>e.event_type===type&&e.event_date>=from&&e.event_date<=to).length;
     }),
     backgroundColor:colors[i]+'88',
     borderColor:colors[i],
