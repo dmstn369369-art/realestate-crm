@@ -13,7 +13,7 @@
 | 파일 구조 | 단일 HTML 파일 (`index.html`) |
 | 인증/DB | Supabase (supabase-js v2) |
 | 오프라인 | localStorage 백업 |
-| 언어 | 바닐라 JS, 외부 라이브러리 없음 |
+| 언어 | 바닐라 JS, 외부 라이브러리 없음 (차트는 Chart.js 예외 사용) |
 
 ## 비즈니스 모델
 
@@ -27,14 +27,14 @@
 | `organizations` | 사무소 (1인 또는 팀) |
 | `profiles` | 사용자 (owner / member) |
 | `clients` | 고객 |
-| `events` | 일정 (현재 로컬 전용) |
+| `events` | 일정 |
 | `contracts` | 계약 |
 | `payments` | 수수료 |
-| `transfers` | 이관 (팀 모드용) |
+| `transfers` | 이관 (팀 모드용) _(삭제 후보: 현재 미사용 가능성)_ |
 | `properties` | 매물 |
 | `property_photos` | 매물 사진 (매물 1건당 여러 장, 별도 테이블) |
 | `contacts` | 전화번호부 (대량 연락처) |
-| `announcements` | 공지사항 |
+| `announcements` | 공지사항 _(삭제 후보: 서비스 공지는 `notices`/`inquiries` 화면 사용, 팀 공지는 `team_notices` 사용)_ |
 | `inquiries` | 문의 |
 | `admin_users` | 관리자 계정 |
 | `deletion_logs` | 삭제 로그 |
@@ -66,9 +66,10 @@
 | 주차/엘베 | `elevator` | 엘리베이터 유무 |
 | 특이사항 | `notes` | 특이사항·메모 |
 
-> **주의**: `properties` 테이블에는 위도/경도 컬럼이 없음.
-> 매물소개서 지도는 `address` 값을 그때그때 카카오 SDK로 좌표 변환해 표시하는 방식.
-> 좌표는 별도로 localStorage (`crm5_prop_coords`, 매물 ID 키)에만 저장됨.
+> `properties` 테이블에 `latitude`, `longitude` 컬럼 있음 (2026-05 추가).
+> 매물 저장 시 카카오 지오코딩 좌표를 DB에 저장하며, localStorage(`crm5_prop_coords`)에도 병행 저장.
+> 매물소개서 PDF 지도 표시 우선순위: DB 좌표 → localStorage 좌표 → 지도 미표시.
+> 기기 간 PDF 지도 표시는 DB 좌표 기준.
 
 ---
 
@@ -95,6 +96,55 @@ const canUseCloud = (
   typeof currentOrganization !== 'undefined' && currentOrganization !== null
 );
 ```
+
+---
+
+## 데이터 소유·조회 기준 (중요)
+
+### 조회 기준 요약
+
+| 테이블 | 소유 성격 | SELECT 기준 |
+|--------|----------|------------|
+| `clients` | 개인 소유 | `user_id = currentUser.id` |
+| `events` | 개인 소유 | `user_id = currentUser.id` |
+| `contracts` | 개인 소유 | `user_id = currentUser.id` |
+| `payments` | 개인 소유 | `user_id = currentUser.id` |
+| `contacts` | 개인 소유 | `user_id = currentUser.id` |
+| `properties` | **팀 공유** | `organization_id = currentOrganization.id` |
+
+### 이유
+
+- 조직 소속(`organization_id`)은 합류·내보내기로 언제든 변경됨
+- 개인 데이터를 `organization_id`로 조회하면 **소속 변경 시 화면에서 사라짐** (데이터 유실이 아닌 조회 누락)
+- 매물만 팀 공유 대상이므로 `organization_id` 기준 유지
+
+### INSERT 규칙
+
+- **개인 데이터** INSERT 시 반드시 `user_id: currentUser.id` 포함
+- `properties` INSERT 시 `user_id`(등록자) + `organization_id`(팀 식별) 모두 포함
+
+### 팀 통계 집계 기준
+
+- `profiles WHERE organization_id = 현재조직` → 현재 소속 팀원 `user_id` 목록 추출
+- `events WHERE user_id IN (팀원목록)` 으로 집계
+- 내보낸 팀원은 `profiles`에서 빠지므로 통계에서 **자동 제외** (별도 처리 불필요)
+
+### role 규칙
+
+| 상황 | role 설정 |
+|------|---------|
+| 초대코드 합류 (`joinTeam`) | `member` |
+| 내보내기 후 개인 조직 (`kickTeamMember`) | `owner` |
+| 팀 내 일반 팀원 | `member` |
+
+**owner 전용 기능**: 팀원관리 탭(`ttab-members`), 내보내기 버튼(`canKick`), `loadTeamMembers()`, `kickTeamMember()` — 모두 `role==='owner'` 가드
+
+### 합류·내보내기 시 데이터 이전 범위
+
+- **이전 대상**: `properties`(매물) organization_id만 새 조직으로 변경
+- **이전 제외**: `clients`, `events`, `contracts`, `payments`, `contacts` — user_id 기준 조회이므로 이전 불필요
+
+---
 
 ## 배포 / 인프라
 
@@ -161,7 +211,7 @@ saveEvent  ↔ (고객인입 시 clients에도 저장)
 - 매물 모달에서 데이터를 불러올 때 **모든 컬럼을 명시적으로 누락 없이 읽을 것**
   - 과거 `parking_type`, `parking_count`, `elevator` 등이 빠진 채 저장/표시된 사례 있음
   - 매물소개서 PDF 생성 시에도 위 컬럼이 전부 포함되는지 반드시 확인
-- 매물소개서 지도(PDF 내 카카오 지도)는 Supabase 좌표 컬럼이 없으므로 `_loadPropCoords(propId)` → localStorage에서 좌표 조회 → 없으면 지도 미표시
+- 매물소개서 지도(PDF 내 카카오 지도): DB(`properties.latitude/longitude`) 우선 → 없으면 localStorage(`_loadPropCoords`) → 없으면 지도 미표시
   - 관련 함수: `_savePropCoords()`, `_loadPropCoords()`, `_deletePropCoords()`
 
 ### 인증 초기화 순서
