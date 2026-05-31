@@ -1316,6 +1316,7 @@ html{overflow-x:hidden}
         <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
           <button class="team-tab on" id="ttab-properties" onclick="switchTeamTab('properties')">팀 매물</button>
           <button class="team-tab" id="ttab-notices" onclick="switchTeamTab('notices')">공지사항</button>
+          <button class="team-tab" id="ttab-members" style="display:none" onclick="switchTeamTab('members')">팀원관리</button>
         </div>
         <!-- 팀 매물 패널 -->
         <div class="team-panel" id="tpanel-properties">
@@ -1355,6 +1356,10 @@ html{overflow-x:hidden}
         <div class="team-panel" id="tpanel-notices" style="display:none">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px" id="teamNoticeActionBar"></div>
           <div id="teamNoticeListWrap"><div class="empty">로딩 중...</div></div>
+        <!-- 팀원관리 패널 (owner 전용) -->
+        <div class="team-panel" id="tpanel-members" style="display:none">
+          <div id="teamMemberListWrap"><div class="empty">로딩 중...</div></div>
+        </div>
         </div>
       </div>
     </div>
@@ -6813,6 +6818,7 @@ function switchTeamTab(tab){
   const activePanel=$('tpanel-'+tab);if(activePanel)activePanel.style.display='';
   if(tab==='properties')renderTeamPage();
   else if(tab==='notices')loadTeamNotices();
+  else if(tab==='members')loadTeamMembers();
 }
 
 function renderTeamPage(){
@@ -7078,6 +7084,84 @@ async function deleteTeamNotice(id){
   }
 }
 
+// ── 팀원관리 (보기 전용) ──────────────────────────────
+async function loadTeamMembers(){
+  const wrap=$('teamMemberListWrap');if(!wrap)return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){wrap.innerHTML='<div class="empty">로그인이 필요합니다</div>';return;}
+  if(currentProfile?.role!=='owner'){wrap.innerHTML='<div class="empty">팀장만 접근 가능합니다</div>';return;}
+  wrap.innerHTML='<div class="empty">로딩 중...</div>';
+  try{
+    // 프로필 전체 조회
+    const{data:members,error:profErr}=await supabaseClient
+      .from('profiles').select('id,name,role,created_at')
+      .eq('organization_id',currentOrganization.id)
+      .order('created_at',{ascending:true});
+    if(profErr)throw profErr;
+
+    // 매물 수: 이미 로드된 properties 배열로 카운트
+    const propCountMap={};
+    properties.forEach(p=>{if(p.user_id)propCountMap[p.user_id]=(propCountMap[p.user_id]||0)+1;});
+
+    // 고객 수: Supabase에서 user_id만 조회해서 카운트
+    const{data:clientRows}=await supabaseClient
+      .from('clients').select('user_id').eq('organization_id',currentOrganization.id);
+    const clientCountMap={};
+    (clientRows||[]).forEach(c=>{if(c.user_id)clientCountMap[c.user_id]=(clientCountMap[c.user_id]||0)+1;});
+
+    // _teamMemberMap도 갱신
+    _teamMemberMap={};(members||[]).forEach(m=>{_teamMemberMap[m.id]=m.name||'';});
+
+    renderTeamMembers(members||[],propCountMap,clientCountMap);
+  }catch(err){
+    console.error('[loadTeamMembers]',err);
+    wrap.innerHTML='<div class="empty">로드 실패: '+(err.message?.substring(0,40)||'오류')+'</div>';
+  }
+}
+
+function renderTeamMembers(members,propCountMap,clientCountMap){
+  const wrap=$('teamMemberListWrap');if(!wrap)return;
+  if(!members.length){wrap.innerHTML='<div class="empty">팀원이 없습니다</div>';return;}
+  const myId=currentUser?.id||'';
+  wrap.innerHTML=members.map(m=>{
+    const isMe=m.id===myId;
+    const name=escHtml(m.name||'이름 없음');
+    const isOwner=m.role==='owner';
+    const roleBadge=isOwner
+      ?`<span style="display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--gold-dim);color:var(--gold);margin-left:6px">팀장</span>`
+      :`<span style="display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--bg3);color:var(--text3);margin-left:6px">팀원</span>`;
+    const meBadge=isMe?`<span style="display:inline-flex;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:700;background:var(--bg3);color:var(--text2);margin-left:4px">나</span>`:'';
+    const joinDate=escHtml((m.created_at||'').substring(0,10));
+    const propCount=propCountMap[m.id]||0;
+    const clientCount=clientCountMap[m.id]||0;
+    return `<div class="panel" style="margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:700;color:var(--text);font-family:'Noto Serif KR',serif">${name}</span>
+            ${roleBadge}${meBadge}
+          </div>
+          <div style="font-size:11px;color:var(--text3)">합류일 ${joinDate}</div>
+        </div>
+        <div style="display:flex;gap:16px;text-align:center;flex-shrink:0">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--gold);font-family:'Noto Serif KR',serif">${propCount}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:1px">매물</div>
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--text2);font-family:'Noto Serif KR',serif">${clientCount}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:1px">고객</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // Supabase에 고객 추가
 async function addClientToSupabase(clientData){
   if(!isUserLoggedIn()) return null;
@@ -7272,6 +7356,8 @@ function updateAuthUI(user){
     if($('sfJobTitle'))$('sfJobTitle').textContent=currentProfile?.job_title||'공인중개사';
     updateAdminMenu();
     const navTeamEl=$('navTeam');if(navTeamEl)navTeamEl.style.display='';
+    const ttabMembers=$('ttab-members');
+    if(ttabMembers)ttabMembers.style.display=currentProfile?.role==='owner'?'':'none';
   } else {
     showLanding();
     // 로그인 안 된 상태 (authArea는 메인 앱 topbar에 존재하므로 그대로 유지)
@@ -7286,6 +7372,7 @@ function updateAuthUI(user){
     if($('sfJobTitle'))$('sfJobTitle').textContent='-';
     updateAdminMenu();
     const navTeamEl=$('navTeam');if(navTeamEl)navTeamEl.style.display='none';
+    const ttabMembers=$('ttab-members');if(ttabMembers)ttabMembers.style.display='none';
   }
 }
 
