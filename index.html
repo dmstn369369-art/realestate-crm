@@ -3132,7 +3132,7 @@ function drawCal(){
     const evH=de.slice(0,3).map(e=>{
       const lbl=EV[e.type]?.label||e.type;
       const c=e.cid?clients.find(x=>idEq(x.id, e.cid)):null;
-      const name=c?c.name:'';
+      const name=c?c.name:(e.type==='general'&&e.title?e.title:'');
       const text=name?`${lbl} · ${name}`:lbl;
       return `<div class="cd-ev ${EV[e.type]?.cls||''}" title="${text}">${text}</div>`;
     }).join('');
