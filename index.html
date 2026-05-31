@@ -1389,6 +1389,16 @@ html{overflow-x:hidden}
               <div class="cal-grid" id="teamCalGrid"></div>
             </div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+            <div class="panel">
+              <div class="panel-head"><span id="teamDayTitle">당일 일정</span></div>
+              <div id="teamDayEvList" style="max-height:260px;overflow-y:auto"><div class="empty">날짜를 클릭하면 일정이 표시됩니다.</div></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">당월 계약서·잔금</div>
+              <div id="teamMonthContractList" style="max-height:260px;overflow-y:auto"><div class="empty">이달 계약서·잔금 없음</div></div>
+            </div>
+          </div>
         </div>
         <!-- 팀원관리 패널 (owner 전용) -->
         <div class="team-panel" id="tpanel-members" style="display:none">
@@ -7192,6 +7202,7 @@ function drawTeamCal(){
   }
   if(grid)grid.innerHTML=html;
   renderTeamDayEv(teamSelDate||todayStr());
+  renderTeamMonthContracts();
 }
 
 function teamOnCellClick(ev,ds){
@@ -7234,14 +7245,31 @@ function teamPickM(m){teamCalY=teamMpYr;teamCalM=m;teamSelDate=null;const title=
 
 function renderTeamDayEv(ds){
   const el=$('teamDayEvList');
-  const de=_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type)).sort((a,b)=>(a.type||'').localeCompare(b.type||''));
-  if(!de.length){
-    if(el)el.innerHTML='<div class="empty">일정이 없습니다</div>';
-    return;
-  }
-  if(el)el.innerHTML=de.map(e=>{
-    const label=teamEventLabelType(e.type);
-    return `<div class="day-ev-item"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${label}</div></div>`;
+  if(!el)return;
+  const de=_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type)).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  if(!de.length){el.innerHTML='<div class="empty">일정이 없습니다</div>';return;}
+  el.innerHTML=de.map(e=>{
+    const nm=_teamMemberMap[e.user_id]||'';
+    const tm=e.time?e.time.slice(0,5)+' ':'';
+    return `<div class="day-ev-item"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${tm}${teamEventLabelType(e.type)}${nm?' '+nm:''}</div></div>`;
+  }).join('');
+}
+
+function renderTeamMonthContracts(){
+  const el=$('teamMonthContractList');
+  if(!el)return;
+  const ms=`${teamCalY}-${String(teamCalM+1).padStart(2,'0')}`;
+  const me=_teamScheduleEvents.filter(e=>
+    e.date.startsWith(ms)&&
+    (e.type==='sign'||e.type==='balance')&&
+    (!_teamFilterMember||e.user_id===_teamFilterMember)&&
+    teamTypeMatchesFilter(e.type)
+  ).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'').localeCompare(b.time||''));
+  if(!me.length){el.innerHTML='<div class="empty">이달 계약서·잔금 없음</div>';return;}
+  el.innerHTML=me.map(e=>{
+    const nm=_teamMemberMap[e.user_id]||'';
+    const tm=e.time?e.time.slice(0,5)+' ':'';
+    return `<div class="day-ev-item"><div class="day-ev-type" style="color:${teamEventColor(e.type)}">${e.date.slice(5)} ${tm}${teamEventLabelType(e.type)}${nm?' '+nm:''}</div></div>`;
   }).join('');
 }
 
