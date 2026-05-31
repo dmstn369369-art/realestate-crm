@@ -1315,7 +1315,7 @@ html{overflow-x:hidden}
         <!-- 서브탭 바 -->
         <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
           <button class="team-tab on" id="ttab-properties" onclick="switchTeamTab('properties')">팀 매물</button>
-          <!-- 다음 단계에서 추가: 공지사항, 팀원관리 -->
+          <button class="team-tab" id="ttab-notices" onclick="switchTeamTab('notices')">공지사항</button>
         </div>
         <!-- 팀 매물 패널 -->
         <div class="team-panel" id="tpanel-properties">
@@ -1350,6 +1350,11 @@ html{overflow-x:hidden}
             </select>
           </div>
           <div id="teamPropListWrap"><div class="empty">로딩 중...</div></div>
+        </div>
+        <!-- 공지사항 패널 -->
+        <div class="team-panel" id="tpanel-notices" style="display:none">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px" id="teamNoticeActionBar"></div>
+          <div id="teamNoticeListWrap"><div class="empty">로딩 중...</div></div>
         </div>
       </div>
     </div>
@@ -2658,6 +2663,24 @@ html{overflow-x:hidden}
         <button class="btn btn-gold" style="flex:1" onclick="copyShareText()">📋 복사</button>
         <button class="btn" onclick="doSharePDF()">📥 PDF</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 팀 공지 작성/수정 모달 ══ -->
+<div class="modal" id="mTeamNoticeEdit">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head">
+      <div class="modal-title" id="mtnModalTitle">공지 작성</div>
+      <button class="modal-close" onclick="closeTeamNoticeForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>제목 *</label><input type="text" id="mtnTitle" placeholder="공지 제목을 입력하세요" maxlength="100"></div>
+      <div class="fg"><label>내용 *</label><textarea id="mtnContent" placeholder="공지 내용을 입력하세요" style="min-height:160px"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeTeamNoticeForm()">취소</button>
+      <div class="modal-foot-right"><button class="btn btn-gold" id="mtnSaveBtn" onclick="saveTeamNotice()">저장</button></div>
     </div>
   </div>
 </div>
@@ -6161,6 +6184,7 @@ document.addEventListener('keydown',e=>{
     else if($('mForgotPassword').classList.contains('open'))closeForgotPasswordModal();
     else if($('mNewPassword').classList.contains('open'))closeNewPasswordModal();
     else if($('mDeleteAccount').classList.contains('open'))closeDeleteAccountModal();
+    else if($('mTeamNoticeEdit')?.classList.contains('open'))closeTeamNoticeForm();
     else if(mpOpen)closeMP();
     else if(qpDate)closeQuickPop();
   }
@@ -6788,6 +6812,7 @@ function switchTeamTab(tab){
   document.querySelectorAll('.team-panel').forEach(p=>p.style.display='none');
   const activePanel=$('tpanel-'+tab);if(activePanel)activePanel.style.display='';
   if(tab==='properties')renderTeamPage();
+  else if(tab==='notices')loadTeamNotices();
 }
 
 function renderTeamPage(){
@@ -6907,6 +6932,150 @@ async function syncTeamPropertiesFromCloud(){
   }catch(e){console.warn('[teamMembers]',e);}
   // 매물 재조회 (syncPropertiesFromCloud가 끝에 renderTeamPage 호출)
   syncPropertiesFromCloud();
+}
+
+// ── 팀 공지사항 ──────────────────────────────────────
+let _teamNotices=[];
+let _editTeamNoticeId=null;
+
+async function loadTeamNotices(){
+  const actionBar=$('teamNoticeActionBar');
+  const wrap=$('teamNoticeListWrap');
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){
+    if(wrap)wrap.innerHTML='<div class="empty">로그인이 필요합니다</div>';
+    if(actionBar)actionBar.innerHTML='';
+    return;
+  }
+  if(wrap)wrap.innerHTML='<div class="empty">로딩 중...</div>';
+  // 팀원 이름 캐시 보충 (팀 매물 탭을 먼저 방문 안 한 경우)
+  if(!Object.keys(_teamMemberMap).length){
+    try{
+      const{data:mp}=await supabaseClient.from('profiles')
+        .select('id,name').eq('organization_id',currentOrganization.id);
+      _teamMemberMap={};(mp||[]).forEach(p=>{_teamMemberMap[p.id]=p.name||'';});
+    }catch(e){console.warn('[teamProfiles]',e);}
+  }
+  try{
+    const{data,error}=await supabaseClient.from('team_notices')
+      .select('*').eq('organization_id',currentOrganization.id)
+      .order('created_at',{ascending:false}).limit(200);
+    if(error)throw error;
+    _teamNotices=data||[];
+    // 팀장에게 작성 버튼 표시
+    if(actionBar){
+      const isOwner=currentProfile?.role==='owner';
+      actionBar.innerHTML=isOwner
+        ?'<button class="btn btn-gold" onclick="openTeamNoticeForm(null)" style="font-size:12px">+ 공지 작성</button>'
+        :'';
+    }
+    renderTeamNotices();
+  }catch(err){
+    console.error('[loadTeamNotices]',err);
+    if(wrap)wrap.innerHTML='<div class="empty">공지 로드 실패: '+(err.message?.substring(0,40)||'오류')+'</div>';
+  }
+}
+
+function renderTeamNotices(){
+  const wrap=$('teamNoticeListWrap');if(!wrap)return;
+  const isOwner=currentProfile?.role==='owner';
+  if(!_teamNotices.length){
+    wrap.innerHTML='<div class="empty">'
+      +(isOwner?'아직 공지가 없습니다. 위 버튼으로 첫 공지를 작성하세요.':'등록된 공지가 없습니다.')
+      +'</div>';
+    return;
+  }
+  wrap.innerHTML=_teamNotices.map(n=>{
+    const authorName=escHtml(_teamMemberMap[n.author_id]||'팀원');
+    const dateStr=escHtml((n.created_at||'').substring(0,10));
+    const editBtns=isOwner
+      ?`<div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
+          <button class="btn btn-sm" onclick="openTeamNoticeForm('${n.id}')" style="font-size:10px">수정</button>
+          <button class="btn btn-sm" onclick="deleteTeamNotice('${n.id}')" style="font-size:10px;color:var(--red)">삭제</button>
+        </div>`:'';
+    return `<div class="panel" style="margin-bottom:10px;padding:14px 16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);font-family:'Noto Serif KR',serif;line-height:1.4">${escHtml(n.title||'(제목 없음)')}</div>
+        ${editBtns}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">👤 ${authorName} · ${dateStr}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap">${escHtml(n.content||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+function openTeamNoticeForm(id){
+  _editTeamNoticeId=id||null;
+  const titleEl=$('mtnTitle');const contentEl=$('mtnContent');
+  if(!titleEl||!contentEl)return;
+  if(id){
+    const n=_teamNotices.find(x=>x.id===id);
+    if(!n){toast('공지를 찾을 수 없습니다');return;}
+    if($('mtnModalTitle'))$('mtnModalTitle').textContent='공지 수정';
+    titleEl.value=n.title||'';contentEl.value=n.content||'';
+  }else{
+    if($('mtnModalTitle'))$('mtnModalTitle').textContent='공지 작성';
+    titleEl.value='';contentEl.value='';
+  }
+  $('mTeamNoticeEdit').classList.add('open');
+  setTimeout(()=>titleEl.focus(),50);
+}
+function closeTeamNoticeForm(){
+  $('mTeamNoticeEdit')?.classList.remove('open');
+  _editTeamNoticeId=null;
+}
+async function saveTeamNotice(){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  const title=($('mtnTitle')?.value||'').trim();
+  const content=($('mtnContent')?.value||'').trim();
+  if(!title){toast('제목을 입력해주세요');$('mtnTitle')?.focus();return;}
+  if(!content){toast('내용을 입력해주세요');$('mtnContent')?.focus();return;}
+  const btn=$('mtnSaveBtn');if(btn)btn.disabled=true;
+  try{
+    if(_editTeamNoticeId){
+      const{error}=await supabaseClient.from('team_notices')
+        .update({title,content,updated_at:new Date().toISOString()}).eq('id',_editTeamNoticeId);
+      if(error)throw error;
+      toast('공지가 수정되었습니다');
+    }else{
+      const{error}=await supabaseClient.from('team_notices').insert({
+        organization_id:currentOrganization.id,author_id:currentUser.id,title,content
+      });
+      if(error)throw error;
+      toast('공지가 등록되었습니다');
+    }
+    closeTeamNoticeForm();
+    await loadTeamNotices();
+  }catch(err){
+    console.error('[saveTeamNotice]',err);
+    toast('저장 실패: '+(err.message?.substring(0,40)||'오류'));
+  }finally{if(btn)btn.disabled=false;}
+}
+async function deleteTeamNotice(id){
+  if(!id||!confirm('이 공지를 삭제하시겠습니까?'))return;
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null
+  );
+  if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  try{
+    const{error}=await supabaseClient.from('team_notices').delete().eq('id',id);
+    if(error)throw error;
+    toast('공지가 삭제되었습니다');
+    await loadTeamNotices();
+  }catch(err){
+    console.error('[deleteTeamNotice]',err);
+    toast('삭제 실패: '+(err.message?.substring(0,40)||'오류'));
+  }
 }
 
 // Supabase에 고객 추가
