@@ -7101,7 +7101,6 @@ function teamEventLabelType(type){
 }
 
 function teamEventColor(type){
-  if(type==='deposit'||type==='sign')return EV.sign?.color||'var(--c-sign)';
   return EV[type]?.color||'var(--text3)';
 }
 
@@ -7187,7 +7186,7 @@ function drawTeamCal(){
     if(!other&&d===TODAY.getDate()&&teamCalM===TODAY.getMonth()&&teamCalY===TODAY.getFullYear())cls+=' today';
     if(teamSelDate===ds)cls+=' sel';
     const de=other?[]:_teamScheduleEvents.filter(e=>e.date===ds&&(!_teamFilterMember||e.user_id===_teamFilterMember)&&teamTypeMatchesFilter(e.type));
-    const evH=de.slice(0,3).map(e=>{const nm=_teamMemberMap[e.user_id]||'';return`<div class="cd-ev" style="background:${teamEventColor(e.type)}">${teamEventLabelType(e.type)}${nm?' '+nm:''}</div>`;}).join('');
+    const evH=de.slice(0,3).map(e=>{const nm=_teamMemberMap[e.user_id]||'';return`<div class="cd-ev ${EV[e.type]?.cls||''}">${teamEventLabelType(e.type)}${nm?' '+nm:''}</div>`;}).join('');
     const more=de.length>3?`<div style="font-size:9px;color:var(--text3)">+${de.length-3}건</div>`:'';
     const dotsH=de.slice(0,5).map(e=>`<span class="cd-dot" style="background:${teamEventColor(e.type)}"></span>`).join('');
     html+=`<div class="${cls}" data-date="${ds}" onclick="teamOnCellClick(event,'${ds}')"><span class="cd-num">${d}</span><div class="cd-events">${evH}${more}</div><div class="cd-dots">${dotsH}</div></div>`;
