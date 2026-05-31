@@ -1373,6 +1373,22 @@ html{overflow-x:hidden}
               <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
             </select>
           </div>
+          <!-- 차트 영역 -->
+          <div id="teamChartsWrap" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <div class="panel" style="flex:1;min-width:220px;padding:14px">
+              <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">월별 추이</div>
+              <div style="position:relative;height:170px"><canvas id="teamBarCanvas"></canvas></div>
+            </div>
+            <div class="panel" style="flex:0 0 auto;min-width:220px;padding:14px">
+              <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">계약 비중</div>
+              <div id="teamDonutArea" style="display:flex;align-items:center;gap:12px;height:170px">
+                <div id="teamDonutCanvasWrap" style="position:relative;width:120px;height:120px;flex-shrink:0">
+                  <canvas id="teamDonutCanvas"></canvas>
+                </div>
+                <div id="teamDonutLegend" style="flex:1;overflow:auto;max-height:170px"></div>
+              </div>
+            </div>
+          </div>
           <div id="teamMemberListWrap"><div class="empty">로딩 중...</div></div>
         </div>
       </div>
@@ -7101,6 +7117,8 @@ async function deleteTeamNotice(id){
 // ── 팀원관리 통계 숫자판 (보기 전용) ──────────────────
 let _teamStatsPeriod='year'; // 'month'|'year'|'all'|'custom'
 let _teamStatsCache=null;
+let _barChart=null;
+let _donutChart=null;
 let _teamStatsYear=new Date().getFullYear();
 let _teamStatsMonth=0; // 0=전체, 1-12
 
@@ -7254,16 +7272,6 @@ function renderTeamStats({members,events}){
     const meBadge=isMe?`<span style="font-size:9px;padding:1px 5px;border-radius:8px;background:var(--bg3);color:var(--text3);margin-left:4px;vertical-align:middle">나</span>`:'';
     const roleBadge=isOwnerRow?`<span style="font-size:9px;padding:1px 6px;border-radius:8px;background:var(--gold-dim);color:var(--gold);font-weight:700;margin-left:4px;vertical-align:middle">팀장</span>`:'';
     const cn=clientMap[m.id]||0,en=eventMap[m.id]||0,ctn=contractMap[m.id]||0,bn=balanceMap[m.id]||0;
-    const pct=tct>0?Math.round(ctn/tct*100):0;
-    const barHtml=tct>0?`
-      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:5px">
-          <span>계약 비중</span><span style="color:var(--c-sign);font-weight:700">${pct}%</span>
-        </div>
-        <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:var(--c-sign);border-radius:2px"></div>
-        </div>
-      </div>`:'';
     html+=`<div class="panel" style="margin-bottom:10px;padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <div style="width:40px;height:40px;border-radius:50%;background:${circleBg};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:${circleColor};font-family:'Noto Serif KR',serif;flex-shrink:0">${initial}</div>
@@ -7275,10 +7283,97 @@ function renderTeamStats({members,events}){
         <div><div style="font-size:9px;font-weight:600;color:var(--c-sign);margin-bottom:4px">계약</div><div style="font-size:20px;font-weight:700;color:var(--c-sign);font-family:'Noto Serif KR',serif;line-height:1">${ctn}</div></div>
         <div><div style="font-size:9px;font-weight:600;color:var(--c-balance);margin-bottom:4px">잔금</div><div style="font-size:20px;font-weight:700;color:var(--c-balance);font-family:'Noto Serif KR',serif;line-height:1">${bn}</div></div>
       </div>
-      ${barHtml}
     </div>`;
   });
   wrap.innerHTML=html;
+  // 차트 그리기
+  const chartYear=(_teamStatsPeriod==='custom'||_teamStatsPeriod==='year')?_teamStatsYear:new Date().getFullYear();
+  requestAnimationFrame(()=>{
+    _drawBarChart(events,chartYear);
+    _drawDonutChart(members,contractMap,tct);
+  });
+}
+
+// ── 팀 차트 ──────────────────────────────────────────
+// 다크모드 고정 색상 (CSS 변수 Chart.js에서 직접 사용 불가)
+const _CC={text3:'#484f58',text2:'#8b949e',border:'#2d3748',bg2:'#161b22',
+  inip:'#9ca3af',meeting:'#58a6ff',sign:'#e3814a',balance:'#3fb950'};
+
+function _drawBarChart(events,chartYear){
+  const el=document.getElementById('teamBarCanvas');
+  if(!el||typeof Chart==='undefined')return;
+  if(_barChart){_barChart.destroy();_barChart=null;}
+  const months=Array.from({length:12},(_,i)=>i+1);
+  const types=['inip','meeting','sign','balance'];
+  const seriesLabels=['고객인입','미팅','계약','잔금'];
+  const colors=[_CC.inip,_CC.meeting,_CC.sign,_CC.balance];
+  const datasets=types.map((type,i)=>({
+    label:seriesLabels[i],
+    data:months.map(mo=>{
+      const from=`${chartYear}-${String(mo).padStart(2,'0')}-01`;
+      const to=`${chartYear}-${String(mo).padStart(2,'0')}-31`;
+      return events.filter(e=>e.event_type===type&&e.event_date>=from&&e.event_date<=to).length;
+    }),
+    backgroundColor:colors[i]+'88',
+    borderColor:colors[i],
+    borderWidth:1,
+    borderRadius:2
+  }));
+  _barChart=new Chart(el,{
+    type:'bar',
+    data:{labels:months.map(m=>m+'월'),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{color:_CC.text2,font:{size:9},boxWidth:8,padding:6}}
+      },
+      scales:{
+        x:{ticks:{color:_CC.text3,font:{size:9}},grid:{color:_CC.border+'66'}},
+        y:{ticks:{color:_CC.text3,font:{size:9},stepSize:1},grid:{color:_CC.border+'66'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function _drawDonutChart(members,contractMap,tct){
+  const el=document.getElementById('teamDonutCanvas');
+  const canvasWrap=$('teamDonutCanvasWrap');
+  const legend=$('teamDonutLegend');
+  if(!el||typeof Chart==='undefined')return;
+  if(_donutChart){_donutChart.destroy();_donutChart=null;}
+  if(tct===0){
+    if(canvasWrap)canvasWrap.style.display='none';
+    if(legend)legend.innerHTML=`<div style="color:${_CC.text3};font-size:12px;text-align:center;width:100%">계약 없음</div>`;
+    return;
+  }
+  if(canvasWrap)canvasWrap.style.display='';
+  const COLORS=['#e3814a','#58a6ff','#3fb950','#9ca3af','#f7d97d','#d2a8ff','#79c0ff','#56d364'];
+  const active=members.filter(m=>(contractMap[m.id]||0)>0);
+  const bgColors=active.map((_,i)=>COLORS[i%COLORS.length]);
+  _donutChart=new Chart(el,{
+    type:'doughnut',
+    data:{
+      labels:active.map(m=>m.name||'?'),
+      datasets:[{data:active.map(m=>contractMap[m.id]||0),backgroundColor:bgColors,borderColor:_CC.bg2,borderWidth:2,hoverOffset:4}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw}건 (${Math.round(c.raw/tct*100)}%)`}}
+      }
+    }
+  });
+  if(legend){
+    legend.innerHTML=active.map((m,i)=>{
+      const cnt=contractMap[m.id]||0,pct=Math.round(cnt/tct*100);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="width:9px;height:9px;border-radius:50%;background:${bgColors[i]};flex-shrink:0"></div>
+        <span style="font-size:11px;color:${_CC.text2};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(m.name||'이름 없음')}</span>
+        <span style="font-size:11px;font-weight:700;color:${bgColors[i]};margin-left:auto;padding-left:4px;flex-shrink:0">${cnt}건 ${pct}%</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 // Supabase에 고객 추가
