@@ -79,6 +79,24 @@
 2. 고객 관리 (CRM)
 3. 계약/수수료 정산
 4. 수수료 비율 설정
+5. 팀 일정 탭 (팀 모드, owner 전용)
+
+## 일정 종류·색상 (중요 — 혼동 주의)
+
+| event_type | 명칭 | 색상 |
+|-----------|------|------|
+| `inip` | 고객인입 | 회색 |
+| `meeting` | 미팅 | 파란색 |
+| `deposit` | **계약금** | **노란색** (금색) |
+| `sign` | **계약서** | **주황색** |
+| `balance` | 잔금 | 초록색 |
+| `general` | 일반일정 | — |
+
+- **계약서(`sign`)**: 계약 체결일 (주황색)
+- **계약금(`deposit`)**: 계약금 받은 날 (노란색) — 계약서와 별개 항목
+- 상단 카운트 집계: 고객인입·미팅·계약서·잔금 4종. **계약금은 카운트 제외**
+
+---
 
 ## 데이터 흐름 원칙
 
@@ -137,7 +155,18 @@ const canUseCloud = (
 | 내보내기 후 개인 조직 (`kickTeamMember`) | `owner` |
 | 팀 내 일반 팀원 | `member` |
 
-**owner 전용 기능**: 팀원관리 탭(`ttab-members`), 내보내기 버튼(`canKick`), `loadTeamMembers()`, `kickTeamMember()` — 모두 `role==='owner'` 가드
+**owner 전용 기능**: 팀원관리 탭(`ttab-members`), 팀 일정 탭(`ttab-schedule`), 내보내기 버튼(`canKick`), `loadTeamMembers()`, `kickTeamMember()` — 모두 `role==='owner'` 가드
+
+### 팀 일정 탭 (owner 전용)
+
+- 팀장이 팀 전체 일정을 달력으로 확인하는 뷰 (`ttab-schedule`)
+- **접근 가드 3중**: `switchTeamTab` → `renderTeamPage` → `loadTeamSchedule` 내부 각각 `!isOwner` 체크
+- **조회 기준**: `profiles WHERE organization_id = 현재조직` → 팀원 `user_id` 목록 → `events WHERE user_id IN (목록)` (개인 데이터 규칙 준수)
+- **표시 정보**: 시간·종류·담당자 이름만. 고객명·메모 등 상세는 **비공개** (select에 `event_time`, `event_type`, `user_id`만 포함)
+- **필터**: 담당자 드롭다운 + 종류 드롭다운 — 두 필터 동시 적용, `_teamMemberMap`에서 팀원 목록 구성
+- **달력 아래 박스 2개**
+  - 당일 일정: 날짜 클릭 시 해당 날 일정 목록 (시간순, 건수 카운트, 필터 연동)
+  - 당월 계약서·잔금: 현재 월의 `sign`·`balance`만 날짜순, 건수 카운트, 필터 연동
 
 ### 합류·내보내기 시 데이터 이전 범위
 
@@ -213,6 +242,13 @@ saveEvent  ↔ (고객인입 시 clients에도 저장)
   - 매물소개서 PDF 생성 시에도 위 컬럼이 전부 포함되는지 반드시 확인
 - 매물소개서 지도(PDF 내 카카오 지도): DB(`properties.latitude/longitude`) 우선 → 없으면 localStorage(`_loadPropCoords`) → 없으면 지도 미표시
   - 관련 함수: `_savePropCoords()`, `_loadPropCoords()`, `_deletePropCoords()`
+
+### 개인 일정관리 달력 표시
+
+- 달력 칸 라벨 형식: `"종류 · 고객명"` (고객 연결 없으면 종류만)
+- **일반일정(`general`)**: 고객 대신 제목(`title`)을 표시 — `"일반일정 · {제목}"` 형식
+  - 제목이 비어 있으면 `"일반일정"` 만 표시
+- 이 규칙은 개인 달력(`drawCal`)에만 적용. 팀 일정 달력은 별도 규칙 사용
 
 ### 인증 초기화 순서
 - `_authInitialized`, `_dataLoaded` 플래그로 `handleSignedIn` 중복 실행 방지
