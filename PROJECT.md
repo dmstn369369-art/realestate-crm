@@ -153,6 +153,7 @@ const canUseCloud = (
 |------|---------|
 | 초대코드 합류 (`joinTeam`) | `member` |
 | 내보내기 후 개인 조직 (`kickTeamMember`) | `owner` |
+| 자진 탈퇴 후 개인 조직 (`leaveTeam`) | `owner` |
 | 팀 내 일반 팀원 | `member` |
 
 **owner 전용 기능**: 팀원관리 탭(`ttab-members`), 팀 일정 탭(`ttab-schedule`), 내보내기 버튼(`canKick`), `loadTeamMembers()`, `kickTeamMember()` — 모두 `role==='owner'` 가드
@@ -172,6 +173,32 @@ const canUseCloud = (
 
 - **이전 대상**: `properties`(매물) organization_id만 새 조직으로 변경
 - **이전 제외**: `clients`, `events`, `contracts`, `payments`, `contacts` — user_id 기준 조회이므로 이전 불필요
+
+### 팀 합류·탈퇴 규칙
+
+| 상황 | 합류 코드 입력창 | 합류 로직 |
+|------|----------------|---------|
+| `member` | 숨김 | 거부 |
+| `owner` + 타 멤버 ≥ 1 | 숨김 | 거부 |
+| `owner` + 혼자 (멤버 0) | 표시 (기존 동작) | 허용 |
+
+- 멤버 수 판단: `profiles WHERE organization_id = 현재조직 AND id ≠ 본인` count
+- UI(`renderJoinTeamSection`)와 로직(`joinTeam`) 양쪽에 이중 가드 적용
+- `member`는 설정 화면 "팀 나가기" 버튼(`leaveTeam`)으로만 이탈 가능
+
+### 자진 탈퇴 (`leaveTeam`)
+
+- 팀원이 설정 > "팀 나가기" → 확인창 1번 → 탈퇴
+- 결과는 `kickTeamMember`와 동일: 개인조직 분리, `role='owner'`, 매물만 분리
+- 공통 함수 `_separateMemberToPersonalOrg(userId, userName)` 을 `kickTeamMember`·`leaveTeam` 양쪽에서 호출 (중복 구현 없음)
+
+### 빈 조직 자동 정리 (`_cleanupEmptyOrg`)
+
+- `joinTeam`(재합류) 직후 이전 조직이 완전히 비면 자동 삭제
+- **삭제 조건 (모두 0일 때만)**: `profiles`·`properties`·`clients`·`events`·`contracts`·`contacts`·`inquiries` 전부 0건
+- 하나라도 0 초과 → 삭제 안 함 (데이터 있는 조직은 자동 제외)
+- 7개 테이블 `Promise.all` 동시 COUNT — 컬럼 없는 테이블의 쿼리 오류는 FK 없음으로 간주해 건너뜀
+- `await` 없이 호출(best-effort) — 실패해도 합류·탈퇴 본 흐름 방해 없음
 
 ---
 
