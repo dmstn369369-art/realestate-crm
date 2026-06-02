@@ -1189,6 +1189,7 @@ html{overflow-x:hidden}
         <div class="tab on" onclick="setTab('contracts',this)">계약 정산</div>
         <div class="tab" onclick="setTab('monthly',this)">월별 현황</div>
         <div class="tab" onclick="setTab('yearly',this)">연도별 현황</div>
+        <div class="tab" onclick="setTab('personal-stats',this)">개인 현황판</div>
       </div>
 
       <!-- 계약 정산 (잔금 완료 고객) -->
@@ -1255,6 +1256,40 @@ html{overflow-x:hidden}
           </div>
           <div id="yearlyTable"></div>
         </div>
+      </div>
+
+      <!-- 개인 현황판 -->
+      <div id="st-personal-stats" style="display:none">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <button class="btn" id="psp-month" onclick="setPersonalStatsPeriod('month')" style="font-size:11px">이번 달</button>
+          <button class="btn btn-gold" id="psp-year" onclick="setPersonalStatsPeriod('year')" style="font-size:11px">올해</button>
+          <button class="btn" id="psp-all" onclick="setPersonalStatsPeriod('all')" style="font-size:11px">전체</button>
+          <div style="width:1px;height:16px;background:var(--border);margin:0 2px;flex-shrink:0"></div>
+          <select id="pspYear" class="btn" style="font-size:11px" onchange="onPersonalStatsCustomChange()"></select>
+          <select id="pspMonth" class="btn" style="font-size:11px" onchange="onPersonalStatsCustomChange()">
+            <option value="0">전체 월</option>
+            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+            <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+            <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+            <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="panel" style="flex:1;min-width:220px;padding:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">월별 추이</div>
+            <div style="position:relative;height:170px"><canvas id="personalBarCanvas"></canvas></div>
+          </div>
+          <div class="panel" style="flex:0 0 auto;min-width:220px;padding:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">종류별 비중</div>
+            <div style="display:flex;align-items:center;gap:12px;height:170px">
+              <div id="personalDonutCanvasWrap" style="position:relative;width:120px;height:120px;flex-shrink:0">
+                <canvas id="personalDonutCanvas"></canvas>
+              </div>
+              <div id="personalDonutLegend" style="flex:1;overflow:auto;max-height:170px"></div>
+            </div>
+          </div>
+        </div>
+        <div id="personalStatsCards"></div>
       </div>
     </div>
 
@@ -3469,13 +3504,14 @@ let stTab='contracts';
 function setTab(t,el){
   stTab=t;
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');
-  ['st-contracts','st-monthly','st-yearly'].forEach(id=>{const e=$(id);if(e)e.style.display='none'});
+  ['st-contracts','st-monthly','st-yearly','st-personal-stats'].forEach(id=>{const e=$(id);if(e)e.style.display='none'});
   $('st-'+t).style.display='block';
   renderSettlement();
 }
 
 function renderSettlement(){
   const now=new Date();
+  if(stTab==='personal-stats'){renderPersonalStats();return;}
   if(stTab==='contracts'){
     renderContracts();
     return;
@@ -3620,6 +3656,177 @@ function renderSettlement(){
         <div class="fee">${tot?'₩'+tot.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
         <div class="fee">${cum?'₩'+cum.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
         <div class="fee" style="color:var(--gold2)!important">${myShare?'₩'+myShare.toLocaleString():'<span style="color:var(--text3);font-weight:400">-</span>'}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── 개인 현황판 ──────────────────────────────────────
+let _personalStatsPeriod='year';
+let _personalStatsYear=new Date().getFullYear();
+let _personalStatsMonth=0;
+let _personalBarChart=null,_personalDonutChart=null;
+
+function setPersonalStatsPeriod(period){
+  _personalStatsPeriod=period;
+  ['psp-month','psp-year','psp-all'].forEach(id=>{const b=$(id);if(b)b.classList.remove('btn-gold');});
+  const btnMap={month:'psp-month',year:'psp-year',all:'psp-all'};
+  if(btnMap[period])$(btnMap[period])?.classList.add('btn-gold');
+  if(period==='month'){
+    const n=new Date();_personalStatsYear=n.getFullYear();_personalStatsMonth=n.getMonth()+1;
+    const yr=$('pspYear');if(yr)yr.value=String(_personalStatsYear);
+    const mo=$('pspMonth');if(mo)mo.value=String(_personalStatsMonth);
+  }else if(period==='year'){
+    _personalStatsYear=new Date().getFullYear();_personalStatsMonth=0;
+    const yr=$('pspYear');if(yr)yr.value=String(_personalStatsYear);
+    const mo=$('pspMonth');if(mo)mo.value='0';
+  }
+  renderPersonalStats();
+}
+
+function onPersonalStatsCustomChange(){
+  const yr=$('pspYear'),mo=$('pspMonth');
+  if(yr)_personalStatsYear=parseInt(yr.value)||new Date().getFullYear();
+  if(mo)_personalStatsMonth=parseInt(mo.value)||0;
+  _personalStatsPeriod='custom';
+  ['psp-month','psp-year','psp-all'].forEach(id=>{const b=$(id);if(b)b.classList.remove('btn-gold');});
+  renderPersonalStats();
+}
+
+function renderPersonalStats(){
+  // 기간 범위 계산
+  let dateFrom=null,dateTo=null;
+  if(_personalStatsPeriod==='month'){
+    const n=new Date();const yr=n.getFullYear(),mo=String(n.getMonth()+1).padStart(2,'0');
+    dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;
+  }else if(_personalStatsPeriod==='year'){
+    const yr=new Date().getFullYear();dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;
+  }else if(_personalStatsPeriod==='custom'){
+    const yr=_personalStatsYear;
+    if(_personalStatsMonth===0){dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;}
+    else{const mo=String(_personalStatsMonth).padStart(2,'0');dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;}
+  }
+  const inRange=d=>d&&(!dateFrom||(d>=dateFrom&&d<=dateTo));
+
+  // 연도 드롭다운 초기화 (처음 한 번만)
+  const yrSel=$('pspYear');
+  if(yrSel&&!yrSel.options.length){
+    const curYr=new Date().getFullYear();
+    for(let y=curYr+1;y>=curYr-3;y--){
+      const opt=document.createElement('option');
+      opt.value=String(y);opt.textContent=y+'년';
+      if(y===_personalStatsYear)opt.selected=true;
+      yrSel.appendChild(opt);
+    }
+  }
+
+  // 기간 버튼 활성화 동기화
+  ['psp-month','psp-year','psp-all'].forEach(id=>{const b=$(id);if(b)b.classList.remove('btn-gold');});
+  const btnMap={month:'psp-month',year:'psp-year',all:'psp-all'};
+  if(btnMap[_personalStatsPeriod])$(btnMap[_personalStatsPeriod])?.classList.add('btn-gold');
+
+  // 종류별 건수 집계 (events 배열 — 이미 user_id 기준 개인 데이터)
+  const types=['inip','meeting','deposit','sign','balance'];
+  const labels=['고객인입','미팅','계약금','계약서','잔금'];
+  const colorKeys=['inip','meeting','deposit','sign','balance'];
+  const counts={};
+  types.forEach(t=>{counts[t]=events.filter(e=>e.type===t&&inRange(e.date)).length;});
+
+  // 기간 라벨
+  let periodLabel='전체 기간';
+  if(_personalStatsPeriod==='month')periodLabel='이번 달';
+  else if(_personalStatsPeriod==='year')periodLabel=`${new Date().getFullYear()}년`;
+  else if(_personalStatsPeriod==='custom')periodLabel=_personalStatsMonth===0?`${_personalStatsYear}년`:`${_personalStatsYear}년 ${_personalStatsMonth}월`;
+
+  // 종류별 카드
+  const cardsEl=$('personalStatsCards');
+  if(cardsEl){
+    cardsEl.innerHTML=`
+      <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.5px;margin-bottom:10px">📊 ${escHtml(periodLabel)} 내 실적</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+        ${types.map((t,i)=>`
+          <div class="panel" style="padding:14px 8px;text-align:center">
+            <div style="width:26px;height:26px;border-radius:50%;background:var(--c-${colorKeys[i]}-dim);margin:0 auto 8px;display:flex;align-items:center;justify-content:center">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--c-${colorKeys[i]})"></div>
+            </div>
+            <div style="font-size:22px;font-weight:700;color:var(--c-${colorKeys[i]});font-family:'Noto Serif KR',serif;line-height:1">${counts[t]}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:5px">${escHtml(labels[i])}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  // 차트 그리기
+  const chartYear=(_personalStatsPeriod==='custom'||_personalStatsPeriod==='year')?_personalStatsYear:new Date().getFullYear();
+  requestAnimationFrame(()=>{
+    _drawPersonalBarChart(chartYear);
+    _drawPersonalDonutChart(counts,types,labels,colorKeys);
+  });
+}
+
+function _drawPersonalBarChart(chartYear){
+  const el=document.getElementById('personalBarCanvas');
+  if(!el||typeof Chart==='undefined')return;
+  if(_personalBarChart){_personalBarChart.destroy();_personalBarChart=null;}
+  const months=Array.from({length:12},(_,i)=>i+1);
+  const types=['inip','meeting','deposit','sign','balance'];
+  const seriesLabels=['고객인입','미팅','계약금','계약서','잔금'];
+  const seriesColors=[_CC.inip,_CC.meeting,_CC.deposit,_CC.sign,_CC.balance];
+  const datasets=types.map((type,i)=>({
+    label:seriesLabels[i],
+    data:months.map(mo=>{
+      const from=`${chartYear}-${String(mo).padStart(2,'0')}-01`;
+      const to=`${chartYear}-${String(mo).padStart(2,'0')}-31`;
+      return events.filter(e=>e.type===type&&e.date>=from&&e.date<=to).length;
+    }),
+    backgroundColor:seriesColors[i]+'88',borderColor:seriesColors[i],borderWidth:1,borderRadius:2
+  }));
+  _personalBarChart=new Chart(el,{
+    type:'bar',
+    data:{labels:months.map(m=>m+'월'),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:_CC.text2,font:{size:9},boxWidth:8,padding:6}}},
+      scales:{
+        x:{ticks:{color:_CC.text3,font:{size:9}},grid:{color:_CC.border+'66'}},
+        y:{ticks:{color:_CC.text3,font:{size:9},stepSize:1},grid:{color:_CC.border+'66'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function _drawPersonalDonutChart(counts,types,labels,colorKeys){
+  const el=document.getElementById('personalDonutCanvas');
+  const canvasWrap=$('personalDonutCanvasWrap');
+  const legend=$('personalDonutLegend');
+  if(!el||typeof Chart==='undefined')return;
+  if(_personalDonutChart){_personalDonutChart.destroy();_personalDonutChart=null;}
+  const total=types.reduce((s,t)=>s+(counts[t]||0),0);
+  if(total===0){
+    if(canvasWrap)canvasWrap.style.display='none';
+    if(legend)legend.innerHTML=`<div style="color:${_CC.text3};font-size:12px;text-align:center;width:100%">데이터 없음</div>`;
+    return;
+  }
+  if(canvasWrap)canvasWrap.style.display='';
+  const typeColors=colorKeys.map(k=>_CC[k]);
+  const active=types.filter(t=>(counts[t]||0)>0);
+  const activeColors=active.map(t=>typeColors[types.indexOf(t)]);
+  const activeLabels=active.map(t=>labels[types.indexOf(t)]);
+  _personalDonutChart=new Chart(el,{
+    type:'doughnut',
+    data:{labels:activeLabels,datasets:[{data:active.map(t=>counts[t]),backgroundColor:activeColors,borderColor:_CC.bg2,borderWidth:2,hoverOffset:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`${c.label}: ${c.raw}건 (${Math.round(c.raw/total*100)}%)`}}}
+    }
+  });
+  if(legend){
+    legend.innerHTML=active.map((t,i)=>{
+      const cnt=counts[t],pct=Math.round(cnt/total*100);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="width:9px;height:9px;border-radius:50%;background:${activeColors[i]};flex-shrink:0"></div>
+        <span style="font-size:11px;color:${_CC.text2}">${escHtml(activeLabels[i])}</span>
+        <span style="font-size:11px;font-weight:700;color:${activeColors[i]};margin-left:auto;padding-left:4px;flex-shrink:0">${cnt}건 ${pct}%</span>
       </div>`;
     }).join('');
   }
@@ -7681,7 +7888,7 @@ function renderTeamStats({members,events}){
 // ── 팀 차트 ──────────────────────────────────────────
 // 다크모드 고정 색상 (CSS 변수 Chart.js에서 직접 사용 불가)
 const _CC={text3:'#484f58',text2:'#8b949e',border:'#2d3748',bg2:'#161b22',
-  inip:'#9ca3af',meeting:'#58a6ff',sign:'#e3814a',balance:'#3fb950'};
+  inip:'#9ca3af',meeting:'#58a6ff',deposit:'#d4a843',sign:'#e3814a',balance:'#3fb950'};
 
 function onBarChartMemberChange(){
   if(!_teamStatsCache)return;
