@@ -7927,7 +7927,28 @@ const _CC={text3:'#484f58',text2:'#8b949e',border:'#2d3748',bg2:'#161b22',
 function onBarChartMemberChange(){
   if(!_teamStatsCache)return;
   const chartYear=(_teamStatsPeriod==='custom'||_teamStatsPeriod==='year')?_teamStatsYear:new Date().getFullYear();
-  _drawBarChart(_teamStatsCache.events,chartYear,$('barChartMemberSel')?.value||'');
+  const uid=$('barChartMemberSel')?.value||'';
+  _drawBarChart(_teamStatsCache.events,chartYear,uid);
+  _updateTeamFunnel(uid);
+}
+function _updateTeamFunnel(userId){
+  const tfw=$('teamFunnelWrap');if(!tfw||!_teamStatsCache)return;
+  const events=_teamStatsCache.events;
+  let dateFrom=null,dateTo=null;
+  if(_teamStatsPeriod==='month'){
+    const n=new Date();const yr=n.getFullYear(),mo=String(n.getMonth()+1).padStart(2,'0');
+    dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;
+  }else if(_teamStatsPeriod==='year'){
+    const yr=new Date().getFullYear();dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;
+  }else if(_teamStatsPeriod==='custom'){
+    const yr=_teamStatsYear;
+    if(_teamStatsMonth===0){dateFrom=`${yr}-01-01`;dateTo=`${yr}-12-31`;}
+    else{const mo=String(_teamStatsMonth).padStart(2,'0');dateFrom=`${yr}-${mo}-01`;dateTo=`${yr}-${mo}-31`;}
+  }
+  const inRange=d=>d&&(!dateFrom||(d>=dateFrom&&d<=dateTo));
+  const src=userId?events.filter(e=>e.user_id===userId):events;
+  const cnt=t=>src.filter(e=>e.event_type===t&&inRange(e.event_date)).length;
+  tfw.innerHTML=_renderFunnelHTML(cnt('inip'),cnt('meeting'),cnt('sign'),cnt('balance'));
 }
 function _drawBarChart(events,chartYear,userId){
   const el=document.getElementById('teamBarCanvas');
