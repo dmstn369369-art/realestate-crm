@@ -200,6 +200,26 @@ const canUseCloud = (
 - 7개 테이블 `Promise.all` 동시 COUNT — 컬럼 없는 테이블의 쿼리 오류는 FK 없음으로 간주해 건너뜀
 - `await` 없이 호출(best-effort) — 실패해도 합류·탈퇴 본 흐름 방해 없음
 
+### 정산관리 개인 현황판
+
+- 정산관리 탭에 "개인 현황판" 서브탭 추가 — 기존 정산 표는 유지하고 병렬 탭으로 분리
+- **데이터 기준**: `events` 로컬 배열 (이미 `user_id = currentUser.id` 필터 적용 상태) — Supabase 재조회 없음
+- **구성**
+  - 기간 선택 버튼 (이번 달 / 올해 / 전체 / 연도·월 커스텀)
+  - 요약 카드 5종: 고객인입·미팅·계약금·계약서·잔금
+  - 월별 추이 막대 차트 (`personalBarCanvas`)
+  - 계약 비중 도넛 차트 (`personalDonutCanvas`)
+  - 전환 퍼널 (`personalFunnelWrap`)
+- 팀 현황판(`renderTeamStats`)과 완전히 독립된 함수 — `renderPersonalStats`, `_drawPersonalBarChart`, `_drawPersonalDonutChart`
+
+### 전환 퍼널 (`_renderFunnelHTML`)
+
+- 고객인입 → 미팅 → 계약서 → 잔금 4단계 건수 + 단계 간 전환율(%)
+- 분모가 0이면 전환율을 `'-'`로 표시 (0 나누기 방지)
+- 공유 순수함수 `_renderFunnelHTML(inip, meeting, sign, balance)` — 개인(`renderPersonalStats`)·팀(`renderTeamStats`) 양쪽에서 호출
+- **계약금(`deposit`)은 퍼널 4단계에서 제외** — 계약서(`sign`)와 별개 항목, 흐름 단계 아님
+- **팀원관리 탭 퍼널 연동**: 담당자 드롭다운(`barChartMemberSel`) 변경 시 `_updateTeamFunnel(userId)` 호출 → 선택 팀원 기준으로 재계산. "전체" 선택 시 팀 합산 수치 사용
+
 ---
 
 ## 배포 / 인프라
