@@ -1520,11 +1520,17 @@ html{overflow-x:hidden}
             </div>
           </div>
           <div style="padding:12px 16px 16px">
-            <div id="joinTeamAlready" style="display:none;font-size:11px;color:var(--text3);margin-bottom:10px;background:var(--bg);border-radius:6px;padding:6px 10px"></div>
-            <div class="fg" style="margin-bottom:8px">
-              <input type="text" id="joinTeamCodeInput" placeholder="초대 코드 6자리" maxlength="6" oninput="this.value=this.value.toUpperCase()" style="font-family:monospace;letter-spacing:4px;font-size:17px;text-align:center;text-transform:uppercase">
+            <div id="joinTeamInputSection">
+              <div id="joinTeamAlready" style="display:none;font-size:11px;color:var(--text3);margin-bottom:10px;background:var(--bg);border-radius:6px;padding:6px 10px"></div>
+              <div class="fg" style="margin-bottom:8px">
+                <input type="text" id="joinTeamCodeInput" placeholder="초대 코드 6자리" maxlength="6" oninput="this.value=this.value.toUpperCase()" style="font-family:monospace;letter-spacing:4px;font-size:17px;text-align:center;text-transform:uppercase">
+              </div>
+              <button class="btn btn-gold" onclick="joinTeam()" style="font-size:12px;padding:6px 16px">팀 합류</button>
             </div>
-            <button class="btn btn-gold" onclick="joinTeam()" style="font-size:12px;padding:6px 16px">팀 합류</button>
+            <div id="leaveTeamSection" style="display:none">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:10px;background:var(--bg);border-radius:6px;padding:6px 10px">현재 소속 팀: <strong id="leaveTeamOrgName"></strong></div>
+              <button class="btn" onclick="leaveTeam()" style="font-size:12px;padding:6px 16px;color:var(--red);border-color:var(--red)">팀 나가기</button>
+            </div>
           </div>
         </div>
 
@@ -3002,23 +3008,45 @@ function copyInviteCode(){
 }
 
 // ── 팀 합류 ──────────────────────────────────────────
-function renderJoinTeamSection(){
+async function renderJoinTeamSection(){
   const panel=$('joinTeamPanel');if(!panel)return;
   const canUseCloud=(
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
     typeof currentUser!=='undefined'&&currentUser!==null
   );
-  panel.style.display=canUseCloud?'':'none';
-  if(!canUseCloud)return;
+  if(!canUseCloud){panel.style.display='none';return;}
+  const role=currentProfile?.role;
+  const inputSec=$('joinTeamInputSection');
+  const leaveSec=$('leaveTeamSection');
   const alreadyEl=$('joinTeamAlready');
-  if(alreadyEl){
-    const orgName=typeof currentOrganization!=='undefined'&&currentOrganization?.name||'';
-    if(orgName){
-      alreadyEl.style.display='';
-      alreadyEl.textContent='현재 소속 팀: '+orgName+' · 다른 코드 입력 시 팀이 변경됩니다';
-    }else{
-      alreadyEl.style.display='none';
+  // 팀원 → 합류 입력 숨기고 탈퇴 버튼 표시
+  if(role==='member'){
+    panel.style.display='';
+    if(inputSec)inputSec.style.display='none';
+    if(alreadyEl)alreadyEl.style.display='none';
+    if(leaveSec){
+      leaveSec.style.display='';
+      const nm=$('leaveTeamOrgName');if(nm)nm.textContent=currentOrganization?.name||'현재 팀';
     }
+    return;
+  }
+  // 팀원 있는 팀장 → 패널 자체 숨김
+  if(role==='owner'&&typeof currentOrganization!=='undefined'&&currentOrganization){
+    try{
+      const{count}=await supabaseClient.from('profiles')
+        .select('id',{count:'exact',head:true})
+        .eq('organization_id',currentOrganization.id).neq('id',currentUser.id);
+      if((count||0)>0){panel.style.display='none';return;}
+    }catch(e){console.warn('[renderJoinTeamSection]',e);}
+  }
+  // 혼자인 owner → 합류 입력 표시
+  panel.style.display='';
+  if(leaveSec)leaveSec.style.display='none';
+  if(inputSec)inputSec.style.display='';
+  if(alreadyEl){
+    const orgName=currentOrganization?.name||'';
+    if(orgName){alreadyEl.style.display='';alreadyEl.textContent='현재 소속: '+orgName+' · 다른 코드 입력 시 팀이 변경됩니다';}
+    else alreadyEl.style.display='none';
   }
 }
 async function joinTeam(){
@@ -3027,6 +3055,15 @@ async function joinTeam(){
     typeof currentUser!=='undefined'&&currentUser!==null
   );
   if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  if(currentProfile?.role==='member'){toast('팀원은 팀 코드를 사용할 수 없습니다');return;}
+  if(currentProfile?.role==='owner'&&typeof currentOrganization!=='undefined'&&currentOrganization){
+    try{
+      const{count}=await supabaseClient.from('profiles')
+        .select('id',{count:'exact',head:true})
+        .eq('organization_id',currentOrganization.id).neq('id',currentUser.id);
+      if((count||0)>0){toast('팀원이 있는 팀장은 다른 팀에 합류할 수 없습니다');return;}
+    }catch(e){console.warn('[joinTeam guard]',e);}
+  }
   const code=($('joinTeamCodeInput')?.value||'').trim().toUpperCase();
   if(!code||code.length!==6){toast('6자리 초대 코드를 입력해주세요');return;}
   try{
@@ -7730,6 +7767,35 @@ function _drawDonutChart(members,contractMap,tct){
 }
 
 // ── 팀원 내보내기 ─────────────────────────────────────
+async function _separateMemberToPersonalOrg(userId,userName){
+  // ① 기존 개인 조직 확인, 없으면 신규 생성
+  let newOrgId,newOrgName;
+  const{data:existingOrg}=await supabaseClient
+    .from('organizations').select('id,name').eq('owner_id',userId).maybeSingle();
+  if(existingOrg){
+    newOrgId=existingOrg.id;newOrgName=existingOrg.name;
+    console.log('[separate] 기존 개인 조직 재사용, id=',newOrgId);
+  }else{
+    const orgName=`${userName}의 사무실`;
+    const{data:newOrg,error:orgErr}=await supabaseClient
+      .from('organizations').insert({name:orgName,owner_id:userId}).select('id,name').single();
+    if(orgErr)throw new Error('새 조직 생성 실패: '+orgErr.message);
+    newOrgId=newOrg.id;newOrgName=newOrg.name;
+    console.log('[separate] 새 조직 생성 완료, id=',newOrgId);
+  }
+  // ② 매물만 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
+  const{error:propErr}=await supabaseClient.from('properties')
+    .update({organization_id:newOrgId}).eq('user_id',userId);
+  if(propErr)console.warn('[separate] 매물 이전 실패:',propErr.message);
+  else console.log('[separate] 매물 이전 완료');
+  // ③ 프로필 업데이트 (마지막에)
+  const{error:profileErr}=await supabaseClient
+    .from('profiles').update({organization_id:newOrgId,role:'owner'}).eq('id',userId);
+  if(profileErr)throw new Error('프로필 업데이트 실패: '+profileErr.message);
+  console.log('[separate] 완료');
+  return{newOrgId,newOrgName};
+}
+
 async function kickTeamMember(memberId){
   const canUseCloud=(
     typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
@@ -7744,43 +7810,39 @@ async function kickTeamMember(memberId){
   if(!confirm(`${memberName}님을 팀에서 내보내시겠습니까?\n데이터는 유지되며 본인 소유로 남습니다.`))return;
   toast('내보내는 중...');
   try{
-    // ① 기존 개인 조직 확인 후 없으면 신규 생성 (중복 방지)
-    console.log('[kick] 1. 개인 조직 확인/생성 중...');
-    let newOrgId;
-    const{data:existingOrg}=await supabaseClient
-      .from('organizations').select('id,name').eq('owner_id',memberId).maybeSingle();
-    if(existingOrg){
-      newOrgId=existingOrg.id;
-      console.log('[kick] 기존 개인 조직 재사용, id=',newOrgId,', name=',existingOrg.name);
-    }else{
-      const{data:newOrg,error:orgErr}=await supabaseClient
-        .from('organizations').insert({name:`${memberName}의 사무실`,owner_id:memberId}).select('id,name').single();
-      if(orgErr){console.error('[kick] 조직 생성 실패:',orgErr);throw new Error('새 조직 생성 실패: '+orgErr.message);}
-      newOrgId=newOrg.id;
-      console.log('[kick] 새 조직 생성 완료, id=',newOrgId,', name=',newOrg.name);
-    }
-
-    // ② 매물만 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
-    console.log('[kick] 2. 매물 organization_id 이전 중...');
-    const{error:propErr}=await supabaseClient.from('properties')
-      .update({organization_id:newOrgId}).eq('user_id',memberId);
-    if(propErr)console.warn('[kick] 매물 이전 실패:',propErr.message);
-    else console.log('[kick] 매물 이전 완료');
-
-    // ③ 프로필 업데이트 (데이터 이전 완료 후 마지막에)
-    console.log('[kick] 3. 프로필 업데이트 중...');
-    const{error:profileErr}=await supabaseClient
-      .from('profiles').update({organization_id:newOrgId,role:'owner'}).eq('id',memberId);
-    if(profileErr){console.error('[kick] 프로필 업데이트 실패:',profileErr);throw new Error('프로필 업데이트 실패: '+profileErr.message);}
-    console.log('[kick] 내보내기 완료');
+    await _separateMemberToPersonalOrg(memberId,memberName);
     toast(`${memberName}님을 팀에서 내보냈습니다`);
     _teamStatsCache=null;
-    // 팀 매물 캐시 무효화 후 재로드
     await syncPropertiesFromCloud();
     await loadTeamMembers();
   }catch(err){
     console.error('[kickTeamMember] 오류:',err);
     toast('내보내기 실패: '+(err.message?.substring(0,60)||'오류'));
+  }
+}
+
+async function leaveTeam(){
+  const canUseCloud=(
+    typeof supabaseClient!=='undefined'&&supabaseClient!==null&&
+    typeof currentUser!=='undefined'&&currentUser!==null&&
+    typeof currentOrganization!=='undefined'&&currentOrganization!==null
+  );
+  if(!canUseCloud){toast('로그인이 필요합니다');return;}
+  if(currentProfile?.role!=='member'){toast('팀원만 팀을 나갈 수 있습니다');return;}
+  const orgName=currentOrganization?.name||'현재 팀';
+  if(!confirm(`'${orgName}'에서 나가시겠습니까?\n데이터는 유지되며 본인 소유로 남습니다.`))return;
+  toast('팀 나가는 중...');
+  try{
+    const myName=currentProfile?.name||'나';
+    const{newOrgId,newOrgName}=await _separateMemberToPersonalOrg(currentUser.id,myName);
+    currentProfile={...currentProfile,organization_id:newOrgId,role:'owner'};
+    currentOrganization={id:newOrgId,name:newOrgName,invite_code:null};
+    toast('팀에서 나왔습니다');
+    renderSettingsPage();
+    if(typeof loadDataFromSupabase==='function')loadDataFromSupabase();
+  }catch(err){
+    console.error('[leaveTeam]',err);
+    toast('탈퇴 실패: '+(err.message?.substring(0,40)||'오류'));
   }
 }
 
