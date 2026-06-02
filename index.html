@@ -1290,6 +1290,7 @@ html{overflow-x:hidden}
           </div>
         </div>
         <div id="personalStatsCards"></div>
+        <div id="personalFunnelWrap" style="margin-top:12px"></div>
       </div>
     </div>
 
@@ -1472,6 +1473,7 @@ html{overflow-x:hidden}
               </div>
             </div>
           </div>
+          <div id="teamFunnelWrap" style="margin-bottom:16px"></div>
           <div id="teamMemberListWrap"><div class="empty">로딩 중...</div></div>
         </div>
       </div>
@@ -3661,6 +3663,32 @@ function renderSettlement(){
   }
 }
 
+// ── 전환 퍼널 (개인·팀 공용) ──────────────────────────
+function _renderFunnelHTML(inip,meeting,sign,balance){
+  const stages=[
+    {label:'고객인입',val:inip,c:'inip'},
+    {label:'미팅',val:meeting,c:'meeting'},
+    {label:'계약서',val:sign,c:'sign'},
+    {label:'잔금',val:balance,c:'balance'}
+  ];
+  const rates=[
+    inip>0?Math.round(meeting/inip*100):null,
+    meeting>0?Math.round(sign/meeting*100):null,
+    sign>0?Math.round(balance/sign*100):null
+  ];
+  let html=`<div class="panel" style="padding:14px 16px"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:12px">전환 퍼널</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">`;
+  stages.forEach((s,i)=>{
+    html+=`<div style="flex:1;min-width:60px;text-align:center;padding:12px 4px;background:var(--bg);border-radius:8px">
+      <div style="font-size:9px;font-weight:600;color:var(--c-${s.c});margin-bottom:4px">${s.label}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--c-${s.c});font-family:'Noto Serif KR',serif;line-height:1">${s.val}</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:2px">건</div>
+    </div>`;
+    if(i<3){const r=rates[i];html+=`<div style="text-align:center;flex-shrink:0;padding:0 2px"><div style="font-size:10px;font-weight:600;color:var(--text2)">${r!==null?r+'%':'-'}</div><div style="font-size:12px;color:var(--text3)">→</div></div>`;}
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
 // ── 개인 현황판 ──────────────────────────────────────
 let _personalStatsPeriod='year';
 let _personalStatsYear=new Date().getFullYear();
@@ -3756,6 +3784,9 @@ function renderPersonalStats(){
       </div>`;
   }
 
+  // 퍼널
+  const pfw=$('personalFunnelWrap');
+  if(pfw)pfw.innerHTML=_renderFunnelHTML(counts.inip,counts.meeting,counts.sign,counts.balance);
   // 차트 그리기
   const chartYear=(_personalStatsPeriod==='custom'||_personalStatsPeriod==='year')?_personalStatsYear:new Date().getFullYear();
   requestAnimationFrame(()=>{
@@ -7870,6 +7901,9 @@ function renderTeamStats({members,events}){
     </div>`;
   });
   wrap.innerHTML=html;
+  // 퍼널
+  const tfw=$('teamFunnelWrap');
+  if(tfw)tfw.innerHTML=_renderFunnelHTML(tc,te,tct,tb);
   // 차트 그리기
   const chartYear=(_teamStatsPeriod==='custom'||_teamStatsPeriod==='year')?_teamStatsYear:new Date().getFullYear();
   requestAnimationFrame(()=>{
