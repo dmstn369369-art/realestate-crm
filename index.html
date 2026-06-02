@@ -3038,6 +3038,7 @@ async function joinTeam(){
        String(currentOrganization.id)===String(orgData.id)){
       toast('이미 해당 팀의 멤버입니다');return;
     }
+    const oldOrgId=currentOrganization?.id||null;
     const{error:updateErr}=await supabaseClient
       .from('profiles').update({organization_id:orgData.id,role:'member'}).eq('id',currentUser.id);
     if(updateErr)throw updateErr;
@@ -3046,6 +3047,7 @@ async function joinTeam(){
       .update({organization_id:orgData.id}).eq('user_id',currentUser.id);
     if(propMoveErr)console.warn('[joinTeam] 매물 이전 실패(무시):',propMoveErr.message);
     else console.log('[joinTeam] 매물 organization_id 이전 완료');
+    _cleanupEmptyOrg(oldOrgId);
     currentProfile={...currentProfile,organization_id:orgData.id};
     currentOrganization={id:orgData.id,name:orgData.name,invite_code:orgData.invite_code};
     const inp=$('joinTeamCodeInput');if(inp)inp.value='';
@@ -3057,6 +3059,26 @@ async function joinTeam(){
     console.error('[joinTeam]',err);
     toast('팀 합류 실패: '+(err.message?.substring(0,40)||'오류'));
   }
+}
+
+async function _cleanupEmptyOrg(oldOrgId){
+  if(!oldOrgId)return;
+  try{
+    const tables=['profiles','properties','clients','events','contracts','contacts','inquiries'];
+    const results=await Promise.all(
+      tables.map(t=>supabaseClient.from(t).select('id',{count:'exact',head:true}).eq('organization_id',oldOrgId))
+    );
+    for(let i=0;i<results.length;i++){
+      const{count,error}=results[i];
+      if(!error&&(count||0)>0){
+        console.log(`[cleanupEmptyOrg] ${tables[i]} 데이터 있음(${count}건) → 삭제 건너뜀`);
+        return;
+      }
+    }
+    const{error:delErr}=await supabaseClient.from('organizations').delete().eq('id',oldOrgId);
+    if(delErr)console.warn('[cleanupEmptyOrg] 삭제 실패:',delErr.message);
+    else console.log('[cleanupEmptyOrg] 빈 개인조직 삭제 완료:',oldOrgId);
+  }catch(e){console.warn('[cleanupEmptyOrg] 예외(무시):',e.message);}
 }
 
 function toggleChangePasswordSection(){
