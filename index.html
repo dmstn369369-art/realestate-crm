@@ -3106,8 +3106,9 @@ async function joinTeam(){
   try{
     const{data:rpcRows,error:orgErr}=await supabaseClient.rpc('join_by_invite_code',{code});
     if(orgErr)throw orgErr;
-    const orgData=(rpcRows&&rpcRows.length>0)?rpcRows[0]:null;
-    if(!orgData){toast('유효하지 않은 초대 코드입니다');return;}
+    const rpcList=Array.isArray(rpcRows)?rpcRows:[];
+    const orgData=rpcList.length>0?rpcList[0]:null;
+    if(!orgData||!orgData.id){toast('유효하지 않은 초대 코드입니다');return;}
     if(typeof currentOrganization!=='undefined'&&currentOrganization&&
        String(currentOrganization.id)===String(orgData.id)){
       toast('이미 해당 팀의 멤버입니다');return;
