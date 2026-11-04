@@ -8031,32 +8031,13 @@ function _drawDonutChart(members,contractMap,tct){
 
 // ── 팀원 내보내기 ─────────────────────────────────────
 async function _separateMemberToPersonalOrg(userId,userName){
-  // ① 기존 개인 조직 확인, 없으면 신규 생성
-  let newOrgId,newOrgName;
-  const{data:existingOrg}=await supabaseClient
-    .from('organizations').select('id,name').eq('owner_id',userId).maybeSingle();
-  if(existingOrg){
-    newOrgId=existingOrg.id;newOrgName=existingOrg.name;
-    console.log('[separate] 기존 개인 조직 재사용, id=',newOrgId);
-  }else{
-    const orgName=`${userName}의 사무실`;
-    const{data:newOrg,error:orgErr}=await supabaseClient
-      .from('organizations').insert({name:orgName,owner_id:userId}).select('id,name').single();
-    if(orgErr)throw new Error('새 조직 생성 실패: '+orgErr.message);
-    newOrgId=newOrg.id;newOrgName=newOrg.name;
-    console.log('[separate] 새 조직 생성 완료, id=',newOrgId);
-  }
-  // ② 매물만 이전 (일정·고객·계약은 user_id 개인소유 - 이동 안 함)
-  const{error:propErr}=await supabaseClient.from('properties')
-    .update({organization_id:newOrgId}).eq('user_id',userId);
-  if(propErr)console.warn('[separate] 매물 이전 실패:',propErr.message);
-  else console.log('[separate] 매물 이전 완료');
-  // ③ 프로필 업데이트 (마지막에)
-  const{error:profileErr}=await supabaseClient
-    .from('profiles').update({organization_id:newOrgId,role:'owner'}).eq('id',userId);
-  if(profileErr)throw new Error('프로필 업데이트 실패: '+profileErr.message);
-  console.log('[separate] 완료');
-  return{newOrgId,newOrgName};
+  const{data:rows,error}=await supabaseClient
+    .rpc('separate_member_to_personal_org',{target_member_id:userId});
+  if(error)throw new Error('내보내기 실패: '+error.message);
+  const row=(Array.isArray(rows)&&rows.length>0)?rows[0]:null;
+  if(!row?.org_id)throw new Error('내보내기 실패: 결과 없음');
+  console.log('[separate] 완료, id=',row.org_id);
+  return{newOrgId:row.org_id,newOrgName:row.org_name};
 }
 
 async function kickTeamMember(memberId){
