@@ -136,6 +136,14 @@ const canUseCloud = (
 - 개인 데이터를 `organization_id`로 조회하면 **소속 변경 시 화면에서 사라짐** (데이터 유실이 아닌 조회 누락)
 - 매물만 팀 공유 대상이므로 `organization_id` 기준 유지
 
+### events 조회 권한(RLS)
+
+| 조건 | 설명 |
+|------|------|
+| `user_id = auth.uid()` | 본인 일정 조회 (기본) |
+| `am_i_owner()` + `profiles.organization_id = my_org_id()` | 팀장이 같은 사무소 팀원 일정 조회 (2026-11 추가) |
+| `is_admin()` | 관리자 — 전 사무소 일정 열람 가능 |
+
 ### INSERT 규칙
 
 - **개인 데이터** INSERT 시 반드시 `user_id: currentUser.id` 포함
@@ -301,6 +309,12 @@ saveEvent  ↔ (고객인입 시 clients에도 저장)
 - `_authInitialized`, `_dataLoaded` 플래그로 `handleSignedIn` 중복 실행 방지
 - `updateAuthUI(user)`는 중복 호출과 무관하게 항상 실행
 - 로그아웃 시 두 플래그 반드시 리셋
+
+### 테스트 주의
+
+- 관리자 계정은 모든 사무소 데이터가 보여 팀·권한 테스트 결과가 가려짐
+- 팀 기능은 관리자가 아닌 새 계정(팀장/팀원)으로 테스트할 것
+- 사무소 분리 검증은 `SET LOCAL ROLE authenticated` + `request.jwt.claims` 시뮬레이션 사용
 
 ## 수정 시 체크리스트
 
