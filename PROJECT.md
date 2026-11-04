@@ -144,6 +144,31 @@ const canUseCloud = (
 | `am_i_owner()` + `profiles.organization_id = my_org_id()` | 팀장이 같은 사무소 팀원 일정 조회 (2026-11 추가) |
 | `is_admin()` | 관리자 — 전 사무소 일정 열람 가능 |
 
+### organizations 조회 권한(RLS)
+
+| 정책 | 조건 | 설명 |
+|------|------|------|
+| 같은 사무소 구성원 | `organization_id = my_org_id()` | 소속 사무소 정보 열람 |
+| 본인 소유 | `owner_id = auth.uid()` | 본인이 owner인 사무소 |
+| 팀장이 소속 팀원의 개인 사무소 | `am_i_owner()` + 팀원 `owner_id` 조건 | 내보내기 시 팀원 개인 사무소 접근 |
+| 관리자 전체 | `is_admin()` | 전 사무소 열람 |
+
+**삭제된 정책 — 절대 복구 금지**: `invite_code IS NOT NULL`
+- 비로그인 포함 모든 사용자가 전체 사무소·초대코드를 조회할 수 있던 보안 구멍
+- 대체 방식: `join_by_invite_code()` DB 함수 (코드 일치 사무소만 반환, invite_code 값은 미노출)
+
+**교훈**: 팀원 소속(`organization_id`)을 클라이언트에서 직접 UPDATE하면, 변경된 행이 팀장의 SELECT 정책에서 사라져 RLS 403으로 막힘 → 소속 변경은 반드시 `SECURITY DEFINER` DB 함수로 처리
+
+### organizations 관련 DB 함수
+
+| 함수 | 역할 | anon 허용 |
+|------|------|----------|
+| `join_by_invite_code(code text)` | 초대코드 일치 사무소 id·name 반환 (invite_code 미노출) | ✕ |
+| `get_org_name(org_id uuid)` | 공유 매물 페이지용 사무소 이름 조회 | ✓ |
+| `separate_member_to_personal_org(target_member_id uuid)` | 내보내기: 개인 사무소 조회/생성 · 소속 이동 · 매물 이전 | ✕ |
+
+모두 `SECURITY DEFINER`(RLS 우회). `get_org_name` 외에는 `authenticated` 역할만 호출 가능.
+
 ### INSERT 규칙
 
 - **개인 데이터** INSERT 시 반드시 `user_id: currentUser.id` 포함
@@ -315,6 +340,7 @@ saveEvent  ↔ (고객인입 시 clients에도 저장)
 - 관리자 계정은 모든 사무소 데이터가 보여 팀·권한 테스트 결과가 가려짐
 - 팀 기능은 관리자가 아닌 새 계정(팀장/팀원)으로 테스트할 것
 - 사무소 분리 검증은 `SET LOCAL ROLE authenticated` + `request.jwt.claims` 시뮬레이션 사용
+- 비로그인(anon) 조회 허용 여부 확인: Supabase SQL Editor에서 `anon` 역할로 쿼리 후 빈 결과인지 검증
 
 ## 수정 시 체크리스트
 
